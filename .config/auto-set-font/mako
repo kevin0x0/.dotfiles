@@ -1,8 +1,10 @@
 
 set_font() {
-  f="${XDG_CONFIG_HOME:-$HOME/.config}/mako/config"
-  sed -- 's/^\(font=\)[^,]*,/\1'"$monofont"',/' "$f" >"$tmpfile" \
-    && cp -- "$tmpfile" "$f"
+  config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/mako"
+  for f in "$config_dir/config-light" "$config_dir/config-dark"; do
+    sed -- 's/^\(font=\)[^,]*,/\1'"$monofont"',/' "$f" >"$tmpfile" \
+      && cp -- "$tmpfile" "$f"
+  done
 }
 
 reload() {
