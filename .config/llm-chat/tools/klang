@@ -1,13 +1,7 @@
 #!/bin/sh
 
 call() {
-  tmpfile_base=${XDG_RUNTIME_DIR:?"XDG_RUNTIME_DIR is not defined"}/llm-chat-tools.klang.tmp.$$
-  i=0
-  tmpfile=$tmpfile_base.$i
-  while ! (set -C; : >"$tmpfile"); do
-    i=$((i + 1))
-    tmpfile=$tmpfile_base.$i
-  done
+  tmpfile=$(tmpfile)
 
   jq -r '.code' <"$1" >"$tmpfile"
 
