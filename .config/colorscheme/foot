@@ -1,13 +1,7 @@
 set -e
 
-case $1 in
-  dark)
-    theme=1
-    ;;
-  *)
-    theme=2
-    ;;
-esac
+theme=$1
+
 CONFIG_FILE=${XDG_CONFIG_HOME:-$HOME/.config}/foot/foot.ini
 
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -24,10 +18,10 @@ cp -- "$tmp" "$CONFIG_FILE"
 rm -- "$tmp"
 
 case $theme in
-  1)
+  dark)
     pkill -USR1 foot || true
     ;;
-  2)
+  light)
     pkill -USR2 foot || true
     ;;
 esac
