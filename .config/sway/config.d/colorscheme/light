@@ -1,19 +1,19 @@
-set $main_bg #f4e9dd
+set $main_bg #f2ebe5
 
-set $focused_fg #d97b3e
-set $focused_indicator #f0a85a
-set $focused_text #2b1b12
+set $focused_fg #9a5e39
+set $focused_indicator #d79f70
+set $focused_text #3f2f24
 
-set $inactive_fg #e0a06a
-set $inactive_text #3b2618
+set $inactive_fg #b79068
+set $inactive_text #6a4e3a
 
-set $unfocused_fg #f0d9c3
-set $unfocused_text #9c7a5b
+set $unfocused_fg #e1c5b2
+set $unfocused_text #8b6f5d
 
 set $urgent_fg #d9534f
 set $urgent_text #ffffff
 
-set $statusline_text #3b2a1e
+set $statusline_text #7a5a42
 
 set $gtk-theme Materia-light
 set $color-scheme prefer-light

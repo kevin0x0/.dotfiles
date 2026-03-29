@@ -4,7 +4,7 @@ FONTFAMILY='FiraMono Nerd Font Mono'
 FONT="$FONTFAMILY, Bold 14"
 
 DARK_COLORS='-S 232323 -s ceb992 -N 1a1b24 -n 2f7e6d -M 232323 -m 4ca491'
-LIGHT_COLORS='-S f4e9dd -s 3b2a1e -N f4e9dd -n d97b3e -M f4e9dd -m f0a85a'
+LIGHT_COLORS='-S f2ebe5 -s 3f2f24 -N f2ebe5 -n b55a45 -M f2ebe5 -m d79f70'
 
 COLORS=$DARK_COLORS
 
