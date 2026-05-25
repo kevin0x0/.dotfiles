@@ -1,3 +1,4 @@
 
 for_window [class="wechat"] floating enable
+for_window [app_id="swayimg"] border none
 # vim: ft=swayconfig

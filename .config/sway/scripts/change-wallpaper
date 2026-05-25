@@ -5,7 +5,7 @@ wallpaper_dir=$(realpath -- "$(xdg-user-dir PICTURES)/wallpaper") \
 wallpaper_dir=${wallpaper_dir#x}
 
 imgfile=$(find "$wallpaper_dir" -type f -print0 \
-  | xargs -0 swayimg -g --config=general.overlay=no --)
+  | xargs -0 swayimg -g -e "swayimg.enable_overlay(false)" --)
 
 if [ -z "$imgfile" ]; then
   exit 0
