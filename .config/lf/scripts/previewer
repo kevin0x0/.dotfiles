@@ -6,9 +6,6 @@ file=$(realpath -- "$1") || exit 1
 mime_type=$(file --mime-type --brief -- "$file" </dev/null)
 
 case "$mime_type" in
-  text/plain)
-    cat -- "$file"
-    ;;
   @(application/@(yaml|toml|json)|text/*))
     highlight -O ansi -- "$file"
     ;;
