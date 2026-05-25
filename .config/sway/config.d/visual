@@ -8,7 +8,7 @@ include colorscheme/current
 
 set $gnome-schema org.gnome.desktop.interface
 
-set $monofont FiraMono Nerd Font Mono
+set $monofont monospace
 set $font Adwaita Sans
 set $cursor-theme capitaine-cursors
 set $icon-theme Adwaita

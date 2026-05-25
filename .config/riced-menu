@@ -1,5 +1,5 @@
 
-FONTFAMILY='FiraMono Nerd Font Mono'
+FONTFAMILY='monospace'
 # Font by fontconfig format
 FONT="$FONTFAMILY, Bold 14"
 
