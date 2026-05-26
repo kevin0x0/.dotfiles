@@ -1,0 +1,9 @@
+#!/bin/sh
+
+THEME_FILE=${XDG_STATE_HOME:-~/.local/state}/sway/current_theme
+
+if [ -r "$THEME_FILE" ]; then
+  printf "%s\n" "$(cat -- "$THEME_FILE")"
+else
+  printf "dark"
+fi

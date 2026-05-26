@@ -1,10 +1,6 @@
 set -e
 
 CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/mako/config"
-if [ ! -L "$CONFIG_FILE" ]; then
-  echo "$CONFIG_FILE doesn't exist or is not a symbol link" >&2
-  exit 1
-fi
 
 case $1 in
   dark)

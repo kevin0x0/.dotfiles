@@ -76,6 +76,10 @@ while [ $# -ne 0 ]; do
   shift
 done
 
+if [ "$(realpath -- "${XDG_STATE_HOME:-~/.local/state}")" != ~/.local/state ]; then
+  error "XDG_STATE_HOME must be set to ~/.local/state"
+fi
+
 # Checkout
 if ! check_diff; then
   list_diff
@@ -141,3 +145,9 @@ fi
 
 # Create repos
 mkdir -p -- "$HOME/repos"
+
+# Setup configuration files of some app
+
+for f in "$XDG_CONFIG_HOME"/setup-dotfiles/*; do
+  (sh -- "$f")
+done

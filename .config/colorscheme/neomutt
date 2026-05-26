@@ -1,9 +1,11 @@
 set -e
 
-COLOR_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/neomutt/colors/256"
-if [ ! -L "$COLOR_CONFIG" ]; then
-  echo "$COLOR_CONFIG doesn't exist or is not a symbol link" >&2
-  exit 1
+COLOR_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/neomutt/current_theme"
+if [ ! -e  "$(dirname -- $COLOR_STATE)" ]; then
+  if ! mkdir -p "$(dirname -- $COLOR_STATE)"; then
+    echo "can not create state file for neumutt" >&2
+    exit 1
+  fi
 fi
 
 case $1 in
@@ -15,7 +17,7 @@ case $1 in
     ;;
 esac
 
-ln -sf "$color" "$COLOR_CONFIG"
+printf "%s\n" "$color" > "$COLOR_STATE"
 
 # Unfortunately, it seems there is no simple solution to notify running neomutt
 # process to reload color config.

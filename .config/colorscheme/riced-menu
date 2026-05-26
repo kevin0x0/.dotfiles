@@ -1,9 +1,11 @@
 set -e
 
-CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/riced-menu"
-if [ ! -f "$CONFIG_FILE" ]; then
-  echo "$CONFIG_FILE doesn't exist" >&2
-  exit 1
+COLOR_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/riced-menu/current_theme"
+if [ ! -e  "$(dirname -- $COLOR_STATE)" ]; then
+  if ! mkdir -p "$(dirname -- $COLOR_STATE)"; then
+    echo "can not create state file for riced-menu" >&2
+    exit 1
+  fi
 fi
 
 case $1 in
@@ -15,12 +17,6 @@ case $1 in
     ;;
 esac
 
-tmp=$(tmpfile)
-
-sed -- 's/^COLORS=.*$/COLORS=$'"$theme"'/' "$CONFIG_FILE" >"$tmp"
-
-cp -- "$tmp" "$CONFIG_FILE"
-rm -- "$tmp"
-
+printf "%s\n" "$theme" > "$COLOR_STATE"
 
 # vim: ft=sh

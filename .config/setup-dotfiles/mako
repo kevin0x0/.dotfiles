@@ -1,0 +1,3 @@
+ln -sf "config-dark" "$XDG_CONFIG_HOME/mako/config"
+
+# vim: ft=sh

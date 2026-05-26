@@ -1,7 +1,18 @@
 set -e
 
 SWAY_CONFIG=${XDG_CONFIG_HOME:-$HOME/.config}/sway
+THEME_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/sway/current_theme"
 
-"$SWAY_CONFIG/scripts/change-colorscheme" "$1"
+if [ ! -e "$(dirname -- $THEME_STATE)" ]; then
+  if ! mkdir -p "$(dirname -- $THEME_STATE)"; then
+    echo "can not create state file for sway" >&2
+    exit 1
+  fi
+fi
+
+theme=$1
+printf "%s\n" "$theme" > "$THEME_STATE"
+
+"$SWAY_CONFIG/scripts/change-colorscheme" "$theme"
 
 # vim: ft=sh

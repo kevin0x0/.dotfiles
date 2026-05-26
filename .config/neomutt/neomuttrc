@@ -26,7 +26,7 @@ set pgp_use_gpg_agent = yes
 source accounts/init
 source mailinglists
 source keybindings
-source "colors/`termcolors`"
+source "colors/`${XDG_CONFIG_HOME:-$HOME/.config}/neomutt/scripts/get-color-config`"
 
 set query_command = "$my_config_home/neomutt/scripts/address-query %s"
 set new_mail_command = "$my_config_home/neomutt/scripts/new-mail-notify %n %u &"

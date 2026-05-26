@@ -2,8 +2,7 @@
 # This script changes sway's current colorscheme.
 #
 # It gets the theme from the command line or prompts the user to select one.
-# Then it links $SWAY_CONFIG_DIR/config.d/colorscheme/current to the chosen
-# theme. After that, it notifies sway to apply the changes.
+# After that, it notifies sway to apply the changes.
 #
 # To apply changes, instead of executing `swaymsg reload` to reload whole
 # configuration, this script sources only the related configuration files and
@@ -13,6 +12,8 @@
 set -e
 
 SWAY_CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/sway
+SWAY_THEME_DIR=$SWAY_CONFIG_DIR/config.d/colorscheme
+
 
 theme=$1
 if [ -z "$theme" ]; then
@@ -27,9 +28,6 @@ if [ ! -f "$SWAY_CONFIG_DIR/config.d/colorscheme/$theme" ]; then
   exit 1
 fi
 
-ln -sf "$theme" "$SWAY_CONFIG_DIR/config.d/colorscheme/current"
-
-
 source_colorscheme() (
   while IFS= read -r line; do
     trimmed=${line#"${line%%[![:space:]]*}"}
@@ -42,7 +40,7 @@ source_colorscheme() (
         ;;
     esac
       swaymsg -- "$trimmed"
-  done <"$SWAY_CONFIG_DIR/config.d/colorscheme/current"
+  done <"$SWAY_THEME_DIR/$theme"
 )
 
 execute_commands() {

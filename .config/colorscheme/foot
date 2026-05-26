@@ -2,28 +2,23 @@ set -e
 
 theme=$1
 
-CONFIG_FILE=${XDG_CONFIG_HOME:-$HOME/.config}/foot/foot.ini
+COLOR_THEME_FILE=${XDG_STATE_HOME:-$HOME/.local/state}/foot/colortheme.ini
 
-if [ ! -f "$CONFIG_FILE" ]; then
-  echo "$CONFIG_FILE doesn't exist" >&2
+if [ ! -f "$COLOR_THEME_FILE" ]; then
+  echo "$COLOR_THEME_FILE doesn't exist" >&2
   exit 1
 fi
-
-tmp=$(tmpfile)
-
-sed -- 's/^initial-color-theme=.*$/initial-color-theme='"$theme"'/' \
-  "$CONFIG_FILE" >"$tmp"
-
-cp -- "$tmp" "$CONFIG_FILE"
-rm -- "$tmp"
 
 case $theme in
   dark)
     pkill -USR1 foot || true
     ;;
-  light)
+  *)
     pkill -USR2 foot || true
+    theme=light
     ;;
 esac
+
+printf "initial-color-theme=%s\n" "$theme" > "$COLOR_THEME_FILE"
 
 # vim: ft=sh

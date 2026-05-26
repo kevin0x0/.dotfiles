@@ -1,0 +1,20 @@
+#!/bin/sh
+
+case $(termcolors) in
+  256)
+    break
+    ;;
+  *)
+    printf "%s\n " "$(termcolors)"
+    exit
+    ;;
+esac
+
+color_state=${XDG_STATE_HOME:-$HOME/.local/state}/neomutt/current_theme
+
+if [ ! -e "$color_state" ]; then
+  printf "256-dark\n"
+  exit
+fi
+
+printf "%s\n" "$(cat -- "$color_state")"

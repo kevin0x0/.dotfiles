@@ -4,7 +4,7 @@
 # Similarly, lines starting with BAR COLORS DYNAMIC COMMAND BEGIN and BAR
 # COLORS DYNAMIC COMMAND END  are used for commands related to swaybar colors.
 
-include colorscheme/current
+include colorscheme/$("${XDG_CONFIG_HOME:-~/.config}/sway/scripts/get-colorscheme")
 
 set $gnome-schema org.gnome.desktop.interface
 
