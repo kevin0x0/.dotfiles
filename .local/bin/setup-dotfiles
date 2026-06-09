@@ -146,7 +146,7 @@ fi
 # Create repos
 mkdir -p -- "$HOME/repos"
 
-# Setup configuration files of some app
+# Setup configuration files for some apps
 
 for f in "$XDG_CONFIG_HOME"/setup-dotfiles/*; do
   (sh -- "$f")
