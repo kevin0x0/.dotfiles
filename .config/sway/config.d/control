@@ -11,6 +11,8 @@ bindsym {
   $mod+Shift+Return exec $broswer
   # Screen shot
   Print exec GRIM_DEFAULT_DIR=\"$(xdg-user-dir PICTURES)/screenshots\" grim
+  # Screen shot with specified region
+  $mod+Print exec GRIM_DEFAULT_DIR=\"$(xdg-user-dir PICTURES)/screenshots\" grim -g "$(slurp)"
   # Kill focused window
   $mod+Shift+q kill
   # Start your launcher
