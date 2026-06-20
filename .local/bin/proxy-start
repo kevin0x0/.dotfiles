@@ -14,11 +14,12 @@ if ! (umask 0077; set -C; : >"$XDG_RUNTIME_DIR/clash.pid") 2>/dev/null; then
   exit 64
 fi
 
-CLASH_CONFIG_HOME=${XDG_CONFIG_HOME:=$HOME/.config}/clash
+export CLASH_CONFIG_HOME=${XDG_CONFIG_HOME:=$HOME/.config}/clash
+export CLASH_BIN=~/.local/bin/clash
 
-sudo --preserve-env=CLASH_CONFIG_HOME,HOME,XDG_RUNTIME_DIR --background \
+sudo --preserve-env=CLASH_CONFIG_HOME,CLASH_BIN,XDG_RUNTIME_DIR --background \
   "$@" sh -c 'printf "%d" "$$" >"$XDG_RUNTIME_DIR/clash.pid"
-  exec nohup "$HOME/.local/bin/clash" -d "$CLASH_CONFIG_HOME" >/dev/null 2>&1'
+  exec nohup "$CLASH_BIN" -d "$CLASH_CONFIG_HOME" >/dev/null 2>&1'
 exitcode=$?
 
 if [ "$exitcode" -ne 0 ]; then
