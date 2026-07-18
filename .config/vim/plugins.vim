@@ -9,5 +9,6 @@ plug#begin(plugins_dir)
 Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-unimpaired'
+Plug 'vim-polyglot/vim-polyglot'
 
 plug#end()
