@@ -1,5 +1,14 @@
 
 set $mod Mod4
 
-include config.d/*
+include config.d/autostart
+include config.d/control
+include config.d/input
+include config.d/layout
+include config.d/misc
+include config.d/output
+include config.d/visual
+
+include config.d/extra*
+
 include /etc/sway/config.d/*
