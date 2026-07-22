@@ -18,11 +18,12 @@ set statfmt ""
 cmd on-init &{{
   : ${XDG_CONFIG_HOME:=$HOME/.config}
   : ${XDG_STATE_HOME:=$HOME/.local/state}
+  COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/lf/current_theme
   case $(termcolors) in
     256)
       filename=256-dark
-      if [ -r "$XDG_STATE_HOME/lf/current_theme" ]; then
-        filename=$(cat -- "$XDG_STATE_HOME/lf/current_theme")
+      if [ -r "$COLOR_THEME_FILE" ]; then
+        filename=$(cat -- "$COLOR_THEME_FILE")
       fi
       filename=$(printf "%s" "$filename" | sed 's/\\/\\\\/g; s/"/\\"/g')
       source_color="source \"$(printf "%s" "$XDG_CONFIG_HOME" | sed 's/\\/\\\\/g; s/"/\\"/g')/lf/color/$filename\";"

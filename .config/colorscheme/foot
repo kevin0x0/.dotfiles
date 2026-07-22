@@ -2,7 +2,7 @@ set -e
 
 theme=$1
 
-COLOR_THEME_FILE=${XDG_STATE_HOME:-$HOME/.local/state}/foot/colortheme.ini
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/foot/colortheme.ini
 
 if [ ! -f "$COLOR_THEME_FILE" ]; then
   echo "$COLOR_THEME_FILE doesn't exist" >&2

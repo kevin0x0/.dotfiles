@@ -1,9 +1,9 @@
 set -e
 
-COLOR_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/lf/current_theme"
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/lf/current_theme
 
-if [ ! -e "$(dirname -- $COLOR_STATE)" ]; then
-  if ! mkdir -p "$(dirname -- $COLOR_STATE)"; then
+if [ ! -e "$(dirname -- $COLOR_THEME_FILE)" ]; then
+  if ! mkdir -p "$(dirname -- $COLOR_THEME_FILE)"; then
     echo "can not create state file for lf" >&2
     exit 1
   fi
@@ -18,7 +18,7 @@ case $1 in
     ;;
 esac
 
-printf "%s\n" "$color" > "$COLOR_STATE"
+printf "%s\n" "$color" > "$COLOR_THEME_FILE"
 
 lf -remote 'send on-init' >/dev/null 2>&1 || true
 # vim: ft=sh

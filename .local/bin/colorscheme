@@ -1,33 +1,33 @@
-#/bin/sh
+#!/bin/sh
 
 set -e
 
 theme=$1
-STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme
+COLORSCHEME_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme
 
-if [ ! -d "$STATE_DIR" ]; then
-  if [ -e "$STATE_DIR" ]; then
-    echo "'$STATE_DIR' exists but not a directory" >&2
+if [ ! -d "$COLORSCHEME_STATE_HOME" ]; then
+  if [ -e "$COLORSCHEME_STATE_HOME" ]; then
+    echo "'$COLORSCHEME_STATE_HOME' exists but not a directory" >&2
     exit 1
   fi
 
-  mkdir -p -- "$STATE_DIR"
+  mkdir -p -- "$COLORSCHEME_STATE_HOME"
 fi
 
 
-STATE_FILE=$STATE_DIR/current_theme
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/current_theme
 
-if [ ! -f "$STATE_FILE" ]; then
-  if [ -e "$STATE_FILE" ]; then
-    echo "'$STATE_FILE' exists but not a file" >&2
+if [ ! -f "$COLOR_THEME_FILE" ]; then
+  if [ -e "$COLOR_THEME_FILE" ]; then
+    echo "'$COLOR_THEME_FILE' exists but not a file" >&2
     exit 1
   fi
   
-  printf "%s\n" 'light' >"$STATE_FILE"
+  printf "%s\n" 'light' >"$COLOR_THEME_FILE"
 fi
 
 if [ -z "$theme" ]; then
-  current_theme=$(cat "$STATE_FILE")
+  current_theme=$(cat "$COLOR_THEME_FILE")
   case $current_theme in
     dark)
       theme=light
@@ -48,8 +48,9 @@ if [ ! -d "$CONFIG_DIR" ]; then
   exit 1
 fi
 
+export COLORSCHEME_STATE_HOME
 for script in "$CONFIG_DIR"/*; do
   sh -- "$script" "$theme"
 done
 
-printf "%s\n" "$theme" >"$STATE_FILE"
+printf "%s\n" "$theme" >"$COLOR_THEME_FILE"

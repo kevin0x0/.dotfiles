@@ -1,8 +1,8 @@
 set -e
 
-COLOR_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/riced-menu/current_theme"
-if [ ! -e  "$(dirname -- $COLOR_STATE)" ]; then
-  if ! mkdir -p "$(dirname -- $COLOR_STATE)"; then
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/riced-menu/current_theme
+if [ ! -e  "$(dirname -- $COLOR_THEME_FILE)" ]; then
+  if ! mkdir -p "$(dirname -- $COLOR_THEME_FILE)"; then
     echo "can not create state file for riced-menu" >&2
     exit 1
   fi
@@ -17,6 +17,6 @@ case $1 in
     ;;
 esac
 
-printf "%s\n" "$theme" > "$COLOR_STATE"
+printf "%s\n" "$theme" > "$COLOR_THEME_FILE"
 
 # vim: ft=sh

@@ -7,7 +7,7 @@ DARK_COLORS='-S 232323 -s ceb992 -N 1a1b24 -n 2f7e6d -M 232323 -m 4ca491'
 LIGHT_COLORS='-S f2ebe5 -s 3f2f24 -N f2ebe5 -n b55a45 -M f2ebe5 -m d79f70'
 
 COLORS=$DARK_COLORS
-colorfile="${XDG_STATE_HOME:-$HOME/.local/state}/riced-menu/current_theme"
+colorfile="${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/riced-menu/current_theme"
 
 if [ -r "$colorfile" ]; then
   eval "COLORS=\$$(cat -- "$colorfile")"
