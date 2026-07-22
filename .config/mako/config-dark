@@ -1,8 +1,8 @@
 font=monospace, 12
 
-background-color=#1a1b30
-text-color=#4ca491
-border-color=#4ca491
+background-color=#1e1e2e
+text-color=#cdd6f4
+border-color=#cba6f7
 border-size=2
 border-radius=4
 width=500
@@ -15,12 +15,12 @@ format= <b>%s</b> <small><i>%a</i></small>\n%b
 
 [urgency=critical]
 height=300
-text-color=#ff4060
-border-color=#ff4060
+text-color=#f38ba8
+border-color=#f38ba8
 
 [urgency=low]
 height=150
-text-color=#687a90
-border-color=#687a90
+text-color=#a6adc8
+border-color=#45475a
 
 # vim: ft=dosini

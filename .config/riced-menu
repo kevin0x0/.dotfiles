@@ -3,7 +3,7 @@ FONTFAMILY='monospace'
 # Font by fontconfig format
 FONT="$FONTFAMILY, Bold 14"
 
-DARK_COLORS='-S 232323 -s ceb992 -N 1a1b24 -n 2f7e6d -M 232323 -m 4ca491'
+DARK_COLORS='-S cba6f7 -s 1e1e2e -N 1e1e2e -n cdd6f4 -M 313244 -m 89b4fa'
 LIGHT_COLORS='-S f2ebe5 -s 3f2f24 -N f2ebe5 -n b55a45 -M f2ebe5 -m d79f70'
 
 COLORS=$DARK_COLORS
