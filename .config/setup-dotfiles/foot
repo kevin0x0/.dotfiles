@@ -1,4 +1,4 @@
 colorconfig=${XDG_STATE_HOME:-~/.local/state}/colorscheme/foot/colortheme.ini
 mkdir -p "$(dirname -- "$colorconfig")"
-printf "dark\n" > "$colorconfig"
+printf "initial-color-theme=dark\n" > "$colorconfig"
 # vim: ft=sh
