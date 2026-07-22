@@ -153,4 +153,4 @@ for f in "$XDG_CONFIG_HOME"/setup-dotfiles/*; do
 done
 
 # Clone neovim configuration
-(cd "$XDG_CONFIG_HOME"; git clone https://github.com/kevin0x0/nvim)
+(cd "$XDG_CONFIG_HOME"; [ -e nvim ] || git clone https://github.com/kevin0x0/nvim)
