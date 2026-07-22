@@ -151,3 +151,6 @@ mkdir -p -- "$HOME/repos"
 for f in "$XDG_CONFIG_HOME"/setup-dotfiles/*; do
   (sh -- "$f")
 done
+
+# Clone neovim configuration
+(cd "$XDG_CONFIG_HOME"; git clone https://github.com/kevin0x0/nvim)
