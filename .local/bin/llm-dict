@@ -71,7 +71,4 @@ shift $((OPTIND - 1))
 prompt=$(printf "%s\n" "$PROMPT_TEMPLATE" | sed -e 's/LANGUAGE/'"$opt_language"'/g' -e 's/FORMAT/'"$opt_format"'/g')
 
 model=deepseek-reasoner
-if [ "$opt_immediate" = true ]; then
-  model=deepseek-chat
-fi
 exec llm-oneshot -P all= -f "" -m "$model" -sap "$prompt" "$@"
