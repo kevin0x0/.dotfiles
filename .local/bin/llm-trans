@@ -34,5 +34,5 @@ shift $((OPTIND - 1))
 
 prompt=$(printf "%s\n" "$PROMPT_TEMPLATE" | sed -e 's/LANGUAGE/'"$opt_language"'/g')
 
-model=deepseek-reasoner
+model=deepseek-v4-pro
 exec llm-oneshot -P all= -f "" -m "$model" -sap "$prompt" "$@"

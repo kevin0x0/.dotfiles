@@ -262,7 +262,7 @@ EOF
   [ "$opt_append_newline" = true ] && printf "\n"
 )
 
-opt_model=deepseek-reasoner
+opt_model=deepseek-v4-pro
 opt_append_newline=true
 opt_tools=
 opt_json_input=false
