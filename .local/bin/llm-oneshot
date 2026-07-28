@@ -14,7 +14,7 @@ make_http_body() {
 
   # Output messages
   if [ "$opt_append_input_to_prompt" = true ]; then
-    printf '{"role":"system","content": ' "$opt_prompt"
+    printf '{"role":"system","content": '
     { printf "%s" "$opt_prompt"; cat; } | jq -Rsc '.'
     printf '}'
   elif [ "$opt_json_input" != true ]; then
