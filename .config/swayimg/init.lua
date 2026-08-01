@@ -1,42 +1,41 @@
-
 -- General config
-swayimg.set_mode("viewer")                -- mode at startup
-swayimg.enable_antialiasing(true)         -- anti-aliasing
-swayimg.enable_decoration(true)           -- window title/buttons/borders
-swayimg.enable_overlay(true)             -- window overlay mode
-swayimg.enable_exif_orientation(true)     -- image orientation by EXIF
-swayimg.set_dnd_button("MouseRight")      -- drag-and-drop mouse button
+swayimg.mode = "viewer"                   -- mode at startup
+swayimg.antialiasing = true               -- anti-aliasing
+swayimg.decoration = true                 -- window title/buttons/borders
+swayimg.overlay = true                    -- window overlay mode
+swayimg.exif_orientation = true           -- image orientation by EXIF
+swayimg.dnd_button = "MouseRight"         -- drag-and-drop mouse button
 
 -- Image list configuration
-swayimg.imagelist.set_order("alpha")      -- list order
-swayimg.imagelist.enable_reverse(false)   -- reverse order
-swayimg.imagelist.enable_recursive(false) -- recursive directory reading
-swayimg.imagelist.enable_adjacent(false)  -- add adjacent files from same dir
-swayimg.imagelist.enable_fsmon(true)      -- enable file system monitoring
+swayimg.imagelist.order = "alpha"         -- list order
+swayimg.imagelist.reverse = false         -- reverse order
+swayimg.imagelist.recursive = true        -- recursive directory reading
+swayimg.imagelist.adjacent = false        -- add adjacent files from same dir
+swayimg.imagelist.fsmon = true            -- enable file system monitoring
 
 -- Text overlay configuration
-swayimg.text.set_font("monospace")        -- font name
-swayimg.text.set_size(16)                 -- font size in pixels
-swayimg.text.set_spacing(0)               -- line spacing
-swayimg.text.set_padding(10)              -- padding from window edge
-swayimg.text.set_foreground(0xff4ca491)   -- foreground text color
-swayimg.text.set_background(0xa0000000)   -- text background color
-swayimg.text.set_shadow(0xff000000)       -- text shadow color
-swayimg.text.set_timeout(5)               -- layer hide timeout
-swayimg.text.set_status_timeout(3)        -- status message hide timeout
+swayimg.text.font = "monospace"           -- font name
+swayimg.text.size = 16                    -- font size in pixels
+swayimg.text.spacing = 0                  -- line spacing
+swayimg.text.padding = 10                 -- padding from window edge
+-- swayimg.text.color = 0xff4ca491           -- foreground text color
+-- swayimg.text.background = 0xa0000000      -- text background color
+-- swayimg.text.shadow = 0xff000000          -- text shadow color
+swayimg.text.timeout = 5                  -- layer hide timeout
+swayimg.text.status_timeout = 3           -- status message hide timeout
 
 -- Image viewer mode
-swayimg.viewer.set_default_scale("optimal")      -- default image scale
-swayimg.viewer.set_default_position("center")    -- default image position
-swayimg.viewer.set_drag_button("MouseLeft")      -- mouse button to drag image
-swayimg.viewer.set_window_background(0x00000000) -- window background color
-swayimg.viewer.set_image_chessboard(20, 0xff333333, 0xff4c4c4c) -- chessboard
-swayimg.viewer.enable_centering(true)            -- enable automatic centering
-swayimg.viewer.enable_loop(true)                 -- enable image list loop mode
-swayimg.viewer.limit_preload(1)                  -- number of images to preload
-swayimg.viewer.limit_history(1)                  -- number of the history cache
-swayimg.viewer.set_mark_color(0xff808080)        -- mark icon color
-swayimg.viewer.set_pinch_factor(1.0)             -- pinch gesture factor
+swayimg.viewer.default_scale = "optimal"         -- default image scale
+swayimg.viewer.default_position = "center"       -- default image position
+swayimg.viewer.drag_button = "MouseLeft"         -- mouse button to drag image
+-- swayimg.viewer.set_window_background(0x00000000) -- window background color
+-- swayimg.viewer.set_image_chessboard(20, 0xff333333, 0xff4c4c4c) -- chessboard
+-- swayimg.viewer.mark_color = 0xff808080           -- mark icon color
+swayimg.viewer.autocenter = true                 -- enable automatic centering
+swayimg.viewer.loop = true                       -- enable image list loop mode
+swayimg.viewer.preload = 1                       -- number of images to preload
+swayimg.viewer.history = 1                       -- number of the history cache
+swayimg.viewer.pinch_factor = 1.0                -- pinch gesture factor
 swayimg.viewer.set_text("topleft", {             -- top left text block scheme
   "File: {name}",
   "Format: {format}",
@@ -56,11 +55,7 @@ swayimg.viewer.set_text("bottomleft", {          -- bottom left text block schem
 
 -- helper function
 local function toggle_info()
-  if swayimg.text.visible() then
-    swayimg.text.hide()
-  else
-    swayimg.text.show()
-  end
+  swayimg.text.visible = not swayimg.text.visible
 end
 
 local function move_image(dir)
@@ -82,67 +77,75 @@ local function move_image(dir)
 end
 
 local function zoom(step)
-  local scale = swayimg.viewer.get_scale()
+  local scale = swayimg.viewer.scale
   scale = scale + step * scale
   swayimg.viewer.set_abs_scale(scale);
 end
 
 local function zoom_at_mouse(step)
   local pos = swayimg.get_mouse_pos()
-  local scale = swayimg.viewer.get_scale()
+  local scale = swayimg.viewer.scale
   scale = scale + step * scale
   swayimg.viewer.set_abs_scale(scale, pos.x, pos.y);
 end
 
-local toggle_anti_aliasing = (function()
-  local enabled = true
-  return function()
-    swayimg.enable_antialiasing(not enabled)
-    enabled = not enabled
-  end
-end)()
+local toggle_anti_aliasing = function()
+  swayimg.antialiasing = not swayimg.antialiasing
+end
+
+local toggle_fullscreen = function()
+  swayimg.fullscreen = not swayimg.fullscreen
+end
 
 local function delete()
-  local image = swayimg.slideshow.get_image()
-  os.remove(image.path)
-  swayimg.text.set_status("File "..image.path.." removed")
+  local image = swayimg[swayimg.mode].get_image()
+  if image then
+    os.remove(image.path)
+    swayimg.text.status = "File "..image.path.." removed"
+  end
 end
 -- Key and mouse bindings in viewer mode (example only, not all):
 
 swayimg.viewer.on_key("g", function()
-  swayimg.viewer.switch_image("first")
+  swayimg.viewer.open("first")
 end)
 swayimg.viewer.on_key("Shift+g", function()
-  swayimg.viewer.switch_image("last")
+  swayimg.viewer.open("last")
 end)
 swayimg.viewer.on_key("p", function()
-  swayimg.viewer.switch_image("prev")
+  swayimg.viewer.open("prev")
 end)
 swayimg.viewer.on_key("n", function()
-  swayimg.viewer.switch_image("next")
+  swayimg.viewer.open("next")
 end)
 swayimg.viewer.on_key("Space", function()
   print(swayimg.viewer.get_image().path)
   swayimg.exit()
 end)
 swayimg.viewer.on_key("Shift+r", function()
-  swayimg.viewer.switch_image("random")
+  swayimg.viewer.open("random")
 end)
 swayimg.viewer.on_key("d", function()
-  swayimg.viewer.switch_image("next_dir")
+  swayimg.viewer.open("next_dir")
 end)
 swayimg.viewer.on_key("Shift+d", function()
-  swayimg.viewer.switch_image("prev_dir")
+  swayimg.viewer.open("prev_dir")
 end)
-swayimg.viewer.on_key("o", swayimg.viewer.next_frame)
-swayimg.viewer.on_key("Shift+o", swayimg.viewer.prev_frame)
-swayimg.viewer.on_key("s", swayimg.viewer.set_animation)
+swayimg.viewer.on_key("o", function()
+  swayimg.viewer.frame = swayimg.viewer.frame + 1
+end)
+swayimg.viewer.on_key("Shift+o", function()
+  swayimg.viewer.frame = swayimg.viewer.frame - 1
+end)
+swayimg.viewer.on_key("s", function()
+  swayimg.viewer.animation = not swayimg.viewer.animation
+end)
 swayimg.viewer.on_key("Shift+s", function()
-  swayimg.set_mode("slideshow")
+  swayimg.mode = "slideshow"
 end)
-swayimg.viewer.on_key("f", swayimg.set_fullscreen)
+swayimg.viewer.on_key("f", toggle_fullscreen)
 swayimg.viewer.on_key("Return", function()
-  swayimg.set_mode("gallery")
+  swayimg.mode = "gallery"
 end)
 
 swayimg.viewer.on_key("h", function()
@@ -223,52 +226,52 @@ end)
 
 
 -- Slide show mode, same config as for viewer mode with the following defaults:
-swayimg.slideshow.set_timeout(5)                    -- timeout to switch image
-swayimg.slideshow.set_default_scale("fit")          -- default image scale
+swayimg.slideshow.timeout = 5                       -- timeout to switch image
+swayimg.slideshow.default_scale = "fit"             -- default image scale
 swayimg.slideshow.set_window_background("auto")     -- window background mode
-swayimg.slideshow.limit_history(0)                  -- number of the history cache
+swayimg.slideshow.history = 0                       -- number of the history cache
 swayimg.slideshow.set_text("topleft", { "{name}" }) -- top left text block scheme
 
 swayimg.slideshow.on_key("g", function()
-  swayimg.slideshow.switch_image("first")
+  swayimg.slideshow.open("first")
 end)
 swayimg.slideshow.on_key("Shift+g", function()
-  swayimg.slideshow.switch_image("last")
+  swayimg.slideshow.open("last")
 end)
 swayimg.slideshow.on_key("p", function()
-  swayimg.slideshow.switch_image("prev")
+  swayimg.slideshow.open("prev")
 end)
 swayimg.slideshow.on_key("n", function()
-  swayimg.slideshow.switch_image("next")
+  swayimg.slideshow.open("next")
 end)
 swayimg.slideshow.on_key("Shift+r", function()
-  swayimg.slideshow.switch_image("random")
+  swayimg.slideshow.open("random")
 end)
 swayimg.slideshow.on_key("d", function()
-  swayimg.slideshow.switch_image("next_dir")
+  swayimg.slideshow.open("next_dir")
 end)
 swayimg.slideshow.on_key("i", toggle_info)
-swayimg.slideshow.on_key("f", swayimg.set_fullscreen)
+swayimg.slideshow.on_key("f", toggle_fullscreen)
 swayimg.slideshow.on_key("Return", function()
-  swayimg.set_mode("gallery")
+  swayimg.mode = "gallery"
 end)
 swayimg.slideshow.on_key("Escape", swayimg.exit)
 swayimg.slideshow.on_key("q", swayimg.exit)
 
 -- Gallery mode
-swayimg.gallery.set_aspect("fill")                  -- thumbnail aspect ratio
-swayimg.gallery.set_thumb_size(200)                 -- thumbnail size in pixels
-swayimg.gallery.set_padding_size(5)                 -- padding between thumbnails
-swayimg.gallery.set_border_size(5)                  -- border size for selected thumbnail
-swayimg.gallery.set_border_color(0xffaaaaaa)        -- border color for selected thumbnail
-swayimg.gallery.set_selected_scale(1.15)            -- scale for selected thumbnail
-swayimg.gallery.set_selected_color(0xff404040)      -- background color for selected thumbnail
-swayimg.gallery.set_unselected_color(0xa0202020)    -- background color for unselected thumbnail
-swayimg.gallery.set_window_color(0x00000000)        -- window background color
-swayimg.gallery.set_pinch_factor(100.0)             -- pinch gesture factor
-swayimg.gallery.limit_cache(100)                    -- number of thumbnails stored in memory
-swayimg.gallery.enable_preload(false)               -- preloading invisible thumbnails
-swayimg.gallery.enable_pstore(false)                -- enable persistent storage for thumbnails
+swayimg.gallery.aspect = "fill"                     -- thumbnail aspect ratio
+swayimg.gallery.thumb_size = 200                    -- thumbnail size in pixels
+swayimg.gallery.padding_size = 5                    -- padding between thumbnails
+swayimg.gallery.border_size = 5                     -- border size for selected thumbnail
+swayimg.gallery.selected_scale = 1.15               -- scale for selected thumbnail
+-- swayimg.gallery.border_color = 0xffaaaaaa           -- border color for selected thumbnail
+-- swayimg.gallery.selected_color = 0xff404040         -- background color for selected thumbnail
+-- swayimg.gallery.unselected_color = 0xa0202020       -- background color for unselected thumbnail
+-- swayimg.gallery.window_color = 0x00000000           -- window background color
+swayimg.gallery.pinch_factor = 100.0                -- pinch gesture factor
+swayimg.gallery.cache = 100                         -- number of thumbnails stored in memory
+swayimg.gallery.preload = false                     -- preloading invisible thumbnails
+swayimg.gallery.pstore = false                      -- enable persistent storage for thumbnails
 swayimg.gallery.set_text("topleft", {               -- top left text block scheme
   "File: {name}"
 })
@@ -280,42 +283,45 @@ swayimg.gallery.set_text("topright", {              -- top right text block sche
 
 -- bind Enter key to open image in viewer
 swayimg.gallery.on_key("Return", function()
-  swayimg.set_mode("viewer")
+  swayimg.mode = "viewer"
 end)
 
 swayimg.gallery.on_key("g", function()
-  swayimg.gallery.switch_image("first")
+  swayimg.gallery.select("first")
 end)
 swayimg.gallery.on_key("Shift+g", function()
-  swayimg.gallery.switch_image("last")
+  swayimg.gallery.select("last")
 end)
 swayimg.gallery.on_key("h", function()
-  swayimg.gallery.switch_image("left")
+  swayimg.gallery.select("left")
 end)
 swayimg.gallery.on_key("j", function()
-  swayimg.gallery.switch_image("down")
+  swayimg.gallery.select("down")
 end)
 swayimg.gallery.on_key("k", function()
-  swayimg.gallery.switch_image("up")
+  swayimg.gallery.select("up")
 end)
 swayimg.gallery.on_key("l", function()
-  swayimg.gallery.switch_image("right")
+  swayimg.gallery.select("right")
 end)
 swayimg.gallery.on_key("p", function()
-  swayimg.gallery.switch_image("pgup")
+  swayimg.gallery.select("pgup")
 end)
 swayimg.gallery.on_key("n", function()
-  swayimg.gallery.switch_image("pgdown")
+  swayimg.gallery.select("pgdown")
 end)
 swayimg.gallery.on_key("Shift+s", function()
-  swayimg.set_mode("slideshow")
+  swayimg.mode = "slideshow"
 end)
-swayimg.gallery.on_key("f", swayimg.set_fullscreen)
+swayimg.gallery.on_key("f", toggle_fullscreen)
 swayimg.gallery.on_key("a", toggle_anti_aliasing)
 swayimg.gallery.on_key("i", toggle_info)
 swayimg.gallery.on_key("Space", function()
   print(swayimg.gallery.get_image().path)
   swayimg.exit()
+end)
+swayimg.gallery.on_key("Shift+Space", function()
+  print(swayimg.gallery.get_image().path)
 end)
 swayimg.gallery.on_key("Delete", delete)
 swayimg.gallery.on_key("Escape", swayimg.exit)
@@ -327,7 +333,7 @@ swayimg.gallery.on_key("q", swayimg.exit)
 
 -- force set scale mode on window resize (useful for tiling compositors)
 swayimg.on_window_resize(function()
-  if swayimg.get_mode() == "viewer" then
+  if swayimg.mode == "viewer" then
     swayimg.viewer.set_fix_scale("optimal")
   end
 end)
@@ -335,5 +341,5 @@ end)
 -- set a custom window title in gallery mode
 swayimg.gallery.on_image_change(function()
   local image = swayimg.gallery.get_image()
-  swayimg.set_title("Gallery: "..image.path)
+  swayimg.title = "Gallery: " .. (image and image.path or "")
 end)
