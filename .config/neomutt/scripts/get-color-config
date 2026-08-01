@@ -10,7 +10,8 @@ case $(termcolors) in
     ;;
 esac
 
-COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/neomutt/current_theme
+: ${XDG_STATE_HOME:=$HOME/.local/state}
+COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/neomutt/current_theme
 
 if [ ! -r "$COLOR_THEME_FILE" ]; then
   printf "256-dark\n"
