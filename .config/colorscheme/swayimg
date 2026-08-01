@@ -1,0 +1,17 @@
+set -e
+
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/swayimg/current_theme
+
+if [ ! -e "$(dirname -- $COLOR_THEME_FILE)" ]; then
+  if ! mkdir -p "$(dirname -- $COLOR_THEME_FILE)"; then
+    echo "can not create state file for swayimg" >&2
+    exit 1
+  fi
+fi
+
+theme=$1
+printf "%s\n" "$theme" > "$COLOR_THEME_FILE"
+
+pkill -USR1 swayimg || true
+
+# vim: ft=sh
