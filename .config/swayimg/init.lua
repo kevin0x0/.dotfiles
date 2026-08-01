@@ -25,7 +25,10 @@ local function reload_colorscheme()
       end
     end
   end
-  pcall(require, "colorscheme." .. colorscheme)
+  local success, callback = pcall(require, "colorscheme." .. colorscheme)
+  if success then
+    callback()
+  end
 end
 
 reload_colorscheme()
