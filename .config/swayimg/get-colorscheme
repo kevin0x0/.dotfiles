@@ -1,0 +1,10 @@
+#!/bin/sh
+
+: ${XDG_STATE_HOME:=~/.local/state}
+COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/swayimg/current_theme
+
+if [ -r "$COLOR_THEME_FILE" ]; then
+  printf "%s\n" "$(cat -- "$COLOR_THEME_FILE")"
+else
+  printf "dark\n"
+fi

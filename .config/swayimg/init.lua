@@ -1,3 +1,39 @@
+local CONFIG_DIR = (function()
+  local dir = os.getenv("XDG_CONFIG_HOME")
+  if dir then
+    return dir
+  end
+  local home = os.getenv("HOME")
+  if home then
+    local state_dir = ".config"
+    if home[#home] ~= '/' then
+      state_dir = '/' ..state_dir
+    end
+    return home .. state_dir
+  end
+  return nil
+end)()
+
+local function reload_colorscheme()
+  local colorscheme = "dark"
+  if CONFIG_DIR then
+    local handle = io.popen(CONFIG_DIR .. "/swayimg/get-colorscheme", "r")
+    if handle then
+      local read_colorscheme = handle:read("*l")
+      if read_colorscheme then
+        colorscheme = read_colorscheme
+      end
+    end
+  end
+  pcall(require, "colorscheme." .. colorscheme)
+end
+
+reload_colorscheme()
+
+for _, appmode in ipairs { "slideshow", "viewer", "gallery" } do
+  swayimg[appmode].on_signal('USR1', reload_colorscheme)
+end
+
 -- General config
 swayimg.mode = "viewer"                   -- mode at startup
 swayimg.antialiasing = true               -- anti-aliasing
