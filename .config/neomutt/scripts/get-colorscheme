@@ -18,7 +18,7 @@ esac
 COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/neomutt/colorscheme
 
 if [ ! -r "$COLOR_THEME_FILE" ]; then
-  printf "256-dark\n"
+  printf "256-catppuccin-mocha\n"
   exit
 fi
 

@@ -6,5 +6,5 @@ COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/sway/colorscheme
 if [ -f "$COLOR_THEME_FILE" ] && [ -r "$COLOR_THEME_FILE" ]; then
   printf "%s\n" "$(cat -- "$COLOR_THEME_FILE")"
 else
-  printf "dark\n"
+  printf "catppuccin-mocha\n"
 fi

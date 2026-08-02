@@ -15,7 +15,7 @@ local CONFIG_DIR = (function()
 end)()
 
 local function reload_colorscheme()
-  local colorscheme = "dark"
+  local colorscheme = "catppuccin-mocha"
   if CONFIG_DIR then
     local handle = io.popen(CONFIG_DIR .. "/swayimg/get-colorscheme", "r")
     if handle then
