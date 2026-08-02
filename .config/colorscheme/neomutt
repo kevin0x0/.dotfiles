@@ -1,6 +1,6 @@
 set -e
 
-COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/neomutt/current_theme
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/neomutt/colorscheme
 if [ ! -e  "$(dirname -- $COLOR_THEME_FILE)" ]; then
   if ! mkdir -p "$(dirname -- $COLOR_THEME_FILE)"; then
     echo "can not create state file for neumutt" >&2
@@ -8,16 +8,8 @@ if [ ! -e  "$(dirname -- $COLOR_THEME_FILE)" ]; then
   fi
 fi
 
-case $1 in
-  dark)
-    color=256-dark
-    ;;
-  *)
-    color=256-light
-    ;;
-esac
-
-printf "%s\n" "$color" > "$COLOR_THEME_FILE"
+theme=$1
+printf "%s\n" "$theme" > "$COLOR_THEME_FILE"
 
 # Unfortunately, it seems there is no simple solution to notify running neomutt
 # process to reload color config.

@@ -1,21 +1,25 @@
 #!/bin/sh
 
 case $(termcolors) in
-  256)
+  16777216|256)
     break
     ;;
+  8)
+    echo 8
+    exit
+    ;;
   *)
-    printf "%s\n " "$(termcolors)"
+    echo none
     exit
     ;;
 esac
 
 : ${XDG_STATE_HOME:=$HOME/.local/state}
-COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/neomutt/current_theme
+COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/neomutt/colorscheme
 
 if [ ! -r "$COLOR_THEME_FILE" ]; then
   printf "256-dark\n"
   exit
 fi
 
-printf "%s\n" "$(cat -- "$COLOR_THEME_FILE")"
+printf "256-%s\n" "$(cat -- "$COLOR_THEME_FILE")"
