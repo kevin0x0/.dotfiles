@@ -2,7 +2,7 @@
 
 now=$(date '+%H:%M')
 if [ "$now" = "00:00" ]; then
-  pkill -RTMIN+2 i3blocks
+  pkill -u "$(id -u)" -RTMIN+2 i3blocks
 fi
 
 icon=
