@@ -26,6 +26,10 @@ bright7=ffffff
 
 selection-foreground=3f2f24
 selection-background=e1c5b2
+jump-labels=3f2f24 d8935e
+scrollback-indicator=3f2f24 6ea9ff
+search-box-no-match=3f2f24 c14c31
+search-box-match=3f2f24 d8935e
 urls=d79f70
 
 # vim: ft=dosini

@@ -19,27 +19,15 @@ bright5=cba6f7
 bright6=94e2d5
 bright7=cdd6f4
 
+selection-foreground=1e1e2e
+selection-background=cba6f7
+jump-labels=45475a f9e2af
+scrollback-indicator=45475a 89b4fa
+search-box-no-match=45475a f38ba8
+search-box-match=45475a f9e2af
+urls=cba6f7
+
 # cursor=<inverse foreground/background>
-
-## Normal/regular colors (color palette 0-7)
-# regular0=242424  # black
-# regular1=f62b5a  # red
-# regular2=47b413  # green
-# regular3=e3c401  # yellow
-# regular4=24acd4  # blue
-# regular5=f2affd  # magenta
-# regular6=13c299  # cyan
-# regular7=e6e6e6  # white
-
-## Bright colors (color palette 8-15)
-# bright0=616161   # bright black
-# bright1=ff4d51   # bright red
-# bright2=35d450   # bright green
-# bright3=e9e836   # bright yellow
-# bright4=5dc5f8   # bright blue
-# bright5=feabf2   # bright magenta
-# bright6=24dfc4   # bright cyan
-# bright7=ffffff   # bright white
 
 ## dimmed colors (see foot.ini(5) man page)
 # dim-blend-towards=black
@@ -70,11 +58,4 @@ bright7=cdd6f4
 # sixel14 = 999954
 # sixel15 = cccccc
 
-## Misc colors
-# selection-foreground=<inverse foreground/background>
-# selection-background=<inverse foreground/background>
-# jump-labels=<regular0> <regular3>          # black-on-yellow
-# scrollback-indicator=<regular0> <bright4>  # black-on-bright-blue
-# search-box-no-match=<regular0> <regular1>  # black-on-red
-# search-box-match=<regular0> <regular3>     # black-on-yellow
-# urls=<regular3>
+# vim: ft=dosini
