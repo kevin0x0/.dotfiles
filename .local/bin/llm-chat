@@ -3,11 +3,11 @@
 make_input() (
   not_empty=false
   for f in "$opt_history_file" "$session" "$this_turn"; do
-    if [ -s "$f" ] && [ "$not_empty" = true ]; then
+    if [ -f "$f" ] && [ -s "$f" ] && [ "$not_empty" = true ]; then
       printf ","
     fi
     cat -- "$f"
-    [ -s "$f" ] && not_empty=true
+    [ -f "$f" ] && [ -s "$f" ] && not_empty=true
   done
 )
 
@@ -69,12 +69,12 @@ call_tools() (
 
     tool=$opt_tool_dir/$tool_name
 
-    if [ -x "$tool" ] || [ -r "$tool" ]; then
+    if [ -f "$tool" ] && { [ -x "$tool" ] || [ -r "$tool" ]; }; then
       printf "%s\n" "$arguments" >"$tmp"
       call_tool "$tool" call "$tmp"
     else
       printf "llm-chat: failed to call tools: " >&2
-      if [ -e "$tool"]; then
+      if [ ! -e "$tool"]; then
         printf "%s doesn't exist.\n" "$tool" >&2
       else
         printf "%s is not executable or readable.\n" "$tool" >&2
@@ -102,6 +102,7 @@ generate_tool_list() (
   printf "["
   delimiter=
   for f in "$opt_tool_dir"/*; do
+    [ -f "$f" ] || continue
     [ -x "$f" ] || [ -r "$f" ] || continue
     printf '%s{"type": "function","function":{' "$delimiter"
     printf '"name":"%s"' "${f##*/}"

@@ -6,7 +6,7 @@ FONT="$FONTFAMILY, Bold 14"
 colorfile="${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/riced-menu/colorscheme"
 
 COLORS=
-if [ -r "$colorfile" ]; then
+if [ -f "$colorfile" ] && [ -r "$colorfile" ]; then
   . "$colorfile"
 fi
 
