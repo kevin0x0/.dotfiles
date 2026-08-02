@@ -48,8 +48,16 @@ if [ ! -d "$CONFIG_DIR" ]; then
   exit 1
 fi
 
+if [ -d "$CONFIG_DIR/colorscheme-alias" ]; then
+  if [ -f "$CONFIG_DIR/colorscheme-alias/$theme" ] && \
+    [ -r "$CONFIG_DIR/colorscheme-alias/$theme" ]; then
+    theme=$(cat -- "$CONFIG_DIR/colorscheme-alias/$theme")
+  fi
+fi
+
 export COLORSCHEME_STATE_HOME
 for script in "$CONFIG_DIR"/*; do
+  [ -f "$script" ] || continue
   sh -- "$script" "$theme"
 done
 
