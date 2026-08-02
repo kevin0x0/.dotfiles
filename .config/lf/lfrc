@@ -1,6 +1,7 @@
 set incsearch true
 
 map <tab> toggle
+map a set hidden!
 map <c-j> :{{
   toggle
   down
