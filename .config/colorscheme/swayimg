@@ -1,6 +1,6 @@
 set -e
 
-COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/swayimg/current_theme
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/swayimg/colorscheme
 
 if [ ! -e "$(dirname -- $COLOR_THEME_FILE)" ]; then
   if ! mkdir -p "$(dirname -- $COLOR_THEME_FILE)"; then

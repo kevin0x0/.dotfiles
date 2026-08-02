@@ -1,7 +1,7 @@
 set -e
 
 SWAY_CONFIG=${XDG_CONFIG_HOME:-$HOME/.config}/sway
-COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/sway/current_theme
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/sway/colorscheme
 
 if [ ! -e "$(dirname -- $COLOR_THEME_FILE)" ]; then
   if ! mkdir -p "$(dirname -- $COLOR_THEME_FILE)"; then
