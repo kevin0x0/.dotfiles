@@ -1,6 +1,7 @@
 set -e
 
-COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/riced-menu/current_theme
+COLORSCHEME_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/riced-menu/colorscheme
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/riced-menu/colorscheme
 if [ ! -e  "$(dirname -- $COLOR_THEME_FILE)" ]; then
   if ! mkdir -p "$(dirname -- $COLOR_THEME_FILE)"; then
     echo "can not create state file for riced-menu" >&2
@@ -8,15 +9,7 @@ if [ ! -e  "$(dirname -- $COLOR_THEME_FILE)" ]; then
   fi
 fi
 
-case $1 in
-  dark)
-    theme=DARK_COLORS
-    ;;
-  *)
-    theme=LIGHT_COLORS
-    ;;
-esac
-
-printf "%s\n" "$theme" > "$COLOR_THEME_FILE"
+theme=$1
+ln -sf "$COLORSCHEME_DIR/$theme" "$COLOR_THEME_FILE"
 
 # vim: ft=sh

@@ -1,5 +1,5 @@
 #!/bin/sh
 
-CONFIG_FILE=${XDG_CONFIG_HOME:-$HOME/.config}/riced-menu
+CONFIG_FILE=${XDG_CONFIG_HOME:-$HOME/.config}/riced-menu/config
 [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
 exec wmenu $COLORS -f "$FONT" "$@"
