@@ -92,6 +92,8 @@ bindsym $mod+Shift+r split none
 # bindsym $mod+w layout tabbed
 bindsym $mod+e layout toggle split
 bindsym $mod+shift+e layout toggle tabbed stacking
+bindsym $mod+shift+b splith; layout tabbed
+bindsym $mod+shift+v splitv; layout stacking
 
 # Make the current focus fullscreen
 bindsym $mod+f fullscreen
