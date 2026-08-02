@@ -335,7 +335,7 @@ while getopts "ajsSNf:t:p:d:P:m:A:c:" opt "$@"; do
    esac
 done
 
-shift $((OPTIND - 1))
+shift "$((OPTIND - 1))"
 
 if  { [ "$opt_ansi_seq" = "auto" ] && [ ! -t 1 ]; } \
   || [ "$opt_ansi_seq" = "never" ]; then

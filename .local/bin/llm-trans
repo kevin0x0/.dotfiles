@@ -30,7 +30,7 @@ while getopts "il:f:" opt "$@"; do
   esac
 done
 
-shift $((OPTIND - 1))
+shift "$((OPTIND - 1))"
 
 prompt=$(printf "%s\n" "$PROMPT_TEMPLATE" | sed -e 's/LANGUAGE/'"$opt_language"'/g')
 

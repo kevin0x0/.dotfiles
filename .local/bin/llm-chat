@@ -150,7 +150,7 @@ while getopts "rwh:i:" opt "$@"; do
   esac
 done
 
-shift $((OPTIND - 1))
+shift "$((OPTIND - 1))"
 
 : ${XDG_RUNTIME_DIR:?"environment variable XDG_RUNTIME_DIR is unset or empty."}
 reasoning=$XDG_RUNTIME_DIR/llm-chat.reasoning.$$
