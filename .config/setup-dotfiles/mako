@@ -1,3 +1,5 @@
-ln -sf "config-dark" "$XDG_CONFIG_HOME/mako/config"
+colorscheme=${XDG_STATE_HOME:-~/.local/state}/colorscheme/mako/colorscheme
+mkdir -p "$(dirname -- "$colorscheme")"
+ln -sf "$XDG_CONFIG_HOME/mako/colorscheme/dark" "$colorscheme"
 
 # vim: ft=sh

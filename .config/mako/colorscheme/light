@@ -1,25 +1,12 @@
-font=monospace, 12
-
 background-color=#f2ebe5
 text-color=#3f2f24
 border-color=#d79f70
-border-size=2
-border-radius=4
-width=500
-height=150
-
-default-timeout=5000
-
-format= <b>%s</b> <small><i>%a</i></small>\n%b
-
 
 [urgency=critical]
-height=300
 text-color=#d9534f
 border-color=#d9534f
 
 [urgency=low]
-height=150
 text-color=#7a5a42
 border-color=#7a5a42
 

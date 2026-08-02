@@ -1,17 +1,10 @@
 set -e
 
-CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/mako/config"
+COLORSCHEME_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/mako/colorscheme
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/mako/colorscheme
 
-case $1 in
-  dark)
-    theme=config-dark
-    ;;
-  *)
-    theme=config-light
-    ;;
-esac
-
-ln -sf "$theme" "$CONFIG_FILE"
+theme=$1
+ln -sf "$COLORSCHEME_DIR/$theme" "$COLOR_THEME_FILE"
 
 makoctl reload || true
 # vim: ft=sh
