@@ -4,7 +4,7 @@ COLORSCHEME_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/mako/colorscheme
 COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/mako/colorscheme
 
 theme=$1
-ln -sf "$COLORSCHEME_DIR/$theme" "$COLOR_THEME_FILE"
+ln -sf "$(realpath -- "$COLORSCHEME_DIR/$theme")" "$COLOR_THEME_FILE"
 
 makoctl reload || true
 # vim: ft=sh

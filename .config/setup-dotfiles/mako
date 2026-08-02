@@ -1,5 +1,5 @@
-colorscheme=${XDG_STATE_HOME:-~/.local/state}/colorscheme/mako/colorscheme
-mkdir -p "$(dirname -- "$colorscheme")"
-ln -sf "$XDG_CONFIG_HOME/mako/colorscheme/dark" "$colorscheme"
+COLORSCHEME_DIR=$(realpath -- "${XDG_STATE_HOME:-~/.local/state}/colorscheme/mako/colorscheme")
+mkdir -p "$(dirname -- "$COLORSCHEME_DIR")"
+ln -sf "$COLORSCHEME_DIR/catppuccin-mocha" "$COLORSCHEME_DIR"
 
 # vim: ft=sh

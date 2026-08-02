@@ -1,12 +1,9 @@
 set -e
 
 COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/foot/colortheme.ini
-DARK_SLOT=$COLORSCHEME_STATE_HOME/foot/dark-slot
-LIGHT_SLOT=$COLORSCHEME_STATE_HOME/foot/light-slot
 
-if [ ! -r "$COLOR_THEME_FILE" ] || [ ! -r "$DARK_SLOT" ] || \
-  [ ! -r "$LIGHT_SLOT" ]; then
-  echo "$COLOR_THEME_FILE, $DARK_SLOT or $LIGHT_SLOT doesn't exist" >&2
+if [ ! -r "$COLOR_THEME_FILE" ]; then
+  echo "$COLOR_THEME_FILE doesn't exist" >&2
   exit 1
 fi
 
@@ -29,7 +26,7 @@ case "$section_spec" in
 esac
 
 slot=$COLORSCHEME_STATE_HOME/foot/${category}-slot
-ln -sf "$colorscheme_file" "$slot"
+ln -sf "$(realpath -- "$colorscheme_file")" "$slot"
 
 case $category in
   dark)

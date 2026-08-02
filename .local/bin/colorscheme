@@ -2,7 +2,6 @@
 
 set -e
 
-theme=$1
 COLORSCHEME_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme
 
 if [ ! -d "$COLORSCHEME_STATE_HOME" ]; then
@@ -26,6 +25,7 @@ if [ ! -f "$COLOR_THEME_FILE" ]; then
   printf "%s\n" 'light' >"$COLOR_THEME_FILE"
 fi
 
+theme=$1
 if [ -z "$theme" ]; then
   current_theme=$(cat "$COLOR_THEME_FILE")
   case $current_theme in
@@ -40,6 +40,7 @@ if [ -z "$theme" ]; then
       ;;
   esac
 fi
+real_theme=$theme
 
 CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/colorscheme
 
@@ -51,14 +52,14 @@ fi
 if [ -d "$CONFIG_DIR/colorscheme-alias" ]; then
   if [ -f "$CONFIG_DIR/colorscheme-alias/$theme" ] && \
     [ -r "$CONFIG_DIR/colorscheme-alias/$theme" ]; then
-    theme=$(cat -- "$CONFIG_DIR/colorscheme-alias/$theme")
+    real_theme=$(cat -- "$CONFIG_DIR/colorscheme-alias/$theme")
   fi
 fi
 
 export COLORSCHEME_STATE_HOME
 for script in "$CONFIG_DIR"/*; do
   [ -f "$script" ] || continue
-  sh -- "$script" "$theme"
+  sh -- "$script" "$real_theme"
 done
 
 printf "%s\n" "$theme" >"$COLOR_THEME_FILE"
