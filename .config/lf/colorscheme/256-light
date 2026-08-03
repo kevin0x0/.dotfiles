@@ -1,6 +1,6 @@
 set cursoractivefmt "\033[1;38;5;94;48;5;215m"
 set cursorparentfmt "\033[1;38;5;94;48;5;181m"
-set cursorpreviewfmt "\033[1;38;5;94;48;5;224m"
+set cursorpreviewfmt "\033[1;38;5;94;48;5;223m"
 set promptfmt "\033[1;48;5;230m\033[38;5;94;1m%u\033[37m@\033[38;5;131m%h\033[37m:\033[38;5;101m%w%S\033[0m"
 
 set cutfmt "\033[1;38;5;94;48;5;196m"
