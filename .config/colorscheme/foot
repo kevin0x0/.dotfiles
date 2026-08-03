@@ -26,7 +26,7 @@ case "$section_spec" in
 esac
 
 slot=$COLORSCHEME_STATE_HOME/foot/${category}-slot
-ln -sf "$(realpath -- "$colorscheme_file")" "$slot"
+ln -sf "$colorscheme_file" "$slot"
 
 case $category in
   dark)

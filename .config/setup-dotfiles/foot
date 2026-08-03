@@ -7,7 +7,7 @@ mkdir -p "$DIR"
 printf "initial-color-theme=dark\n" > "$colorconfig"
 
 : ${XDG_CONFIG_HOME:=~/.config}
-COLORSCHEME_DIR=$(realpath -- "$XDG_CONFIG_HOME/foot/colorscheme")
+COLORSCHEME_DIR="$XDG_CONFIG_HOME/foot/colorscheme"
 ln -sf "$COLORSCHEME_DIR/catppuccin-mocha" "$dark_slot"
 ln -sf "$COLORSCHEME_DIR/light" "$light_slot"
 # vim: ft=sh

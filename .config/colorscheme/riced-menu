@@ -10,6 +10,6 @@ if [ ! -e  "$(dirname -- $COLOR_THEME_FILE)" ]; then
 fi
 
 theme=$1
-ln -sf "$(realpath -- "$COLORSCHEME_DIR/$theme")" "$COLOR_THEME_FILE"
+ln -sf "$COLORSCHEME_DIR/$theme" "$COLOR_THEME_FILE"
 
 # vim: ft=sh

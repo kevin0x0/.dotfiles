@@ -76,7 +76,7 @@ while [ $# -ne 0 ]; do
   shift
 done
 
-if [ "$(realpath -- "${XDG_STATE_HOME:-~/.local/state}")" != ~/.local/state ]; then
+if [ "${XDG_STATE_HOME:-~/.local/state}" != ~/.local/state ]; then
   error "XDG_STATE_HOME must be set to ~/.local/state"
 fi
 
