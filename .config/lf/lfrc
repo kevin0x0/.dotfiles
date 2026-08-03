@@ -11,16 +11,29 @@ map <c-k> :{{
   up
 }}
 
-set visualfmt ""
 set promptfmt ""
-set rulerfmt ""
-set statfmt ""
+
+set cutfmt ""
+set copyfmt ""
+set selectfmt ""
+set visualfmt ""
+
+set user_modefmt ""
+set user_permfmt ""
+set user_linkcountfmt ""
+set user_userfmt ""
+set user_groupfmt ""
+set user_sizefmt ""
+set user_modtimefmt ""
+set user_linkfmt ""
+set user_iovertfmt ""
+set user_filterfmt ""
 
 cmd on-init &{{
   : ${XDG_CONFIG_HOME:=$HOME/.config}
   : ${XDG_STATE_HOME:=$HOME/.local/state}
   COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/lf/colorscheme
-  filename=dark
+  filename=catppuccin-mocha
   if [ -f "$COLOR_THEME_FILE" ] && [ -r "$COLOR_THEME_FILE" ]; then
     filename=$(cat -- "$COLOR_THEME_FILE")
   fi
@@ -39,9 +52,13 @@ cmd on-init &{{
       filename=8
       ;;
   esac
-  source_color="source \"$(printf "%s" "$XDG_CONFIG_HOME" | sed 's/\\/\\\\/g; s/"/\\"/g')/lf/colorscheme/$filename\";"
+  escaped_config_home=$(printf "%s" "$XDG_CONFIG_HOME" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  source_color="source \"$escaped_config_home/lf/colorscheme/$filename\";"
+  rulerfile="$escaped_config_home/lf/ruler"
+
   lf --remote "send $id $source_color"
-  lf --remote "send $id cmd open \$\"$XDG_CONFIG_HOME/lf/scripts/open\" \"\$f\""
-  lf --remote "send $id map <c-o> \$\"$XDG_CONFIG_HOME/lf/scripts/open-multi\" \"\$fs\""
-  lf --remote "send $id set previewer \"$XDG_CONFIG_HOME/lf/scripts/previewer\""
+  lf --remote "send $id set rulerfile \"$rulerfile\""
+  lf --remote "send $id cmd open \$\"$escaped_config_home/lf/scripts/open\" \"\$f\""
+  lf --remote "send $id map <c-o> \$\"$escaped_config_home/lf/scripts/open-multi\" \"\$fs\""
+  lf --remote "send $id set previewer \"$escaped_config_home/lf/scripts/previewer\""
 }}

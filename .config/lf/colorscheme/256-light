@@ -1,9 +1,22 @@
 set cursoractivefmt "\033[1;38;5;94;48;5;215m"
-set visualfmt "\033[48;5;223m"
 set cursorparentfmt "\033[1;38;5;94;48;5;181m"
 set cursorpreviewfmt "\033[1;38;5;94;48;5;224m"
 set promptfmt "\033[1;48;5;230m\033[38;5;94;1m%u\033[37m@\033[38;5;131m%h\033[37m:\033[38;5;101m%w%S\033[0m"
-set rulerfmt " %a| %p| \033[1;38;5;94;48;5;216m %m \033[0m|\033[1;38;5;94;48;5;222m %c \033[0m|\033[1;38;5;94;48;5;225m %s \033[0m|\033[1;48;5;223;38;5;94m %v \033[0m|\033[1;38;5;94;48;5;187m %i/%t \033[0m"
-set statfmt "\033[1;38;5;94;48;5;187m %M  \033[1;48;5;230;38;5;94m| %p| %c| %u| %g| %s| %t |\033[1;38;5;131m -> %l \033[0m"
+
+set cutfmt "\033[1;38;5;94;48;5;196m"
+set copyfmt "\033[1;38;5;94;48;5;215m"
+set selectfmt "\033[1;38;5;230;48;5;131m"
+set visualfmt "\033[48;5;223m"
+
+set user_modefmt "\033[1;38;5;230;48;5;131m"
+set user_permfmt "\033[1;48;5;230;38;5;131m"
+set user_linkcountfmt "\033[1;48;5;230;38;5;181m"
+set user_userfmt "\033[1;48;5;230;38;5;94m"
+set user_groupfmt "\033[1;48;5;230;38;5;181m"
+set user_sizefmt "\033[1;48;5;230;38;5;131m"
+set user_modtimefmt "\033[1;48;5;230;38;5;181m"
+set user_linkfmt "\033[1;38;5;131m"
+set user_iovertfmt "\033[1;38;5;230;48;5;131m"
+set user_filterfmt "\033[1;38;5;230;48;5;131m"
 
 # vim: ft=lf
