@@ -7,7 +7,7 @@ summary=
 body=
 urgency=
 
-if [ $LANG = "zh_CN.UTF-8" ]; then
+if [ "$LANG" = "zh_CN.UTF-8" ]; then
   case "$exitcode" in
     0)
       summary="成功"

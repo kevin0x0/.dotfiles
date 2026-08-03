@@ -7,4 +7,4 @@ workspace=$(swaymsg -rt get_workspaces \
   | jq -r '.[].name' \
   | riced-menu -p "$PROMPT")
 
-swaymsg workspace "$workspace"
+swaymsg -- workspace "$workspace"

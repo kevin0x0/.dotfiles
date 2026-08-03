@@ -4,9 +4,7 @@ output_colors=
 if [ "$COLORTERM" = truecolor ] || [ "$COLORTERM" = 24bit ]; then
   output_colors=16777216
 else
-  colors=$(tput colors 2>/dev/null)
-
-  if [ $? -ne 0 ]; then
+  if ! colors=$(tput colors 2>/dev/null); then
     echo none
     exit 0
   fi

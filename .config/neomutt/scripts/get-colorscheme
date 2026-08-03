@@ -2,7 +2,6 @@
 
 case $(termcolors) in
   16777216|256)
-    break
     ;;
   8)
     echo 8
@@ -14,7 +13,7 @@ case $(termcolors) in
     ;;
 esac
 
-: ${XDG_STATE_HOME:=$HOME/.local/state}
+: "${XDG_STATE_HOME:=$HOME/.local/state}"
 COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/neomutt/colorscheme
 
 if [ ! -r "$COLOR_THEME_FILE" ]; then

@@ -2,10 +2,10 @@
 
 call() {
   item=$(jq -r '.args' <"$1")
-  if ! man -- $item >/dev/null 2>&1; then
+  if ! man -- "$item" >/dev/null 2>&1; then
     printf "Can not find manual page for item: %s\n" "$item"
   else
-    man -- $item 2>/dev/null
+    man -- "$item" 2>/dev/null
   fi
 }
 

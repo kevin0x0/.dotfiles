@@ -2,14 +2,14 @@
 
 . "${XDG_CONFIG_HOME:-$HOME/.config}/i3blocks/scripts/colors"
 
-: ${button:=-1}
+: "${button:=-1}"
 if [ "$button" -eq 1 ]; then
   verbose=true
 fi
 
 if [ -n "$interface" ]; then
   # Try to use interface given by configuration.
-  [-d "/sys/class/net/$interface" ] || exit 33
+  [ -d "/sys/class/net/$interface" ] || exit 33
 else
   first_interface=
   # Find the most likely Ethernet interface that I want.
@@ -20,9 +20,9 @@ else
     # Ok, it's not a wireless.
 
     curr_interface=${dir##*/}
-    : ${first_interface:=$curr_interface}
+    : "${first_interface:=$curr_interface}"
 
-    if [ $(cat "$dir/carrier") -ne 1 ]; then
+    if [ "$(cat "$dir/carrier")" -ne 1 ]; then
       continue
     fi
     # This interface is lower up, so I probably want to use this interface.

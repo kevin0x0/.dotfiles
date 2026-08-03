@@ -14,13 +14,9 @@ PROMPT_TEMPLATE='\
 '
 
 opt_language=Chinese
-opt_immediate=false
 
-while getopts "il:f:" opt "$@"; do
+while getopts "l:" opt "$@"; do
   case "$opt" in
-    i)
-      opt_immediate=true
-      ;;
     l)
       opt_language=$OPTARG
       ;;

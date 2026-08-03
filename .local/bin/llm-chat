@@ -74,7 +74,7 @@ call_tools() (
       call_tool "$tool" call "$tmp"
     else
       printf "llm-chat: failed to call tools: " >&2
-      if [ ! -e "$tool"]; then
+      if [ ! -e "$tool" ]; then
         printf "%s doesn't exist.\n" "$tool" >&2
       else
         printf "%s is not executable or readable.\n" "$tool" >&2
@@ -153,7 +153,7 @@ done
 
 shift "$((OPTIND - 1))"
 
-: ${XDG_RUNTIME_DIR:?"environment variable XDG_RUNTIME_DIR is unset or empty."}
+: "${XDG_RUNTIME_DIR:?"environment variable XDG_RUNTIME_DIR is unset or empty."}"
 reasoning=$XDG_RUNTIME_DIR/llm-chat.reasoning.$$
 content=$XDG_RUNTIME_DIR/llm-chat.content.$$
 tool_calls=$XDG_RUNTIME_DIR/llm-chat.tool_calls.$$
@@ -170,7 +170,7 @@ for f in "$reasoning" "$content" "$tool_calls" "$input" "$session" \
     eval "$clean_command"
     exit 1
   fi
-  this_command="rm -- '"$(printf "$f" | sed "s/'/'\\\\''/g")"'"
+  this_command="rm -- '$(printf "%s" "$f" | sed "s/'/'\\\\''/g")'"
   clean_command=$clean_command${clean_command:+\;}$this_command
 done
 
@@ -200,10 +200,9 @@ while $opt_input_reader >"$input" && [ -s "$input" ]; do
 
       printf ',"tool_calls":[';  separate_by_comma <"$tool_calls"; printf ']'
       printf '}'
+      printf ','
+      call_tools
     } >>"$this_turn"
-
-    printf ',' >>"$this_turn"
-    call_tools >>"$this_turn"
   done
 
   # Merge this_turn to session

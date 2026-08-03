@@ -30,8 +30,8 @@ set user_iovertfmt ""
 set user_filterfmt ""
 
 cmd on-init &{{
-  : ${XDG_CONFIG_HOME:=$HOME/.config}
-  : ${XDG_STATE_HOME:=$HOME/.local/state}
+  : "${XDG_CONFIG_HOME:=$HOME/.config}"
+  : "${XDG_STATE_HOME:=$HOME/.local/state}"
   COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/lf/colorscheme
   filename=catppuccin-mocha
   if [ -f "$COLOR_THEME_FILE" ] && [ -r "$COLOR_THEME_FILE" ]; then

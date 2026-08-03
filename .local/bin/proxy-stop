@@ -6,7 +6,7 @@ while ! (umask 0077; set -C; : >"$lockfile") 2>/dev/null; do
   sleep 0.3
 done
 
-trap "rm '$lockfile'" EXIT
+trap 'rm "$lockfile"' EXIT
 
 # If no clash process is running, exit with code 64
 if ! pid=$(cat "$XDG_RUNTIME_DIR/clash.pid" 2>/dev/null); then

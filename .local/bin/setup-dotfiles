@@ -88,8 +88,8 @@ can not safely checkout."
 fi
 dotfiles checkout -q
 
-: ${XDG_CONFIG_HOME:=$HOME/.config}
-: ${XDG_CACHE_HOME:=$HOME/.cache}
+: "${XDG_CONFIG_HOME:=$HOME/.config}"
+: "${XDG_CACHE_HOME:=$HOME/.cache}"
 
 # Create XDG user directories
 if ! [ -f "$XDG_CONFIG_HOME/user-dirs.dirs" ]; then
@@ -114,7 +114,7 @@ find "$XDG_DOCUMENTS_DIR" -type f -name '*.gpg' \
       continue
     fi
     gpg -qe --yes --output "$file" \
-      "$opt_encryption_method" "$opt_gpg_recipient" "${file%.gpg}"
+      "$opt_encryption_method" "$opt_gpg_recipient" -- "${file%.gpg}"
   done
 fi
 
@@ -153,4 +153,4 @@ for f in "$XDG_CONFIG_HOME"/setup-dotfiles/*; do
 done
 
 # Clone neovim configuration
-(cd "$XDG_CONFIG_HOME"; [ -e nvim ] || git clone https://github.com/kevin0x0/nvim)
+(cd "$XDG_CONFIG_HOME" || exit; [ -e nvim ] || git clone https://github.com/kevin0x0/nvim)

@@ -2,7 +2,7 @@
 
 . "${XDG_CONFIG_HOME:-$HOME/.config}/i3blocks/scripts/colors"
 
-: ${button:-0}
+: "${button:-0}"
 case "$button" in
   4)
     audioctl set pvolume 2%+ >/dev/null 2>&1

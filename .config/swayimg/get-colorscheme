@@ -1,6 +1,6 @@
 #!/bin/sh
 
-: ${XDG_STATE_HOME:=~/.local/state}
+: "${XDG_STATE_HOME:=~/.local/state}"
 COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/swayimg/colorscheme
 
 if [ -f "$COLOR_THEME_FILE" ] && [ -r "$COLOR_THEME_FILE" ]; then
