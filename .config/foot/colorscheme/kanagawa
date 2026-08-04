@@ -1,0 +1,61 @@
+[colors-dark]
+# NOTE: the section must be specified at the very first line
+background=1f1f28
+foreground=dcd7ba
+regular0=16161d
+regular1=c34043
+regular2=76946a
+regular3=c0a36e
+regular4=7e9cd8
+regular5=957fb8
+regular6=6a9589
+regular7=c8c093
+bright0=727169
+bright1=e46876
+bright2=98bb6c
+bright3=e6c384
+bright4=7fb4ca
+bright5=938aa9
+bright6=7aa89f
+bright7=dcd7ba
+
+selection-foreground=dcd7ba
+selection-background=2d4f67
+jump-labels=727169 e6c384
+scrollback-indicator=727169 7e9cd8
+search-box-no-match=727169 e46876
+search-box-match=727169 e6c384
+urls=7fb4ca
+
+# cursor=<inverse foreground/background>
+
+## dimmed colors (see foot.ini(5) man page)
+# dim-blend-towards=black
+# dim0=<not set>
+# ...
+# dim7=<not-set>
+
+## The remaining 256-color palette
+# 16 = <256-color palette #16>
+# ...
+# 255 = <256-color palette #255>
+
+## Sixel colors
+# sixel0 =  000000
+# sixel1 =  3333cc
+# sixel2 =  cc2121
+# sixel3 =  33cc33
+# sixel4 =  cc33cc
+# sixel5 =  33cccc
+# sixel6 =  cccc33
+# sixel7 =  878787
+# sixel8 =  424242
+# sixel9 =  545499
+# sixel10 = 994242
+# sixel11 = 549954
+# sixel12 = 995499
+# sixel13 = 549999
+# sixel14 = 999954
+# sixel15 = cccccc
+
+# vim: ft=dosini

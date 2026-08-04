@@ -1,0 +1,15 @@
+background-color=#faf4ed
+text-color=#575279
+border-color=#56949f
+
+[urgency=critical]
+height=300
+text-color=#b4637a
+border-color=#b4637a
+
+[urgency=low]
+height=150
+text-color=#9893a5
+border-color=#dfdad9
+
+# vim: ft=dosini

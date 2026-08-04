@@ -1,0 +1,97 @@
+# basic colors ---------------------------------------------------------
+color error               color167  color230                        # message line error text (bright red)
+color tilde               color37   color230                        # vi-like tildes marking blank lines
+color message             color37   color230                        # normal message text
+color markers       bold  color202  color230                        # wrapped-line /^\+/ markers
+color attachment    bold  color202  color253                        # attachment headers
+color search              color230  color67                         # search patterns in pager
+color status        bold  color230  color67                         # status bar
+color indicator     bold  color230  color67                         # selected email in index
+color tree          bold  color67   color230                        # arrow in threads (`-->')
+
+# basic monochrome screen
+mono bold           bold
+mono underline      underline
+mono indicator      reverse
+mono error          bold
+mono header         bold                            "^(From|Subject|Date|To|Cc|Bcc):"
+mono quoted         bold
+
+# index ----------------------------------------------------------------
+
+color index               color67   color230       "~A"            # all messages
+color index               color244  color230       "~E"            # expired messages
+color index         bold  color67   color230       "~N"            # new messages
+color index               color244  color230       "~O"            # old messages
+color index               color244  color230       "~R"            # read messages
+color index         bold  color244  color230       "~Q"            # messages that have been replied to
+color index         bold  color67   color230       "~U"            # unread messages
+color index         bold  color67   color230       "~U~$"          # unread, unreferenced messages
+color index               color37   color230       "~v"            # messages part of a collapsed thread
+color index               color244  color230       "~P"            # messages from me
+#color index               color71   color0        "~p!~F"        # messages to me
+#color index               color71   color0        "~N~p!~F"      # new messages to me
+#color index               color71   color0        "~U~p!~F"      # unread messages to me
+#color index               color244  color0        "~R~p!~F"      # messages to me
+color index         bold  color133  color230       "~F"            # flagged messages
+color index         bold  color133  color230       "~F~p"          # flagged messages to me
+color index         bold  color133  color230       "~N~F"          # new flagged messages
+color index         bold  color133  color230       "~N~F~p"        # new flagged messages to me
+color index         bold  color133  color230       "~U~F~p"        # new flagged messages to me
+color index               color230  color197       "!~N ~D"        # deleted messages
+color index               color230  color197       "~N ~D"         # deleted new messages
+color index               color244  color230       "~v~(!~N)"      # collapsed thread with no unread
+color index               color37   color230       "~v~(~N)"       # collapsed thread with some unread
+color index               color37   color230       "~N~v~(~N)"     # collapsed thread with unread parent
+# statusbg used to indicated flagged when foreground color shows other status
+# for collapsed thread
+color index               color37   color230       "~v~(~F)!~N"    # collapsed thread with flagged, no unread
+color index               color37   color230       "~v~(~F~N)"     # collapsed thread with some unread & flagged
+color index               color37   color230       "~N~v~(~F~N)"   # collapsed thread with unread parent & flagged
+color index               color37   color230       "~N~v~(~F)"     # collapsed thread with unread parent, no unread inside, but some flagged
+color index               color37   color230       "~v~(~p)"       # collapsed thread with unread parent, no unread inside, some to me directly
+color index               color37   color160       "~v~(~D)"       # thread with deleted (doesn't differentiate between all or partial)
+color index               color172  color230       "~T"            # tagged messages
+color index         bold  color172  color230       "~T~F"          # tagged, flagged messages
+color index         bold  color172  color230       "~T~N"          # tagged, new messages
+color index         bold  color172  color230       "~T~U"          # tagged, unread messages
+
+# message headers ------------------------------------------------------
+
+color hdrdefault    bold  color136  color230
+color header        bold  color37   color230       "^(From|To|Cc|Bcc)"
+color header        bold  color37   color230       "^(Subject|Date)"
+
+# body -----------------------------------------------------------------
+
+color quoted              color67   color230
+color quoted1             color221  color230
+color quoted2             color136  color230
+color quoted3             color67   color230
+color quoted4             color67   color230
+color signature           color37   color230                        # everything below /^--\s*$/
+
+color bold                color237  color230
+color underline           color230  color244
+color normal              color244  color230
+
+## pgp
+
+color body                color197  color230       "(BAD signature)"
+color body                color37   color230       "(Good signature)"
+color body                color230  color230       "^gpg: Good signature .*"
+color body                color244  color230       "^gpg: "
+color body                color244  color160       "^gpg: BAD signature from.*"
+mono  body          bold                           "^gpg: Good signature"
+mono  body          bold                           "^gpg: BAD signature from.*"
+
+# yes, an insane URL regex
+color body          bold  color31   color230       "([a-z][a-z0-9+-]*://(((([a-z0-9_.!~*'();:&=+$,-]|%[0-9a-f][0-9a-f])*@)?((([a-z0-9]([a-z0-9-]*[a-z0-9])?)\\.)*([a-z]([a-z0-9-]*[a-z0-9])?)\\.?|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)(:[0-9]+)?)|([a-z0-9_.!~*'()$,;:@&=+-]|%[0-9a-f][0-9a-f])+)(/([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*(;([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*)*(/([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*(;([a-z0-9_.!~*'():@&=+$,-]|%[0-9a-f][0-9a-f])*)*)*)?(\\?([a-z0-9_.!~*'();/?:@&=+$,-]|%[0-9a-f][0-9a-f])*)?(#([a-z0-9_.!~*'();/?:@&=+$,-]|%[0-9a-f][0-9a-f])*)?|(www|ftp)\\.(([a-z0-9]([a-z0-9-]*[a-z0-9])?)\\.)*([a-z]([a-z0-9-]*[a-z0-9])?)\\.?(:[0-9]+)?(/([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*(;([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*)*(/([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*(;([-a-z0-9_.!~*'():@&=+$,]|%[0-9a-f][0-9a-f])*)*)*)?(\\?([-a-z0-9_.!~*'();/?:@&=+$,]|%[0-9a-f][0-9a-f])*)?(#([-a-z0-9_.!~*'();/?:@&=+$,]|%[0-9a-f][0-9a-f])*)?)[^].,:;!)? \t\r\n<>\"]"
+# and a heavy handed email regex
+color body          bold  color31   color230       "((@(([0-9a-z-]+\\.)*[0-9a-z-]+\\.?|#[0-9]+|\\[[0-9]?[0-9]?[0-9]\\.[0-9]?[0-9]?[0-9]\\.[0-9]?[0-9]?[0-9]\\.[0-9]?[0-9]?[0-9]\\]),)*@(([0-9a-z-]+\\.)*[0-9a-z-]+\\.?|#[0-9]+|\\[[0-9]?[0-9]?[0-9]\\.[0-9]?[0-9]?[0-9]\\.[0-9]?[0-9]?[0-9]\\.[0-9]?[0-9]?[0-9]\\]):)?[0-9a-z_.+%$-]+@(([0-9a-z-]+\\.)*[0-9a-z-]+\\.?|#[0-9]+|\\[[0-2]?[0-9]?[0-9]\\.[0-2]?[0-9]?[0-9]\\.[0-2]?[0-9]?[0-9]\\.[0-2]?[0-9]?[0-9]\\])"
+
+# simplified regex for URL & email
+#color body             magenta         default "(ftp|https?|gopher|news|telnet|finger)://[^ \"\t\r\n]+"
+#color body             magenta         default "[-a-z_0-9.]+@[-a-z_0-9.]+"
+
+# vim: ft=neomuttrc
