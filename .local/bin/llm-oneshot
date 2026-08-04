@@ -365,9 +365,12 @@ else
 fi
 
 URL=https://api.deepseek.com/chat/completions
-DEEPSEEK_API_KEY=$(decget "$(xdg-user-dir DOCUMENTS)/api_keys.gpg" DEEPSEEK_API_KEY)
-if [ "$?" -ne 0 ]; then
-  exit 1
+if [ -z "$DEEPSEEK_API_KEY" ]; then
+  if ! DEEPSEEK_API_KEY=$(decget "$(xdg-user-dir DOCUMENTS)/api_keys.gpg" DEEPSEEK_API_KEY); then
+    printf "%s\n" "Cannot retrieve api key from $(xdg-user-dir DOCUMENTS)/api_keys.gpg" \
+      "you can work around by setting DEEPSEEK_API_KEY environment variable"
+    exit 1
+  fi
 fi
 
 make_input "$@" \
