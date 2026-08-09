@@ -5,26 +5,45 @@ call() {
   intent=$(jq -r '.intent' <"$1")
   {
     printf "\033[31mREQUEST TO EXECUTE COMMAND(s):\033[0m\n"
-    printf "%s" "$code" | tr '\n' '\000' | xargs -r0 printf "\033[1;31m|\033[0m \033[32;1m%s\033[0m\n"
+    printf "%s" "$code" \
+      | tr '\n' '\000' \
+      | xargs -r0 printf "\033[1;31m|\033[0m \033[32;1m%s\033[0m\n"
     printf "\033[31mCOMMAND EXECUTION INTENT:\033[0m\n"
-    printf "%s" "$intent" | tr '\n' '\000' | xargs -r0 printf "\033[1;31m=\033[0m \033[33;1m%s\033[0m\n"
+    printf "%s" "$intent" \
+      | tr '\n' '\000' \
+      | xargs -r0 printf "\033[1;31m=\033[0m \033[33;1m%s\033[0m\n"
     printf "\033[1;31mDo you approve the request(Y/n/[r]eplace the original command(s))?\033[0m\n"
   } >&2
+
   IFS= read -r reply
+
   case "$reply" in
     y|"")
-      sh -c "$code" 2>&1
+      exec_cmd sh -c "$code"
       ;;
     n)
-      printf "\033[1;36mEnter your reason(one line):\033[0m\n">&2
+      printf "\033[1;36mEnter your reason(one line):\033[0m\n" >&2
       IFS= read -r reason
-      printf "!!!!!REQUEST REJECTED!!!!!\n User's reason: %s\n" "$reason"
+      printf '{"ok":false,"error":'
+      printf '%s' "rejected by user: $reason" | jq -Rsc '.'
+      printf '}\n'
       ;;
     r)
       printf "\033[1;36mEnter your replacing command, which will be piped to sh:\033[0m\n" >&2
-      cat | sh 2>&1
+      exec_cmd sh
       ;;
   esac
+}
+
+exec_cmd() {
+  tmp_stdout=$(tmpfile)
+  tmp_stderr=$(tmpfile)
+  "$@" >"$tmp_stdout" 2>"$tmp_stderr"
+  exitcode=$?
+  cat <<EOF
+{"ok":true,"exitcode":$exitcode,"stdout":$(jq -Rsc '.' <"$tmp_stdout"),"stderr":$(jq -Rsc '.' <"$tmp_stderr")}
+EOF
+  rm -f "$tmp_stdout" "$tmp_stderr"
 }
 
 case "$1" in
@@ -32,8 +51,11 @@ case "$1" in
     call "$2"
     ;;
   description)
-    jq -Rcs '.' <<EOF
-Request to execute given POSIX shell script and output result. Note:
+    jq -Rsc '.' <<EOF
+Request to execute given POSIX shell script. Output:
+  {"ok":true,"exitcode":<int>,"stdout":<string>,"stderr":<string>}
+  on execution, or {"ok":false,"error":<string>} on rejection.
+Note:
   - The request may be rejected.
   - The script should terminate.
   - Don't change system's state unless it is exactly what user wants or
@@ -53,7 +75,6 @@ EOF
     }'
     ;;
   *)
-    printf "Unknown subcommand: %s\n" "$1"
+    printf "Unknown subcommand: %s\n" "$1" >&2
     ;;
 esac
-
