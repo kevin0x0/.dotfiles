@@ -1,7 +1,45 @@
 #!/bin/sh
 
 call() {
-  cat -- "$(jq -r ".path" <"$1")"
+  path=$(jq -r '.path' <"$1")
+  begin=$(jq -r '.begin // 1' <"$1")
+  linecount=$(jq -r '.linecount // empty' <"$1")
+
+  if [ ! -e "$path" ]; then
+    jq -nc --arg path "$path" '{ok: false, error: "file not found: \($path)"}'
+    return
+  fi
+
+  if [ ! -f "$path" ]; then
+    jq -nc --arg path "$path" '{ok: false, error: "not a regular file: \($path)"}'
+    return
+  fi
+
+  if [ ! -r "$path" ]; then
+    jq -nc --arg path "$path" '{ok: false, error: "permission denied: \($path)"}'
+    return
+  fi
+
+  total_lines=$(wc -l <"$path")
+
+  tmpfile=$(tmpfile)
+
+  if [ -z "$linecount" ]; then
+    tail -n "+$begin" <"$path" >"$tmpfile"
+  else
+    tail -n "+$begin" <"$path" | head -n "$linecount" >"$tmpfile"
+  fi
+
+  actual_count=$(wc -l <"$tmpfile")
+
+  jq -Rsc \
+    --argjson begin "$begin" \
+    --argjson linecount "$actual_count" \
+    --argjson total_lines "$total_lines" \
+    '{ok: true, begin: $begin, linecount: $linecount, total_lines: $total_lines, content: .}' \
+    <"$tmpfile"
+
+  rm -f "$tmpfile"
 }
 
 case "$1" in
@@ -9,13 +47,25 @@ case "$1" in
     call "$2"
     ;;
   description)
-    printf '"Output the content of a given file."'
+    jq -Rsc '.' <<EOF
+{"ok":true|false, "begin":<int>, "linecount":<int>, "total_lines":<int>,
+"content":<string>} on success, or {"ok":false, "error":<string>} on failure.
+Read content from a text file from given line.
+EOF
     ;;
   parameters)
     printf '{
       "path": {
         "type": "string",
-        "description": "The file path."
+        "description": "Absolute path to the file."
+      },
+      "begin": {
+        "type": "integer",
+        "description": "Starting line number (1-indexed). Defaults to 1."
+      },
+      "linecount": {
+        "type": "integer",
+        "description": "Number of lines to read. Defaults to all remaining lines."
       }
     }'
     ;;
@@ -23,4 +73,3 @@ case "$1" in
     printf "Unknown subcommand: %s\n" "$1" >&2
     ;;
 esac
-
