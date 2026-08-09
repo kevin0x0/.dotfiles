@@ -80,12 +80,7 @@ call_tools() (
         printf "%s is not executable or readable.\n" "$tool" >&2
       fi
       printf "FAILED TO CALL THIS TOOL"
-    fi | {
-      dd count=8 bs=4096 iflag=fullblock 2>/dev/null
-      if IFS= read -r line; then
-        printf '\n!!!!!THE OUTPUT OF THIS TOOL("%s") WAS TOO LONG AND WAS TRUNCATED!!!!!\n' "$tool_name"
-      fi
-    } | jq -Rsc '.'
+    fi | jq -Rsc '.'
 
     printf '}\n'
     delimiter=,
