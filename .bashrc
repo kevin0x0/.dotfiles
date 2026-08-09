@@ -27,9 +27,26 @@ ps1_njob() {
   fi
 }
 
-osc133() {
+osc133a() {
   if [ "$TERM" = foot ]; then
     printf "\033]133;A\033\\"
+  fi
+}
+
+osc133c() {
+  if [ "$TERM" = foot ]; then
+    printf "\033]133;C\033\\"
+  fi
+}
+
+FIRST_PROMPT_PRINTING=1
+
+osc133d() {
+  if [ "$TERM" = foot ] && [ ! -v FIRST_PROMPT_PRINTING ]; then
+    printf "\033]133;D\033\\"
+  fi
+  if [ -v FIRST_PROMPT_PRINTING ]; then
+    unset FIRST_PROMPT_PRINTING
   fi
 }
 
@@ -58,7 +75,8 @@ osc7_cwd() {
 
 PS1='\[\e[1m\e[36m\]\u\[\e[0;1m\]@\[\e[35m\]\h \[\e[33m\]\w\[\e[31m\]$(ps1_exitcode)\[\e[34m\]$(ps1_njob)\[\e[0m\]\n\[\e[1m\]\$\[\e[0m\] '
 PS2='\[\e[1m\]>\[\e[0m\] '
-PROMPT_COMMAND=("${PROMPT_COMMAND[@]}" 'osc133' 'osc7_cwd')
+PS0='\['$(osc133c | sed 's/\\/\\\\/g')'\]'
+PROMPT_COMMAND=("${PROMPT_COMMAND[@]}" 'osc133d' 'osc133a' 'osc7_cwd')
 
 if [ "$TERM" = linux ]; then
   LANG=en_US.UTF-8
