@@ -57,6 +57,7 @@ osc7_cwd() {
 }
 
 PS1='\[\e[1m\e[36m\]\u\[\e[0;1m\]@\[\e[35m\]\h \[\e[33m\]\w\[\e[31m\]$(ps1_exitcode)\[\e[34m\]$(ps1_njob)\[\e[0m\]\n\[\e[1m\]\$\[\e[0m\] '
+PS2='\[\e[1m\]>\[\e[0m\] '
 PROMPT_COMMAND=("${PROMPT_COMMAND[@]}" 'osc133' 'osc7_cwd')
 
 if [ "$TERM" = linux ]; then
