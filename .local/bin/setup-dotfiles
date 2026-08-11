@@ -114,15 +114,15 @@ mkdir -p -- "$XDG_DOWNLOAD_DIR"
 
 # Encrypt files using gpg
 if [ -n "$opt_gpg_recipient" ]; then
-find "$XDG_DOCUMENTS_DIR" -type f -name '*.gpg' \
-  | while IFS= read -r file; do
+find "$XDG_DOCUMENTS_DIR" -type f -name '*.gpg' -print0 \
+  | xargs -r0 -- sh -c 'for file; do
     if ! [ -e "${file%.gpg}" ]; then
       printf "%s does not exist, skip\n" "${file%.gpg}"
       continue
     fi
     gpg -qe --yes --output "$file" \
       "$opt_encryption_method" "$opt_gpg_recipient" -- "${file%.gpg}"
-  done
+  done' --
 fi
 
 # Create mail directories
