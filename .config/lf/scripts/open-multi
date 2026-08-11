@@ -1,4 +1,19 @@
 #!/usr/bin/env bash
 
-IFS=$'\n'
-exec "${XDG_CONFIG_HOME:-$HOME/.config}/lf/scripts/open" $*
+filesep='////'
+files=$fx$filesep
+while [ ${#files} -ne 0 ]; do
+  case "$files" in
+    "/$filesep/"*)
+      f=/
+      files=${files#"/$filesep"}
+      ;;
+    *)
+      f=${files%%"$filesep"*}
+      files=${files#*"$filesep"}
+      ;;
+  esac
+  set -- "$@" "$f"
+done
+
+"${XDG_CONFIG_HOME:-$HOME/.config}/lf/scripts/open" "$@"

@@ -9,16 +9,35 @@ DIRS=()
 OTHERS=()
 
 xdg_open_files() {
-  while [ "$#" -ne 0 ]; do
-    filepath=$(printf "%sx" "$1")
-    nohup xdg-open "${filepath%x}" </dev/null &>/dev/null &
-    shift
+  for f; do
+    nohup xdg-open "$f" </dev/null &>/dev/null &
   done
 }
 
+myrealpath() {
+  link="$1"
+  while [ -L "$link" ]; do
+    target=$(readlink -- "$link"; echo x)
+    target=${target%$'\n'x}
+    case $target in
+      /*)
+        link=$target
+        ;;
+      *)
+        dir=$(dirname -- $link; echo x)
+        link=${dir%$'\n'x}/$target
+        ;;
+    esac
+  done
+
+  printf "%s" "$link"
+}
+
 for f in "$@"; do
-  f=$(realpath -- "$f") || exit 1
-  f=${f#x}
+  if [ -L "$f" ]; then
+    f=$(myrealpath "$f"; echo x)
+    f=${f%x}
+  fi
   case $(file --brief --mime-type -- "$f" 2>/dev/null) in
     image/*)
       IMAGES+=("$f")

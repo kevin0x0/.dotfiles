@@ -11,6 +11,8 @@ map <c-k> :{{
   up
 }}
 
+set filesep "////"
+
 set promptfmt ""
 
 set cutfmt ""
@@ -59,6 +61,6 @@ cmd on-init &{{
   lf --remote "send $id $source_color"
   lf --remote "send $id set rulerfile \"$rulerfile\""
   lf --remote "send $id cmd open \$\"$escaped_config_home/lf/scripts/open\" \"\$f\""
-  lf --remote "send $id map <c-o> \$\"$escaped_config_home/lf/scripts/open-multi\" \"\$fs\""
+  lf --remote "send $id map <c-o> \$\"$escaped_config_home/lf/scripts/open-multi\""
   lf --remote "send $id set previewer \"$escaped_config_home/lf/scripts/previewer\""
 }}
