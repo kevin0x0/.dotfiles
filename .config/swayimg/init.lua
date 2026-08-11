@@ -143,7 +143,12 @@ local function delete()
     swayimg.text.status = "File "..image.path.." removed"
   end
 end
--- Key and mouse bindings in viewer mode (example only, not all):
+
+local function print_and_exit()
+  io.stdout:write(swayimg[swayimg.mode].get_image().path)
+  io.stdout:flush()
+  swayimg.exit()
+end
 
 swayimg.viewer.on_key("g", function()
   swayimg.viewer.open("first")
@@ -157,10 +162,7 @@ end)
 swayimg.viewer.on_key("n", function()
   swayimg.viewer.open("next")
 end)
-swayimg.viewer.on_key("Space", function()
-  print(swayimg.viewer.get_image().path)
-  swayimg.exit()
-end)
+swayimg.viewer.on_key("Space", print_and_exit)
 swayimg.viewer.on_key("Shift+r", function()
   swayimg.viewer.open("random")
 end)
@@ -355,10 +357,7 @@ end)
 swayimg.gallery.on_key("f", toggle_fullscreen)
 swayimg.gallery.on_key("a", toggle_anti_aliasing)
 swayimg.gallery.on_key("i", toggle_info)
-swayimg.gallery.on_key("Space", function()
-  print(swayimg.gallery.get_image().path)
-  swayimg.exit()
-end)
+swayimg.gallery.on_key("Space", print_and_exit)
 swayimg.gallery.on_key("Shift+Space", function()
   print(swayimg.gallery.get_image().path)
 end)
