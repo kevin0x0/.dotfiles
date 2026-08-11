@@ -24,7 +24,7 @@ myrealpath() {
         link=$target
         ;;
       *)
-        dir=$(dirname -- $link; echo x)
+        dir=$(dirname -- "$link"; echo x)
         link=${dir%$'\n'x}/$target
         ;;
     esac
