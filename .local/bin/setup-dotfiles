@@ -58,8 +58,15 @@ while [ $# -ne 0 ]; do
     --wallpaper|-w)
       [ $# -eq 1 ] && error "Option $1 needs a value"
       shift
-      opt_wallpaper=$(realpath -- "$1") || \
-        error "File \"$1\" does not exist."
+      case $1 in
+        /*)
+          opt_wallpaper=$1
+          ;;
+        *)
+          opt_wallpaper=$(pwd; echo x)
+          opt_wallpaper=${opt_wallpaper%x}/$1
+          ;;
+      esac
       ;;
     --hidden-recipient|-R)
       [ $# -eq 1 ] && error "Option $1 needs a value"

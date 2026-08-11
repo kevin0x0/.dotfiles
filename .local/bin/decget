@@ -20,7 +20,7 @@ make_result() {
   printf "%s\n" "$line"
 }
 
-gpgfile=$(realpath -- "$1") || exit 1
+gpgfile=$1
 key=$2
 
 # Append `|| true' to gpg command to avoid failure due to a suspicious bug.
