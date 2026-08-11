@@ -2,7 +2,7 @@
 
 shopt -s extglob
 
-file=$(realpath -- "$1") || exit 1
+file=$1
 mime_type=$(file --mime-type --brief -- "$file" </dev/null)
 
 case "$mime_type" in
