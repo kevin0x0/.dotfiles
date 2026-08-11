@@ -11,6 +11,10 @@
 
 set -e
 
+if ! swaymsg; then
+  exit
+fi
+
 SWAY_CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/sway
 SWAY_THEME_DIR=$SWAY_CONFIG_DIR/config.d/colorscheme
 
@@ -58,8 +62,8 @@ execute_commands() {
         ;;
     esac
 
-    swaymsg -- "$trimmed"
-  done
+    printf "%s;\0" "$trimmed"
+  done | xargs -r0 -- swaymsg --
 }
 
 execute_bar_colors_commands() (
@@ -79,9 +83,9 @@ execute_bar_colors_commands() (
         ;;
     esac
     for bar_id in $bar_ids; do
-      swaymsg -- bar "$bar_id" colors "$trimmed"
+      printf "bar %s colors %s;\0" "$bar_id" "$trimmed"
     done
-  done
+  done | xargs -r0 -- swaymsg --
 )
 
 # Source colorscheme
