@@ -11,7 +11,7 @@ opt_gpg_recipient=
 
 dotfiles() {
   cd -- "$HOME"
-  git --git-dir="$HOME/dotfiles.git" --work-tree="$HOME" "$@"
+  git --git-dir="$HOME/.dotfiles" --work-tree="$HOME" "$@"
 }
 
 check_diff() {
