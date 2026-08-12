@@ -34,10 +34,14 @@ bindsym {
 # Move the focused window with the same, but add Shift
 
 bindsym {
-  $mod+Shift+$left move left
-  $mod+Shift+$down move down
-  $mod+Shift+$up move up
-  $mod+Shift+$right move right
+  $mod+Shift+$left move left 40px
+  $mod+Shift+$down move down 40px
+  $mod+Shift+$up move up 40px
+  $mod+Shift+$right move right 40px
+  $mod+Control+Shift+$left move left
+  $mod+Control+Shift+$down move down
+  $mod+Control+Shift+$up move up
+  $mod+Control+Shift+$right move right
 }
 
 #
@@ -125,10 +129,14 @@ bindsym {
 # Resizing containers:
 #
 mode "resize" {
-  bindsym $mod+Shift+$left move left
-  bindsym $mod+Shift+$down move down
-  bindsym $mod+Shift+$up move up
-  bindsym $mod+Shift+$right move right
+  bindsym $mod+Shift+$left move left 40px
+  bindsym $mod+Shift+$down move down 40px
+  bindsym $mod+Shift+$up move up 40px
+  bindsym $mod+Shift+$right move right 40px
+  bindsym $mod+Control+Shift+$left move left
+  bindsym $mod+Control+Shift+$down move down
+  bindsym $mod+Control+Shift+$up move up
+  bindsym $mod+Control+Shift+$right move right
 
   bindsym $mod+$left focus left
   bindsym $mod+$down focus down
