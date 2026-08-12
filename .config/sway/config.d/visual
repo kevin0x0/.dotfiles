@@ -25,14 +25,14 @@ seat * hide_cursor 5000
 seat * xcursor_theme $cursor-theme
 
 exec_always {
-  gsettings set $gnome-schema icon-theme "$icon-theme"
-  gsettings set $gnome-schema cursor-theme "$cursor-theme"
-  gsettings set $gnome-schema font-name "$font"
+  command -v gsettings && gsettings set $gnome-schema icon-theme "$icon-theme"
+  command -v gsettings && gsettings set $gnome-schema cursor-theme "$cursor-theme"
+  command -v gsettings && gsettings set $gnome-schema font-name "$font"
 }
 
 # DYNAMIC COMMAND BEGIN
-exec_always gsettings set $gnome-schema gtk-theme "$gtk-theme"
-exec_always gsettings set $gnome-schema color-scheme "$color-scheme"
+exec_always command -v gsettings && gsettings set $gnome-schema gtk-theme "$gtk-theme"
+exec_always command -v gsettings && gsettings set $gnome-schema color-scheme "$color-scheme"
 
 # border background text indicator child_border
 client.focused $focused_fg $focused_fg $focused_text $focused_indicator $focused_fg
