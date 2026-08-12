@@ -6,5 +6,5 @@ COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/mako/colorscheme
 theme=$1
 ln -sf -- "$COLORSCHEME_DIR/$theme" "$COLOR_THEME_FILE"
 
-makoctl reload || true
+makoctl reload >/dev/null 2>/dev/null|| true
 # vim: ft=sh
