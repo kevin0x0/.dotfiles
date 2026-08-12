@@ -10,6 +10,7 @@ export XMODIFIERS=@im=fcitx
 # export INPUT_METHOD=fcitx
 export SDL_IM_MODULE=fcitx
 export GLFW_IM_MODULE=fcitx
+export QT_QPA_PLATFORMTHEME=gtk3
 
 # Export locale setting
 export LANG=zh_CN.UTF-8
