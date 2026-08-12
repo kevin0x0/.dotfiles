@@ -73,7 +73,10 @@ while read number comment; do
       "${opt_show_number:+$number}"
       ;;
   esac
-  printf " %s" "$comment"
+
+  if [ -n "$comment" ]; then
+    printf " %s" "$comment"
+  fi
 
   nblock=$((nblock + 1))
   if [ "$opt_max_block" -ne 0 ] && [ "$nblock" -ge "$opt_max_block" ]; then
