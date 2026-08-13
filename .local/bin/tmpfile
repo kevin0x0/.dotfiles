@@ -4,7 +4,7 @@ if command -v mktemp >/dev/null 2>&1; then
   exec mktemp
 fi
 
-tmpfile_base=${XDG_RUNTIME_DIR:?"XDG_RUNTIME_DIR is not defined"}/llm-chat-tools.klang.tmp.$$
+tmpfile_base=${XDG_RUNTIME_DIR:?"XDG_RUNTIME_DIR is not defined"}/tmp.$$
 i=0
 tmpfile=$tmpfile_base.$i
 while ! (set -C; : >"$tmpfile"); do
