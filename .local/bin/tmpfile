@@ -7,7 +7,8 @@ fi
 tmpfile_base=${XDG_RUNTIME_DIR:?"XDG_RUNTIME_DIR is not defined"}/tmp.$$
 i=0
 tmpfile=$tmpfile_base.$i
-while ! (set -C; : >"$tmpfile"); do
+while ! (set -C; : >"$tmpfile") 2>/dev/null; do
   i=$((i + 1))
   tmpfile=$tmpfile_base.$i
 done
+printf "%s\n" "$tmpfile"
