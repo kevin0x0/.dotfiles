@@ -32,7 +32,7 @@ mode "start" {
     $mod+p exec proxy-start-gui; mode "default"
   }
 }
-bindsym $mod+s mode "start"
+bindsym $mod+Backslash mode "start"
 
 # Kill
 mode "stop" {
@@ -41,10 +41,10 @@ mode "stop" {
     $mod+q mode "default"
     $mod+Shift+q mode "default"
     # Kill proxy
-    $mod+Shift+p exec proxy-stop-gui; mode "default"
+    $mod+p exec proxy-stop-gui; mode "default"
   }
 }
-bindsym $mod+Shift+s mode "stop"
+bindsym $mod+Backspace mode "stop"
 
 # Settings
 mode "settings" {
