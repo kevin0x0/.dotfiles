@@ -139,6 +139,10 @@ handle_input() {
     esac
   done
 
+  if [ -z "$line" ]; then
+    return 1;
+  fi
+
   while line=$(read_line); do
     if [ -z "$line" ]; then
       break
