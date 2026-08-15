@@ -193,6 +193,7 @@ for f in "$reasoning" "$content" "$tool_calls" "$input" "$session" \
 done
 
 trap "$clean_command" EXIT
+trap "$clean_command; trap - INT; kill -s INT $$" INT
 
 tool_list=$(generate_tool_list)
 dump_file_spec=reasoning_content="$reasoning",content="$content",tool_calls="$tool_calls"
