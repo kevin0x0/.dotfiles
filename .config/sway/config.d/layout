@@ -129,47 +129,27 @@ bindsym {
 # Resizing containers:
 #
 mode "resize" {
-  bindsym $mod+Shift+$left move left 40px
-  bindsym $mod+Shift+$down move down 40px
-  bindsym $mod+Shift+$up move up 40px
-  bindsym $mod+Shift+$right move right 40px
-  bindsym $mod+Control+Shift+$left move left
-  bindsym $mod+Control+Shift+$down move down
-  bindsym $mod+Control+Shift+$up move up
-  bindsym $mod+Control+Shift+$right move right
-
-  bindsym $mod+$left focus left
-  bindsym $mod+$down focus down
-  bindsym $mod+$up focus up
-  bindsym $mod+$right focus right
-  bindsym $mod+p focus parent
-  bindsym $mod+c focus child
-
-# left will shrink the containers width
-# right will grow the containers width
-# up will shrink the containers height
-# down will grow the containers height
-  bindsym $left resize shrink width 10px
-  bindsym $down resize grow height 10px
-  bindsym $up resize shrink height 10px
-  bindsym $right resize grow width 10px
-
-  bindsym Shift+$left resize set width 40 ppt
-  bindsym Shift+$right resize set width 60 ppt
-  bindsym Shift+m resize set width 50 ppt height 50 ppt
-  bindsym Shift+$down resize set height 60 ppt
-  bindsym Shift+$up resize set height 40 ppt
+  bindsym $mod+w resize set width 40 ppt; mode "default"
+  bindsym $mod+Shift+w resize set width 60 ppt; mode "default"
+  bindsym $mod+h resize set height 40 ppt; mode "default"
+  bindsym $mod+Shift+h resize set height 60 ppt; mode "default"
 
 # Return to default mode
   bindsym Return mode "default"
   bindsym Escape mode "default"
-  bindsym $mod+r mode "default"
+  bindsym $mod+g mode "default"
 }
-bindsym $mod+r mode "resize"
+bindsym $mod+g mode "resize"
 
 # Quick resize
-bindsym $mod+Control+s resize set width 60 ppt; resize set height 60 ppt
+bindsym $mod+Shift+s resize set width 60 ppt; resize set height 60 ppt
+bindsym $mod+s resize set width 40 ppt; resize set height 40 ppt
+bindsym $mod+m resize set width 50 ppt height 50 ppt
 bindsym $mod+Minus exec sh -c 'swaymsg resize shrink width 10; swaymsg resize shrink height 10'
 bindsym $mod+Equal exec sh -c 'swaymsg resize grow width 10; swaymsg resize grow height 10'
+bindsym $mod+Control+$left resize shrink width 10px
+bindsym $mod+Control+$down resize grow height 10px
+bindsym $mod+Control+$up resize shrink height 10px
+bindsym $mod+Control+$right resize grow width 10px
 
 # vim: ft=swayconfig
