@@ -12,10 +12,15 @@ call() {
     printf "%s" "$intent" \
       | tr '\n' '\000' \
       | xargs -r0 printf "\033[1;31m=\033[0m \033[33;1m%s\033[0m\n"
-    printf "\033[1;31mDo you approve the request(Y/n/[r]eplace the original command(s))?\033[0m\n"
   } >&2
 
-  IFS= read -r reply
+  if [ -n "$LLM_CHAT_DO_SHCMD_YES" ]; then
+    reply=$LLM_CHAT_DO_SHCMD_YES
+  else
+    printf "\033[1;31mDo you approve the request\
+      (Y/n/[r]eplace the original command(s))?\033[0m\n" >&2
+    IFS= read -r reply
+  fi
 
   case "$reply" in
     y|"")
