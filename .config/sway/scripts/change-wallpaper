@@ -1,11 +1,24 @@
 #!/bin/sh
 
+
 wallpaper_dir=$(xdg-user-dir PICTURES)/wallpaper
 
 imgfile=$(find "$wallpaper_dir" -type f -print0 \
   | xargs -0 swayimg -g -e "swayimg.enable_overlay = false" --; \
   echo x)
 imgfile=${imgfile%x}
+
+case $imgfile in
+  *$'\n'*)
+    if [ "$LANG" = zh_CN.UTF-8 ]; then
+      notify-send --urgency=critical -- "不支持的路径名" "所选取的文件的路径中不能包含换行符"
+    else
+      notify-send --urgency=critical -- "unsupported pathname" \
+        "Pathnames containing newlines are not supported"
+    fi
+    exit 1
+    ;;
+esac
 
 escaped=$(printf "%sx\n" "$imgfile" | sed 's/./\\&/g')
 escaped=${escaped%\\x}
