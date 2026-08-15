@@ -116,17 +116,43 @@ oneshot() {
   make_input | llm-oneshot -jd "$dump_file_spec" ${tool_list:+-t} "$tool_list" "$@"
 }
 
+read_line() {
+  if command -v rlwrap >/dev/null 2>/dev/null; then 
+    rlwrap -H ~/.llm-chat_history -- head -n 1
+  else
+   head -n 1
+  fi
+}
+
+handle_input() {
+  while :; do
+    line=$(read_line)
+    case $line in
+      ":"*)
+        # Execute command if input starts with ':'
+        eval "${line#:}"
+        ;;
+      *)
+        printf "%s\n" "$line" >"$1"
+        break
+        ;;
+    esac
+  done
+
+  while line=$(read_line); do
+    if [ -z "$line" ]; then
+      break
+    fi
+    printf "%s\n" "${line%" "}"
+  done >>"$1"
+}
+
 opt_history_file=/dev/null
 opt_hot_reload_tools=false
 opt_write_back=false
 opt_tool_dir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-chat/tools
-opt_input_reader=cat
 
-if command -v rlwrap 1>/dev/null 2>&1; then
-  opt_input_reader='rlwrap cat'
-fi
-
-while getopts "rwh:i:" opt "$@"; do
+while getopts "rwh:" opt "$@"; do
   case "$opt" in
     r)
       opt_hot_reload_tools=true
@@ -136,9 +162,6 @@ while getopts "rwh:i:" opt "$@"; do
       ;;
     h)
       opt_history_file=$OPTARG
-      ;;
-    i)
-      opt_input_reader=$OPTARG
       ;;
     '?')
       exit 1
@@ -174,7 +197,7 @@ trap "$clean_command" EXIT
 tool_list=$(generate_tool_list)
 dump_file_spec=reasoning_content="$reasoning",content="$content",tool_calls="$tool_calls"
 
-while $opt_input_reader >"$input" && [ -s "$input" ]; do
+while handle_input "$input" && [ -s "$input" ]; do
   printf '{"role":"user","content":'>"$this_turn"
   jq -Rsc '.' <"$input" >>"$this_turn"
   printf '}\n' >>"$this_turn"
