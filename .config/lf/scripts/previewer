@@ -7,7 +7,13 @@ mime_type=$(file --mime-type --brief -- "$file" </dev/null)
 
 case "$mime_type" in
   @(application/@(yaml|toml|json)|text/*))
-    highlight -O ansi -- "$file"
+    termcolor=$(termcolors)
+    if [ "$termcolor" -eq 16777216 ]; then
+      output_format=truecolor
+    else
+      output_format=ansi
+    fi
+    highlight -O "$output_format" -- "$file"
     ;;
   *)
     content=$(file --brief -- "$file")
