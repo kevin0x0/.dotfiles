@@ -10,4 +10,4 @@ if [ -f "$colorfile" ] && [ -r "$colorfile" ]; then
   . "$colorfile"
 fi
 
-# vim: ft=bash
+# vim: ft=sh
