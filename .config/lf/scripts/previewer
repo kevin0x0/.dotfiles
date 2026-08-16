@@ -6,7 +6,7 @@ file=$1
 mime_type=$(file --mime-type --brief -- "$file" </dev/null)
 
 case "$mime_type" in
-  @(application/@(yaml|toml|json)|text/*))
+  @(application/@(yaml|toml|json|mbox)|text/*))
     termcolor=$(termcolors)
     if [ "$termcolor" -eq 16777216 ]; then
       output_format=truecolor
