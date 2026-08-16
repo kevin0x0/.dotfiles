@@ -16,15 +16,6 @@ case "$mime_type" in
     highlight -O "$output_format" -- "$file"
     ;;
   *)
-    content=$(file --brief -- "$file")
-    length=${#content}
-    width=$(($2 - 3))
-    if [ "$width" -le 0 ]; then
-      exit
-    fi
-    for ((i = 0; i < length; i += this_width)); do
-      this_width=$((i + width < length ? width : length - i))
-      printf "%s\n" "${content:$i:$this_width}"
-    done
+    file --brief -- "$file" | fold -sw "$2"
     ;;
 esac
