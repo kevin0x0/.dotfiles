@@ -8,6 +8,12 @@
 alias ls='ls --color=auto'
 alias grep='grep --color=auto'
 
+for f in ~/.bashrc.d/*; do
+  [ -f "$f" ] || continue
+  . "$f"
+done
+unset f
+
 # my PS1
 ps1_exitcode() {
   local exitcode=$?
