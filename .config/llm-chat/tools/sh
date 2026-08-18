@@ -17,8 +17,8 @@ call() {
   if [ -n "$LLM_CHAT_SH_YES" ]; then
     reply=$LLM_CHAT_SH_YES
   else
-    printf "\033[1;31mDo you approve the request\
-      (Y/n/[r]eplace the original command(s))?\033[0m\n" >&2
+    printf "\033[1;31m%s\033[0m\n" \
+      "Do you approve the request(Y/n/[r]eplace the original command(s))?" >&2
     IFS= read -r reply
   fi
 
