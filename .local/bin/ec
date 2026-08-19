@@ -1,0 +1,29 @@
+#!/bin/sh
+
+count=$#
+while [ "$count" -ne 0 ]; do
+  count=$((count - 1))
+
+  if ! f=$(command -v "$1"); then
+    printf "%s not found\n" "$1" >&2
+    continue
+  fi
+
+  case $f in
+    /*)
+      set -- "$@" "$f"
+      ;;
+    *)
+      printf "%s not found\n" "$1" >&2
+      ;;
+  esac
+
+  shift
+done
+
+if [ "$#" -eq 0 ]; then
+  printf "none of provided files exists\n" >&2
+  exit 1
+fi
+
+"${EDITOR:-vim}" -- "$@"
