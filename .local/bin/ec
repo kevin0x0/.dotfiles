@@ -6,7 +6,7 @@ while [ "$count" -ne 0 ]; do
   arg=$1
   shift
 
-  if ! f=$(command -v "$arg"); then
+  if ! f=$(command -v -- "$arg"); then
     printf "%s not found\n" "$arg" >&2
     continue
   fi
