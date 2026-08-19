@@ -55,7 +55,7 @@ mode "settings" {
     # Set wallpaper
     $mod+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/change-wallpaper\"; mode "default"
     # Set wallpaper persistently
-    $mod+Shift+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/change-wallpaper --persist\"; mode "default"
+    $mod+Shift+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/change-wallpaper -p\"; mode "default"
     # Set wereless connection
     $mod+period exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/wifi-connect\"; mode "default"
   }
