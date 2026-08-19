@@ -100,5 +100,5 @@ if [ ${#OTHERS[@]} -ne 0 ]; then
 fi
 
 if [ ${#TEXTS[@]} -ne 0 ]; then
-  ${EDITOR:-nvim} -- "${TEXTS[@]}" </dev/null 2>/dev/null
+  ${EDITOR:-vim} -- "${TEXTS[@]}" </dev/null 2>/dev/null
 fi
