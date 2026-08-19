@@ -64,13 +64,12 @@ call_tools() (
   while IFS= read -r call <&3; do
     tool_name=$(printf "%s\n" "$call" | jq -r ".function.name")
     id=$(printf "%s\n" "$call" | jq ".id")
-    arguments=$(printf "%s\n" "$call" | jq -r ".function.arguments")
+    printf "%s\n" "$call" | jq -r ".function.arguments" >"$tmp"
     printf '%s{"role":"tool","tool_call_id":%s,"content":' "$delimiter" "$id"
 
     tool=$opt_tool_dir/$tool_name
 
     if [ -f "$tool" ] && { [ -x "$tool" ] || [ -r "$tool" ]; }; then
-      printf "%s\n" "$arguments" >"$tmp"
       call_tool "$tool" call "$tmp"
     else
       printf "llm-chat: failed to call tools: " >&2

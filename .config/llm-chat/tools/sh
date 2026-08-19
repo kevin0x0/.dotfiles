@@ -1,16 +1,17 @@
 #!/bin/sh
 
 call() {
-  code=$(jq -r '.code' <"$1")
-  intent=$(jq -r '.intent' <"$1")
+  code=$(tmpfile)
+  intent=$(tmpfile)
+  jq -r '.code' <"$1" >"$code"
+  jq -r '.intent' <"$1" >"$intent"
+
   {
     printf "\033[31mREQUEST TO EXECUTE COMMAND(s):\033[0m\n"
-    printf "%s" "$code" \
-      | tr '\n' '\000' \
+    tr '\n' '\000' <"$code" \
       | xargs -r0 printf "\033[1;31m|\033[0m \033[32;1m%s\033[0m\n"
     printf "\033[31mCOMMAND EXECUTION INTENT:\033[0m\n"
-    printf "%s" "$intent" \
-      | tr '\n' '\000' \
+    tr '\n' '\000' <"$intent" \
       | xargs -r0 printf "\033[1;31m=\033[0m \033[33;1m%s\033[0m\n"
   } >&2
 
@@ -24,7 +25,7 @@ call() {
 
   case "$reply" in
     y|"")
-      exec_cmd sh -c "$code"
+      exec_cmd sh <"$code"
       ;;
     n)
       printf "\033[1;36mEnter your reason(one line):\033[0m\n" >&2
@@ -38,6 +39,8 @@ call() {
       exec_cmd sh
       ;;
   esac
+
+  rm -- "$code" "$intent"
 }
 
 exec_cmd() {
@@ -75,7 +78,7 @@ EOF
       },
       "intent": {
         "type": "string",
-        "description": "Your intent to execute this script."
+        "description": "Your intent to execute this script, in user-preferred language."
       }
     }'
     ;;
