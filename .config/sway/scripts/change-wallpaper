@@ -1,12 +1,29 @@
 #!/bin/sh
 
+opt_persist=false
+while getopts "p" opt; do
+  case $opt in
+    p)
+      opt_persist=true
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
 
 wallpaper_dir=$(xdg-user-dir PICTURES)/wallpaper
 
-imgfile=$(find "$wallpaper_dir" -type f -print0 \
-  | xargs -0 swayimg -g -e "swayimg.enable_overlay = false" --; \
-  echo x)
-imgfile=${imgfile%x}
+if [ "$#" -eq 0 ]; then
+  imgfile=$(find "$wallpaper_dir" -type f -print0 \
+    | xargs -0 swayimg -g -e "swayimg.enable_overlay = false" --; \
+    echo x)
+  imgfile=${imgfile%x}
+else
+  imgfile="$1"
+fi
 
 case $imgfile in
   *$'\n'*)
@@ -29,6 +46,6 @@ fi
 
 swaymsg -- output '*' bg "$escaped" stretch
 
-if [ "$1" = "--persist" ]; then
+if [ "$opt_persist" = true ]; then
   ln -sf -- "$imgfile" "$wallpaper_dir/current"
 fi
