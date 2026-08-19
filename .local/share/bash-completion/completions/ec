@@ -1,0 +1,22 @@
+_comp_ec() {
+  local savedIFS=$IFS
+  IFS=:
+  local paths=($PATH)
+
+  local cur="${COMP_WORDS[COMP_CWORD]}"
+
+  IFS=$'\n'
+
+  local path
+  COMPREPLY=()
+  for path in "${paths[@]}"; do
+    COMPREPLY+=($(cd -- "$path"; \
+      find -type f -print | grep -F "./$cur" | sed 's/^\.\///g'))
+  done
+
+  IFS=$savedIFS
+}
+
+complete -o nosort -o bashdefault -o default -F _comp_ec ec
+
+# vim: ft=bash
