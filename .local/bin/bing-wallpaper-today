@@ -1,0 +1,42 @@
+#!/bin/sh
+
+opt_set=false
+while getopts "s" opt; do
+  case $opt in
+    s)
+      opt_set=true
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
+
+request_url="https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&nc=1614319565639&pid=hp&FORM=BEHPTB&uhd=1"
+if ! url_title=$(curl -s -- "$request_url" | jq -r '.images[0] | .url,.title'); then
+  printf "failed to request: %s\n" "$request_url" >&2
+  exit 1
+fi
+
+url="https://cn.bing.com${url_title%%$'\n'*}"
+title=$(printf "%s" "${url_title#*$'\n'}" | tr -d '/')
+dir=$(xdg-user-dir PICTURES)/wallpaper
+
+if [ "$#" -eq 1 ]; then
+  dir=$1
+fi
+
+if [ ! -d "$dir" ]; then
+  printf "%s doesn't exist or is not a directoroy\n" "$dir" >&2
+  exit 1
+fi
+
+if ! curl -- "$url" > "$dir/$title.jpg"; then
+  exit 1
+fi
+
+if [ "$opt_set" = true ]; then
+  "${XDG_CONFIG_HOME:-~/.config}/sway/scripts/change-wallpaper" -- "$dir/$title.jpg"
+fi
