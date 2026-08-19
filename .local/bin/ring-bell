@@ -1,0 +1,13 @@
+#!/bin/sh
+
+bell_file=$(xdg-user-dir MUSIC)/bell
+if [ ! -r "$bell_file" ]; then
+  exit
+fi
+
+if command -v paplay >/dev/null 2>/dev/null && \
+  pactl info 2>/dev/null >/dev/null; then
+  paplay -- "$bell_file"
+elif command -v aplay >/dev/null 2>/dev/null; then
+  aplay -q -- "$bell_file"
+fi
