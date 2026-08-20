@@ -83,7 +83,3 @@ PS1='\[\e[1m\e[36m\]\u\[\e[0;1m\]@\[\e[35m\]\h \[\e[33m\]\w\[\e[31m\]$(ps1_exitc
 PS2='\[\e[1m\]>\[\e[0m\] '
 PS0='\['$(osc133c | sed 's/\\/\\\\/g')'\]'
 PROMPT_COMMAND=("${PROMPT_COMMAND[@]}" 'osc133d' 'osc133a' 'osc7_cwd')
-
-if [ "$TERM" = linux ]; then
-  LANG=en_US.UTF-8
-fi
