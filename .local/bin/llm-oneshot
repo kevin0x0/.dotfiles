@@ -366,9 +366,11 @@ fi
 
 URL=https://api.deepseek.com/chat/completions
 if [ -z "$DEEPSEEK_API_KEY" ]; then
-  if ! DEEPSEEK_API_KEY=$(decget "$(xdg-user-dir DOCUMENTS)/api_keys.gpg" DEEPSEEK_API_KEY); then
-    printf "%s\n" "Cannot retrieve api key from $(xdg-user-dir DOCUMENTS)/api_keys.gpg" \
-      "you can work around by setting DEEPSEEK_API_KEY environment variable"
+  configfile="${XDG_CONFIG_HOME:-$HOME/.config}/llm-oneshot/config"
+  [ -r "$configfile" ] && . -- "$configfile"
+  if [ -z "$DEEPSEEK_API_KEY" ]; then
+    printf "DEEPSEEK_API_KEY not specified, you can set it via environment variable or in file %s\n" \
+      '${XDG_CONFIG_HOME:-$HOME/.config}/llm-oneshot/config'
     exit 1
   fi
 fi
