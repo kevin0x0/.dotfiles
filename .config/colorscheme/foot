@@ -7,7 +7,7 @@ if [ ! -r "$COLOR_THEME_FILE" ]; then
   exit 1
 fi
 
-: "${XDG_CONFIG_HOME:=~/.config}"
+: "${XDG_CONFIG_HOME:=$HOME/.config}"
 theme=$1
 colorscheme_file="$XDG_CONFIG_HOME/foot/colorscheme/$theme"
 IFS= read -r section_spec <"$colorscheme_file"
