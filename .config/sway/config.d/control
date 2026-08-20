@@ -17,8 +17,6 @@ bindsym {
   $mod+Shift+q kill
   # Start your launcher
   $mod+d exec $menu
-  # Start with prime-run
-  $mod+Shift+d exec prime-run $menu
   # Open documents
   $mod+i exec opendoc
 }
@@ -28,8 +26,6 @@ mode "start" {
     Escape mode "default"
     $mod+q mode "default"
     $mod+Shift+q mode "default"
-    # Start proxy
-    $mod+p exec proxy-start-gui; mode "default"
   }
 }
 bindsym $mod+Backslash mode "start"
@@ -40,8 +36,6 @@ mode "stop" {
     Escape mode "default"
     $mod+q mode "default"
     $mod+Shift+q mode "default"
-    # Kill proxy
-    $mod+p exec proxy-stop-gui; mode "default"
   }
 }
 bindsym $mod+Backspace mode "stop"
@@ -56,8 +50,6 @@ mode "settings" {
     $mod+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/change-wallpaper\"; mode "default"
     # Set wallpaper persistently
     $mod+Shift+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/change-wallpaper -p\"; mode "default"
-    # Set wereless connection
-    $mod+period exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/wifi-connect\"; mode "default"
   }
 }
 bindsym $mod+x mode "settings"

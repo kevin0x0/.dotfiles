@@ -143,13 +143,6 @@ fi
 mkdir -p -- "$XDG_PICTURES_DIR/wallpaper"
 ln -sf -- "${opt_wallpaper:- }" "$XDG_PICTURES_DIR/wallpaper/current"
 
-if [ "$(uname -s)" = Linux ]; then
-  # Install Clash
-  proxy-install
-  # Config Clash
-  proxy-config
-fi
-
 # Create repos
 mkdir -p -- "$HOME/repos"
 
