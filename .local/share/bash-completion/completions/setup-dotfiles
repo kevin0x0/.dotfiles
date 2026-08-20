@@ -1,44 +1,5 @@
-# Filter out the item in COMPREPLY that matches given prefix
-# 1: prefix
-_comp_setup_dotfiles_filter() {
-  local prefix="$1"
-  for ((i = 0, j = 0; i < "${#COMPREPLY[@]}"; ++i)); do
-    if [[ "${COMPREPLY[i]}" =~ ^$prefix ]]; then
-      COMPREPLY[j++]="${COMPREPLY[i]}"
-    fi
-  done
-  for ((; j < i;)); do
-    unset -v "COMPREPLY[--i]"
-  done
-}
-
-_comp_setup_dotfiles_list_options() {
-  COMPREPLY=(
-    --recipient -r
-    --hidden-recipient -R
-    --wallpaper -w
-  )
-  _comp_setup_dotfiles_filter "$cur"
-}
-
 _comp_setup_dotfiles() {
-  local cur="${COMP_WORDS[COMP_CWORD]}"
-  local prev="${COMP_WORDS[COMP_CWORD - 1]}"
-  case "$prev" in
-    --wallpaper|-w)
-      return
-      ;;
-    --recipient|--hidden-recipient|-r|-R)
-      local savedIFS="$IFS"
-      IFS=$'\n'
-      COMPREPLY=($(LANG=C.UTF-8 gpg --list-public-keys | grep '^uid' | sed 's/uid[[:space:]]*\[[^][]*\] .*<\(.*@.*\)>/\1/'))
-      IFS=$savedIFS
-      _comp_setup_dotfiles_filter "$cur"
-      ;;
-    *)
-      _comp_setup_dotfiles_list_options "$cur"
-      ;;
-  esac
+  COMPREPLY=(-f -C)
 }
 
 complete -o nosort -o bashdefault -o default -F _comp_setup_dotfiles setup-dotfiles

@@ -1,0 +1,12 @@
+# Create wall paper directories for sway
+
+current=$XDG_PICTURES_DIR/wallpaper/current
+if [ -e "$current" ]; then
+  info "$current exists, skip wallpaper initialization"
+  return
+fi
+
+mkdir -p -- "$current"
+ln -sf -- /dev/null "$current"
+
+# vim: ft=sh

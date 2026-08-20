@@ -1,0 +1,5 @@
+DIR=${XDG_CACHE_HOME:-$HOME/.cache}/neomutt
+mkdir -p -- "$DIR/header/"
+mkdir -p -- "$DIR/message/"
+
+# vim: ft=sh

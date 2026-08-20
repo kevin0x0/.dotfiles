@@ -1,16 +1,34 @@
 #!/bin/sh
 
+showmsg() {
+  if [ -t 2 ]; then
+    printf "\033[1m[\033[%um%s\033[34m@%s\033[0;1m] %s\033[0m\n" "$1" "$2" "$3" "$4" >&2
+  else
+    printf "[%s@%s] %s\n" "$2" "$3" "$4" >&2
+  fi
+}
+
 error() {
-  echo "$1" >&2
+  for arg; do
+    showmsg 31 error "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
+  done
   exit 1
 }
 
-opt_wallpaper=
-opt_encryption_method=
-opt_gpg_recipient=
+info() {
+  for arg; do
+    showmsg 33 info "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
+  done
+}
+
+msg() {
+  for arg; do
+    showmsg 36 mesg "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
+  done
+}
+
 
 dotfiles() {
-  cd -- "$HOME"
   git --git-dir="$HOME/.dotfiles" --work-tree="$HOME" "$@"
 }
 
@@ -45,112 +63,63 @@ list_diff() {
   done
 }
 
-while [ $# -ne 0 ]; do
-  case "$1" in
-    --recipient|-r)
-      [ $# -eq 1 ] && error "Option $1 needs a value"
-      [ -n "$opt_gpg_recipient" ] && \
-        error "You can specify only one recipient."
-      shift
-      opt_gpg_recipient=$1
-      opt_encryption_method=-r
+opt_force_checkout=
+opt_checkout=true
+while getopts "fC" opt; do
+  case $opt in
+    f)
+      opt_force_checkout=true
       ;;
-    --wallpaper|-w)
-      [ $# -eq 1 ] && error "Option $1 needs a value"
-      shift
-      case $1 in
-        /*)
-          opt_wallpaper=$1
-          ;;
-        *)
-          opt_wallpaper=$(pwd; echo x)
-          opt_wallpaper=${opt_wallpaper%x}/$1
-          ;;
-      esac
+    C)
+      opt_checkout=
       ;;
-    --hidden-recipient|-R)
-      [ $# -eq 1 ] && error "Option $1 needs a value"
-      [ -n "$opt_gpg_recipient" ] && \
-        error "You can specify only one recipient."
-      shift
-      opt_gpg_recipient=$1
-      opt_encryption_method=-R
-      ;;
-    *)
-      error "Unknown option: $1"
+    \?)
+      exit 2
       ;;
   esac
-  shift
 done
 
-if [ "${XDG_STATE_HOME:-$HOME/.local/state}" != ~/.local/state ]; then
-  error "XDG_STATE_HOME must be set to ~/.local/state"
+if ! cd -- "$HOME"; then
+  error "can not change directory to $HOME"
 fi
 
 # Checkout
-if ! check_diff; then
-  list_diff
-  error "The contents of files listed above are different from those in the repository
-can not safely checkout."
+if [ -n "$opt_checkout" ]; then
+  if ! check_diff && [ -z "$opt_force_checkout" ]; then
+    list_diff
+    error "The contents of files listed above are different from those in the repository" \
+      "can not safely checkout."
+  fi
+
+  if [ -n "$opt_force_checkout" ]; then
+    dotfiles checkout -qf
+  else
+    dotfiles checkout -q
+  fi
 fi
-dotfiles checkout -q
 
 : "${XDG_CONFIG_HOME:=$HOME/.config}"
 : "${XDG_CACHE_HOME:=$HOME/.cache}"
 
 # Create XDG user directories
-if ! [ -f "$XDG_CONFIG_HOME/user-dirs.dirs" ]; then
-  error "$XDG_CONFIG_HOME/user-dirs.dirs does not exist"
-fi
-. "$XDG_CONFIG_HOME/user-dirs.dirs"
-mkdir -p -- "$XDG_DESKTOP_DIR"
-mkdir -p -- "$XDG_MUSIC_DIR"
-mkdir -p -- "$XDG_TEMPLATES_DIR"
-mkdir -p -- "$XDG_PUBLICSHARE_DIR"
-mkdir -p -- "$XDG_DOCUMENTS_DIR"
-mkdir -p -- "$XDG_PICTURES_DIR"
-mkdir -p -- "$XDG_VIDEOS_DIR"
-mkdir -p -- "$XDG_DOWNLOAD_DIR"
-
-# Encrypt files using gpg
-if [ -n "$opt_gpg_recipient" ]; then
-find "$XDG_DOCUMENTS_DIR" -type f -name '*.gpg' -print0 \
-  | xargs -r0 -- sh -c 'for file; do
-    if ! [ -e "${file%.gpg}" ]; then
-      printf "%s does not exist, skip\n" "${file%.gpg}"
-      continue
-    fi
-    gpg -qe --yes --output "$file" \
-      "$opt_encryption_method" "$opt_gpg_recipient" -- "${file%.gpg}"
-  done' --
+if [ ! -r "$XDG_CONFIG_HOME/user-dirs.dirs" ]; then
+  error "$XDG_CONFIG_HOME/user-dirs.dirs does not exist or is not readable"
 fi
 
-# Create mail directories
-for f in "$XDG_DOCUMENTS_DIR"/accounts/*.gpg; do
-  [ -f "$f" ] || continue
-  mkdir -p -- "$(printf "%s\n" "$f" | sed 's/accounts\/\([^\/]*\)\.gpg/mail\/\1/')"
+if ! . -- "$XDG_CONFIG_HOME/user-dirs.dirs"; then
+  error "failed to source $XDG_CONFIG_HOME/user-dirs.dirs"
+fi
+
+for d in "$XDG_DESKTOP_DIR" "$XDG_MUSIC_DIR" "$XDG_TEMPLATES_DIR" \
+  "$XDG_PUBLICSHARE_DIR" "$XDG_DOCUMENTS_DIR" "$XDG_PICTURES_DIR" \
+  "$XDG_VIDEOS_DIR" "$XDG_DOWNLOAD_DIR"; do
+  if ! mkdir -p -- "$d"; then
+    error "failed to create XDG directory $d"
+  fi
 done
-mkdir -p -- "$XDG_CACHE_HOME/neomutt/header/"
-mkdir -p -- "$XDG_CACHE_HOME/neomutt/message/"
 
-if ! grep '^Path' "$XDG_CONFIG_HOME/isyncrc" | \
-   grep -qF -e "$XDG_DOCUMENTS_DIR" -e "~/${XDG_DOCUMENTS_DIR##~/}"
-then
-  echo "Should manually update $XDG_CONFIG_HOME/isyncrc."
-fi
-
-# Create wall paper directories for sway
-mkdir -p -- "$XDG_PICTURES_DIR/wallpaper"
-ln -sf -- "${opt_wallpaper:- }" "$XDG_PICTURES_DIR/wallpaper/current"
-
-# Create repos
-mkdir -p -- "$HOME/repos"
-
-# Setup configuration files for some apps
-
+# Source drop-in configuration file
 for f in "$XDG_CONFIG_HOME"/setup-dotfiles/*; do
-  (sh -- "$f")
+  [ -r "$f" ] || continue
+  (MSG_CONTEXT=$(basename -- "$f") . -- "$f") || exit 1
 done
-
-# Clone neovim configuration
-(cd "$XDG_CONFIG_HOME" || exit; [ -e nvim ] || git clone https://github.com/kevin0x0/nvim)
