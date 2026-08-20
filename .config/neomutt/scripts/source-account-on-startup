@@ -1,0 +1,6 @@
+#!/bin/sh
+# This script is only for $XDG_CONFIG_HOME/neomutt/accounts/init
+
+
+cd -- "${XDG_CONFIG_HOME:-$HOME/.config}/neomutt/accounts"
+printf "source '%s'\n" */on-startup
