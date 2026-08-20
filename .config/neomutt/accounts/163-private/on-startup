@@ -1,8 +1,0 @@
-set folder = "imaps://imap.163.com:993/"
-
-set my_163_private_source = init
-folder-hook $folder 'source $my_163_private_source'
-
-macro index,pager ,2 "<enter-command>set folder = $folder<enter><change-folder>${folder}INBOX<enter>"
-
-# vim: ft=neomuttrc
