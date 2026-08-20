@@ -12,8 +12,5 @@ export SDL_IM_MODULE=fcitx
 export GLFW_IM_MODULE=fcitx
 export QT_QPA_PLATFORMTHEME=gtk3
 
-# Export locale setting
-export LANG=zh_CN.UTF-8
-
 # Start sway with passed arguments
 exec sway "$@"
