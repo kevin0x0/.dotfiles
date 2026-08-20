@@ -1,0 +1,19 @@
+# ---------------------------------------------------------------------------
+# accounts/example/init
+#
+# Sourced only once, on the first entry into this account's folder (see
+# on-startup). It reads the slow/static per-account data -- address, secrets,
+# key IDs -- and then hands off to `enter', which applies them on every entry.
+# ---------------------------------------------------------------------------
+
+set my_example_address = "foo@example.com"
+set my_example_pass = "password"
+set my_example_pgp_sign_keyid = "0123456789ABCDEF0123456789ABCDEF01234567"
+set my_example_pgp_self_encrypt_keyid = "0123456789ABCDEF0123456789ABCDEF01234567"
+set my_example_smime_sign_keyid = "0123456789ABCDEF0123456789ABCDEF01234567"
+set my_example_smime_self_encrypt_keyid = "0123456789ABCDEF0123456789ABCDEF01234567"
+
+# Delegate to `enter', which turns these values into active configuration.
+source enter
+
+# vim: ft=neomuttrc

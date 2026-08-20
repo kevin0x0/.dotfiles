@@ -1,0 +1,27 @@
+# ---------------------------------------------------------------------------
+# accounts/example/on-startup
+#
+# Sourced automatically at startup by `scripts/source-account-on-startup'.
+# It registers this account: records where its mail lives (`folder'), installs
+# a folder-hook so the account is configured lazily on first use, and binds a
+# macro (`,1') to jump straight to this account's INBOX.
+# ---------------------------------------------------------------------------
+
+# Ignore this example account. Real account configs should not include this line.
+finish
+
+# Where this account's mail lives: an IMAP URL or a local Maildir path.
+set folder = "imaps://imaps.example.com:933/"
+# set folder = "path to my local maildir"
+
+# Point at `init' so the expensive one-time setup runs on the first entry.
+set my_example_source = init
+
+# Whenever we enter this account's folder, source whichever file
+# `my_example_source' currently points to (init, enter, or none).
+folder-hook $folder 'source $my_example_source'
+
+# `,1' switches to this account's INBOX from the index or pager.
+macro index,pager ,1 "<enter-command>set folder = $folder<enter><change-folder>${folder}INBOX<enter>"
+
+# vim: ft=neomuttrc

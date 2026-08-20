@@ -1,0 +1,59 @@
+# ---------------------------------------------------------------------------
+# accounts/example/enter
+#
+# Sourced every time we switch into this account from another one. It applies
+# the account's mailbox layout, IMAP/SMTP credentials, signing keys, and
+# subscribed mailboxes. At the end it wires up the source-variable dance so
+# the previous account is re-sourced correctly on the next switch back.
+# ---------------------------------------------------------------------------
+
+# --- Mailbox layout --------------------------------------------------------
+set spool_file = +INBOX
+set postponed = +Drafts
+unset record
+set trash = +Trash
+
+# --- IMAP ------------------------------------------------------------------
+set imap_user = ""
+set imap_pass = $my_example_pass
+set imap_send_id = yes
+
+# --- SMTP ------------------------------------------------------------------
+set real_name = 'my name'
+set from = $my_example_address
+set smtp_url = "smtp url"
+set smtp_pass = $my_example_pass
+set ssl_force_tls = yes
+set ssl_starttls = yes
+set smtp_authenticators = "plain"
+
+# --- PGP / S/MIME ----------------------------------------------------------
+set pgp_sign_as = $my_example_pgp_sign_keyid
+set smime_sign_as = $my_example_smime_sign_keyid
+
+set pgp_self_encrypt = yes
+set smime_self_encrypt = yes
+set pgp_default_key = $my_example_pgp_self_encrypt_keyid
+set smime_default_key = $my_example_smime_self_encrypt_keyid
+
+# --- Sidebar / subscriptions ----------------------------------------------
+unmailboxes *
+mailboxes +INBOX
+
+unsubscribe *
+subscribe mailing-list@example.com
+
+unalternates *
+alternates $my_example_address
+
+# --- Source-variable bookkeeping ------------------------------------------
+# This account is now fully configured, so stop pointing at `init'.
+set my_example_source = "$my_none"
+
+# Re-source the *previous* account's `enter' file next time we switch back to it.
+set $my_last_source_variable = enter
+
+# Remember this account as the new "last" account for future switches.
+set my_last_source_variable = my_example_source
+
+# vim: ft=neomuttrc
