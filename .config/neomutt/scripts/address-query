@@ -13,7 +13,17 @@ make_result() {
   fi
 }
 
-gpg -q --decrypt -- "$(xdg-user-dir DOCUMENTS)"/addressbook.gpg 2>/dev/null \
-  | tail -n +2 2>/dev/null \
-  | fuzzy-query "$1" 2>/dev/null \
-  | make_result
+make_input() {
+  get_addrbook=${XDG_CONFIG_HOME:-$HOME/.config}/neomutt/scripts/get-addressbook
+  if [ ! -f "$get_addrbook" ]; then
+    return
+  fi
+
+  if [ -x "$get_addrbook" ]; then
+    "$get_addrbook"
+  else
+    sh -- "$get_addrbook"
+  fi
+}
+
+make_input | fuzzy-query "$1" 2>/dev/null | make_result
