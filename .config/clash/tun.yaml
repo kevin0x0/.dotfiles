@@ -1,6 +1,0 @@
-tun:
-  enable: true
-  stack: system
-  auto-route: true
-  auto-redir: true
-  auto-detect-interface: true
