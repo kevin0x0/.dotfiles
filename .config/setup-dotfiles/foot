@@ -1,4 +1,4 @@
-DIR=${XDG_STATE_HOME:-~/.local/state}/colorscheme/foot
+DIR=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/foot
 colorconfig=$DIR/colortheme.ini
 dark_slot=$DIR/dark-slot
 light_slot=$DIR/light-slot
