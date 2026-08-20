@@ -33,7 +33,11 @@ if [ ! -d "$dir" ]; then
   exit 1
 fi
 
-if ! curl -- "$url" > "$dir/$title.jpg"; then
+if [ ! -t 2 ]; then
+  silent=-Ss
+fi
+
+if ! curl $silent -- "$url" > "$dir/$title.jpg"; then
   exit 1
 fi
 
