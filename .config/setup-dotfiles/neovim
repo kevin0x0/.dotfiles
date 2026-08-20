@@ -1,0 +1,11 @@
+configdir="${XDG_CONFIG_HOME:-$HOME/.config}"
+cd -- "$configdir" || exit 1
+
+if [ -e nvim ]; then
+  info "$configdir/nvim exist, skip"
+  return
+fi
+
+git clone https://github.com/kevin0x0/nvim
+
+# vim: ft=sh

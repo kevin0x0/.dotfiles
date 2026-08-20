@@ -1,8 +1,12 @@
+if [ "${XDG_STATE_HOME:-$HOME/.local/state}" != ~/.local/state ]; then
+  error "XDG_STATE_HOME must be set to ~/.local/state"
+fi
+
 DIR=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/foot
 colorconfig=$DIR/colortheme.ini
 dark_slot=$DIR/dark-slot
 light_slot=$DIR/light-slot
-mkdir -p "$DIR"
+mkdir -p -- "$DIR"
 
 printf "initial-color-theme=dark\n" > "$colorconfig"
 
@@ -10,4 +14,5 @@ printf "initial-color-theme=dark\n" > "$colorconfig"
 COLORSCHEME_DIR="$XDG_CONFIG_HOME/foot/colorscheme"
 ln -sf -- "$COLORSCHEME_DIR/catppuccin-mocha" "$dark_slot"
 ln -sf -- "$COLORSCHEME_DIR/light" "$light_slot"
+
 # vim: ft=sh
