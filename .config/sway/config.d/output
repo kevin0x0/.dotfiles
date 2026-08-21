@@ -1,5 +1,5 @@
 
-set $wallpaper "$(xdg-user-dir PICTURES)/wallpaper/current"
+set $wallpaper "$(xdg-user-dir PICTURES)/sway-current-wallpaper"
 
 output * {
   bg $wallpaper stretch #ffe4c7
