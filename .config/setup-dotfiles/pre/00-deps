@@ -54,7 +54,7 @@ check_availability() {
   exit
 }
 
-if printf "%s" "$required" | check_availability error "required but not available"; then
+if ! printf "%s" "$required" | check_availability error "required but not available"; then
   error_exit "stopped"
 fi
 
