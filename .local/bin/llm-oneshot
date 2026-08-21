@@ -367,7 +367,7 @@ fi
 URL=https://api.deepseek.com/chat/completions
 if [ -z "$DEEPSEEK_API_KEY" ]; then
   configfile="${XDG_CONFIG_HOME:-$HOME/.config}/llm-oneshot/config"
-  [ -r "$configfile" ] && . -- "$configfile"
+  [ -f "$configfile" ] && [ -r "$configfile" ] && . -- "$configfile"
   if [ -z "$DEEPSEEK_API_KEY" ]; then
     printf "DEEPSEEK_API_KEY not specified, you can set it via environment variable or in file %s\n" \
       '${XDG_CONFIG_HOME:-$HOME/.config}/llm-oneshot/config'
