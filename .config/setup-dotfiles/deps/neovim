@@ -1,0 +1,4 @@
+required for neovim
+command -v nvim
+
+tree-sitter cli for tree-sitter, a incremental parsing library

@@ -1,0 +1,4 @@
+required for sway setup
+true
+
+xdg-user-dir XDG user directory getter

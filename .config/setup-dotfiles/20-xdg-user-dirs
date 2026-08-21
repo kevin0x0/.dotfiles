@@ -1,0 +1,25 @@
+if command -v xdg-user-dirs-update >/dev/null 2>&1; then
+  xdg-user-dirs-update
+  return
+fi
+
+info "xdg-user-dirs-update not available, create diretories directly"
+
+: "${XDG_CONFIG_HOME:-$HOME/.config}"
+if [ ! -r "$XDG_CONFIG_HOME/user-dirs.dirs" ]; then
+  error_exit "$XDG_CONFIG_HOME/user-dirs.dirs does not exist or is not readable"
+fi
+
+if ! . -- "$XDG_CONFIG_HOME/user-dirs.dirs"; then
+  error_exit "failed to source $XDG_CONFIG_HOME/user-dirs.dirs"
+fi
+
+for d in "$XDG_DESKTOP_DIR" "$XDG_MUSIC_DIR" "$XDG_TEMPLATES_DIR" \
+  "$XDG_PUBLICSHARE_DIR" "$XDG_DOCUMENTS_DIR" "$XDG_PICTURES_DIR" \
+  "$XDG_VIDEOS_DIR" "$XDG_DOWNLOAD_DIR"; do
+  if ! mkdir -p -- "$d"; then
+    error_exit "failed to create XDG directory $d"
+  fi
+done
+
+# vim: ft=sh
