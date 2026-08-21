@@ -33,34 +33,11 @@ dotfiles() {
 }
 
 check_diff() {
-  if dotfiles diff --quiet --diff-filter=M; then
-    return 0
-  fi
-  dotfiles diff --name-only --diff-filter=M | \
-  while IFS= read -r line; do
-    case "$line" in
-      *.gpg)
-        continue
-        ;;
-      *)
-        return 1
-        ;;
-    esac
-  done
+  dotfiles diff --quiet --diff-filter=M
 }
 
 list_diff() {
-  dotfiles diff --name-only --diff-filter=M | \
-  while IFS= read -r line; do
-    case "$line" in
-      *.gpg)
-        continue
-        ;;
-      *)
-        printf "%s\n" "$line"
-        ;;
-    esac
-  done
+  dotfiles diff --name-only --diff-filter=M
 }
 
 opt_force_checkout=
