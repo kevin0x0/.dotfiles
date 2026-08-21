@@ -118,8 +118,24 @@ for d in "$XDG_DESKTOP_DIR" "$XDG_MUSIC_DIR" "$XDG_TEMPLATES_DIR" \
   fi
 done
 
+# Source drop-in pre-configuration file
+for f in "$XDG_CONFIG_HOME"/setup-dotfiles/pre/*; do
+  [ -f "$f" ] || continue
+  [ -r "$f" ] || continue
+  (MSG_CONTEXT=$(basename -- "pre/$f") . -- "$f") || exit 1
+done
+
 # Source drop-in configuration file
 for f in "$XDG_CONFIG_HOME"/setup-dotfiles/*; do
+  [ -f "$f" ] || continue
   [ -r "$f" ] || continue
   (MSG_CONTEXT=$(basename -- "$f") . -- "$f") || exit 1
 done
+
+# Source drop-in post-configuration file
+for f in "$XDG_CONFIG_HOME"/setup-dotfiles/post/*; do
+  [ -f "$f" ] || continue
+  [ -r "$f" ] || continue
+  (MSG_CONTEXT=$(basename -- "post/$f") . -- "$f") || exit 1
+done
+
