@@ -109,7 +109,7 @@ done
 for f in "$XDG_CONFIG_HOME"/setup-dotfiles/pre/*; do
   [ -f "$f" ] || continue
   [ -r "$f" ] || continue
-  (MSG_CONTEXT=$(basename -- "pre/$f") . -- "$f") || exit 1
+  (MSG_CONTEXT=pre/$(basename -- "$f") . -- "$f") || exit 1
 done
 
 # Source drop-in configuration file
@@ -123,6 +123,6 @@ done
 for f in "$XDG_CONFIG_HOME"/setup-dotfiles/post/*; do
   [ -f "$f" ] || continue
   [ -r "$f" ] || continue
-  (MSG_CONTEXT=$(basename -- "post/$f") . -- "$f") || exit 1
+  (MSG_CONTEXT=post/$(basename -- "$f") . -- "$f") || exit 1
 done
 
