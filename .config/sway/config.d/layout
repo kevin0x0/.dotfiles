@@ -129,10 +129,10 @@ bindsym {
 # Resizing containers:
 #
 mode "resize" {
-  bindsym $mod+w resize set width 40 ppt; mode "default"
-  bindsym $mod+Shift+w resize set width 60 ppt; mode "default"
-  bindsym $mod+h resize set height 40 ppt; mode "default"
-  bindsym $mod+Shift+h resize set height 60 ppt; mode "default"
+  bindsym $mod+Shift+w resize set width 40 ppt; mode "default"
+  bindsym $mod+w resize set width 60 ppt; mode "default"
+  bindsym $mod+Shift+h resize set height 40 ppt; mode "default"
+  bindsym $mod+h resize set height 60 ppt; mode "default"
 
 # Return to default mode
   bindsym Return mode "default"
@@ -142,8 +142,8 @@ mode "resize" {
 bindsym $mod+g mode "resize"
 
 # Quick resize
-bindsym $mod+Shift+s resize set width 60 ppt; resize set height 60 ppt
-bindsym $mod+s resize set width 40 ppt; resize set height 40 ppt
+bindsym $mod+s resize set width 60 ppt; resize set height 60 ppt
+bindsym $mod+Shift+s resize set width 40 ppt; resize set height 40 ppt
 bindsym $mod+m resize set width 50 ppt height 50 ppt
 bindsym $mod+Minus exec sh -c 'swaymsg resize shrink width 10; swaymsg resize shrink height 10'
 bindsym $mod+Equal exec sh -c 'swaymsg resize grow width 10; swaymsg resize grow height 10'
