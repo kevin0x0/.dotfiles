@@ -1,5 +1,5 @@
 if [ "${XDG_STATE_HOME:-$HOME/.local/state}" != ~/.local/state ]; then
-  error "XDG_STATE_HOME must be set to ~/.local/state"
+  error_exit "XDG_STATE_HOME must be set to ~/.local/state"
 fi
 
 DIR=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/foot

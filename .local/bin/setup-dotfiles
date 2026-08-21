@@ -12,12 +12,22 @@ error() {
   for arg; do
     showmsg 31 error "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
   done
+}
+
+warning() {
+  for arg; do
+    showmsg 33 warning "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
+  done
+}
+
+error_exit() {
+  error "$@"
   exit 1
 }
 
 info() {
   for arg; do
-    showmsg 33 info "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
+    showmsg 35 info "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
   done
 }
 
@@ -57,14 +67,14 @@ while getopts "fC" opt; do
 done
 
 if ! cd -- "$HOME"; then
-  error "can not change directory to $HOME"
+  error_exit "can not change directory to $HOME"
 fi
 
 # Checkout
 if [ -n "$opt_checkout" ]; then
   if ! check_diff && [ -z "$opt_force_checkout" ]; then
     list_diff
-    error "The contents of files listed above are different from those in the repository" \
+    error_exit "The contents of files listed above are different from those in the repository" \
       "can not safely checkout."
   fi
 
@@ -80,18 +90,18 @@ fi
 
 # Create XDG user directories
 if [ ! -r "$XDG_CONFIG_HOME/user-dirs.dirs" ]; then
-  error "$XDG_CONFIG_HOME/user-dirs.dirs does not exist or is not readable"
+  error_exit "$XDG_CONFIG_HOME/user-dirs.dirs does not exist or is not readable"
 fi
 
 if ! . -- "$XDG_CONFIG_HOME/user-dirs.dirs"; then
-  error "failed to source $XDG_CONFIG_HOME/user-dirs.dirs"
+  error_exit "failed to source $XDG_CONFIG_HOME/user-dirs.dirs"
 fi
 
 for d in "$XDG_DESKTOP_DIR" "$XDG_MUSIC_DIR" "$XDG_TEMPLATES_DIR" \
   "$XDG_PUBLICSHARE_DIR" "$XDG_DOCUMENTS_DIR" "$XDG_PICTURES_DIR" \
   "$XDG_VIDEOS_DIR" "$XDG_DOWNLOAD_DIR"; do
   if ! mkdir -p -- "$d"; then
-    error "failed to create XDG directory $d"
+    error_exit "failed to create XDG directory $d"
   fi
 done
 
