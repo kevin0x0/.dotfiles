@@ -1,0 +1,63 @@
+required="\
+sway wayland compositor
+swaymsg sway cli
+swaybg wallpaper tool
+firefox browser
+i3status bar
+wmenu dynamic menu for wayland
+wmenu-run app launcher
+foot terminal emulator
+grim screenshot utility
+slurp screen region selector
+mako notification daemon
+makoctl mako cli
+brightnessctl brightness control tool
+notify-send notification sender
+wl-copy copy utility for wayland
+hightlight source code highlighter
+xdg-user-dir XDG user directory getter
+swayimg image viewer
+vim text editor
+pkill kill processes by name
+jq command-line json processor
+curl transfer a URL
+git stupid content tracker
+xdg-open opens a file or URL
+bash bourne-again shell
+"
+optional="\
+gsettings configure gtk application on the fly
+mpv media player
+fcitx5 input method
+fzf fuzzy finder
+rlwrap readline wrapper
+nvim text editor
+aplay sound recorder and player for ALSA soundcard driver
+amixer mixer for ALSA soundcard driver
+paplay play back or record audio streams on a PulseAudio sound server
+pactl control a running PulseAudio sound server
+"
+
+check_availability() {
+  header_outputed=
+  while read -r cmd description; do
+    if ! command -v -- "$cmd" >/dev/null 2>&1; then
+      if [ -z "$header_outputed" ]; then
+        header_outputed=1
+        "$1" "the following commands is $2:"
+      fi
+      "$1" "$cmd: $description"
+    fi
+  done
+
+  [ -z "$header_outputed" ]
+  exit
+}
+
+if printf "%s" "$required" | check_availability error "required but not available"; then
+  error_exit "stopped"
+fi
+
+printf "%s" "$optional" | check_availability info "optional"
+
+# vim: ft=sh
