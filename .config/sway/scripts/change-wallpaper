@@ -14,7 +14,8 @@ done
 
 shift "$((OPTIND - 1))"
 
-wallpaper_dir=$(xdg-user-dir PICTURES)/wallpaper
+picdir=$(xdg-user-dir PICTURES)
+wallpaper_dir=$picdir/wallpaper
 
 if [ "$#" -eq 0 ]; then
   imgfile=$(find "$wallpaper_dir" -type f -print0 \
@@ -47,5 +48,5 @@ fi
 swaymsg -- output '*' bg "$escaped" stretch
 
 if [ "$opt_persist" = true ]; then
-  ln -sf -- "$imgfile" "$wallpaper_dir/current"
+  ln -sf -- "$imgfile" "$picdir/sway-current-wallpaper"
 fi
