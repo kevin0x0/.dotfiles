@@ -8,46 +8,38 @@ showmsg() {
   fi
 }
 
-error() {
+error() (
   for arg; do
     showmsg 31 error "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
   done
-}
+)
 
-warning() {
+warning() (
   for arg; do
     showmsg 33 warning "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
   done
-}
+)
 
 error_exit() {
   error "$@"
   exit 1
 }
 
-info() {
+info() (
   for arg; do
     showmsg 35 info "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
   done
-}
+)
 
-msg() {
+msg() (
   for arg; do
     showmsg 36 mesg "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
   done
-}
+)
 
 
 dotfiles() {
   git --git-dir="$HOME/.dotfiles" --work-tree="$HOME" "$@"
-}
-
-check_diff() {
-  dotfiles diff --quiet --diff-filter=M
-}
-
-list_diff() {
-  dotfiles diff --name-only --diff-filter=M
 }
 
 opt_force_checkout=
@@ -72,10 +64,15 @@ fi
 
 # Checkout
 if [ -n "$opt_checkout" ]; then
-  if ! check_diff && [ -z "$opt_force_checkout" ]; then
-    list_diff
-    error_exit "The contents of files listed above are different from those in the repository" \
-      "can not safely checkout."
+  if ! dotfiles diff --quiet --diff-filter=M && \
+    [ -z "$opt_force_checkout" ]; then
+    error "The following files are different from those in the repository"
+    dotfiles diff --name-only --diff-filter=M | \
+      while read -r line; do
+        error "$line"
+      done
+    info "you can use option -C to skip checkout or -f to force checkout"
+    exit 1
   fi
 
   if [ -n "$opt_force_checkout" ]; then
@@ -85,44 +82,14 @@ if [ -n "$opt_checkout" ]; then
   fi
 fi
 
-: "${XDG_CONFIG_HOME:=$HOME/.config}"
-: "${XDG_CACHE_HOME:=$HOME/.cache}"
-
-# Create XDG user directories
-if [ ! -r "$XDG_CONFIG_HOME/user-dirs.dirs" ]; then
-  error_exit "$XDG_CONFIG_HOME/user-dirs.dirs does not exist or is not readable"
-fi
-
-if ! . -- "$XDG_CONFIG_HOME/user-dirs.dirs"; then
-  error_exit "failed to source $XDG_CONFIG_HOME/user-dirs.dirs"
-fi
-
-for d in "$XDG_DESKTOP_DIR" "$XDG_MUSIC_DIR" "$XDG_TEMPLATES_DIR" \
-  "$XDG_PUBLICSHARE_DIR" "$XDG_DOCUMENTS_DIR" "$XDG_PICTURES_DIR" \
-  "$XDG_VIDEOS_DIR" "$XDG_DOWNLOAD_DIR"; do
-  if ! mkdir -p -- "$d"; then
-    error_exit "failed to create XDG directory $d"
-  fi
-done
-
-# Source drop-in pre-configuration file
-for f in "$XDG_CONFIG_HOME"/setup-dotfiles/pre/*; do
-  [ -f "$f" ] || continue
-  [ -r "$f" ] || continue
-  (MSG_CONTEXT=pre/$(basename -- "$f") . -- "$f") || exit 1
-done
+# We rely on the lexicographic order of the drop-in script names in C locale to
+# guarantee the correct execution order.
+LC_ALL=C
 
 # Source drop-in configuration file
-for f in "$XDG_CONFIG_HOME"/setup-dotfiles/*; do
+for f in "${XDG_CONFIG_HOME:-$HOME/.config}"/setup-dotfiles/*; do
   [ -f "$f" ] || continue
   [ -r "$f" ] || continue
-  (MSG_CONTEXT=$(basename -- "$f") . -- "$f") || exit 1
+  (MSG_CONTEXT=$(basename -- "$f") \
+    SCRIPT_DIR=$(dirname -- "$f") . -- "$f") || exit 1
 done
-
-# Source drop-in post-configuration file
-for f in "$XDG_CONFIG_HOME"/setup-dotfiles/post/*; do
-  [ -f "$f" ] || continue
-  [ -r "$f" ] || continue
-  (MSG_CONTEXT=post/$(basename -- "$f") . -- "$f") || exit 1
-done
-

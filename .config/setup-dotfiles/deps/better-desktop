@@ -1,0 +1,10 @@
+recommended for better desktop experience
+true
+
+gsettings configure gtk application on the fly
+mpv media player
+fcitx5 input method
+aplay sound recorder and player for ALSA soundcard driver
+amixer mixer for ALSA soundcard driver
+paplay play back or record audio streams on a PulseAudio sound server
+pactl control a running PulseAudio sound server
