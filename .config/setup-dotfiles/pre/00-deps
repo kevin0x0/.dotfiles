@@ -14,7 +14,7 @@ makoctl mako cli
 brightnessctl brightness control tool
 notify-send notification sender
 wl-copy copy utility for wayland
-hightlight source code highlighter
+highlight source code highlighter
 xdg-user-dir XDG user directory getter
 swayimg image viewer
 vim text editor
