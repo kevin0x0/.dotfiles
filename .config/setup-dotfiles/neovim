@@ -1,6 +1,11 @@
 configdir="${XDG_CONFIG_HOME:-$HOME/.config}"
 cd -- "$configdir" || exit 1
 
+if command -v nvim >/dev/null 2>&1; then
+  info "nvim not installed, skip"
+  return
+fi
+
 if [ -e nvim ]; then
   info "$configdir/nvim exist, skip"
   return
