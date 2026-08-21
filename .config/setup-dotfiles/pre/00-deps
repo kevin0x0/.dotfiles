@@ -51,7 +51,6 @@ check_availability() {
   done
 
   [ -z "$header_outputed" ]
-  exit
 }
 
 if ! printf "%s" "$required" | check_availability error "required but not available"; then
@@ -59,5 +58,7 @@ if ! printf "%s" "$required" | check_availability error "required but not availa
 fi
 
 printf "%s" "$optional" | check_availability info "optional"
+
+return 0
 
 # vim: ft=sh
