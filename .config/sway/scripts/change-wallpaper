@@ -1,5 +1,19 @@
 #!/bin/sh
 
+has_display() {
+  [ -n "$DISPLAY$WAYLAND_DISPLAY" ]
+}
+
+error_exit() {
+  if has_display; then
+    notify-send --urgency=critical -- "$1" "$2" >&2
+  else
+    printf "%s: %s\n" "$1" "$2"
+  fi
+
+  exit 1
+}
+
 opt_persist=false
 while getopts "p" opt; do
   case $opt in
@@ -27,12 +41,13 @@ fi
 case $imgfile in
   *$'\n'*)
     if [ "$LANG" = zh_CN.UTF-8 ]; then
-      notify-send --urgency=critical -- "不支持的路径名" "所选取的文件的路径中不能包含换行符"
+      title="不支持的路径名" 
+      body="所选取的文件的路径中不能包含换行符"
     else
-      notify-send --urgency=critical -- "unsupported pathname" \
-        "Pathnames containing newlines are not supported"
+      title="unsupported pathname"
+      body="Pathnames containing newlines are not supported"
     fi
-    exit 1
+    error_exit "$title" "$body"
     ;;
 esac
 
@@ -43,7 +58,9 @@ if [ -z "$imgfile" ]; then
   exit 0
 fi
 
-swaymsg -- output '*' bg "$escaped" stretch
+if swaymsg -q >/dev/null 2>&1; then
+  swaymsg -- output '*' bg "$escaped" stretch
+fi
 
 if [ "$opt_persist" = true ]; then
   ln -sf -- "$imgfile" "$picdir/sway-current-wallpaper"
