@@ -1,22 +1,62 @@
+# Commands must not cross multiple lines via backslash line-continuing.
+# Command bar must not be specified a bar id
+# Commands must be available at runtime
 
-set $main_bg #191724
+# palette ----------------------------------------------------------------
+set $bg           #191724
+set $fg           #191724
+set $accent       #c4a7e7
+set $indicator    #9ccfd8
+set $inactive     #26233a
+set $inactive_fg  #908caa
+set $unfocused    #1f1d2e
+set $unfocused_fg #6e6a86
+set $urgent       #eb6f92
+set $urgent_fg    #191724
+set $warning      #f6c177
+set $statusline   #e0def4
 
-set $focused_fg #c4a7e7
-set $focused_indicator #9ccfd8
-set $focused_text #191724
+# appearance ---------------------------------------------------------------
+set $gtk-theme     Materia-dark
+set $color-scheme  prefer-dark
+set $icon-theme    Adwaita
+set $cursor-theme  capitaine-cursors
 
-set $inactive_fg #26233a
-set $inactive_text #908caa
+seat * xcursor_theme $cursor-theme
 
-set $unfocused_fg #1f1d2e
-set $unfocused_text #6e6a86
+exec_always {
+  command -v gsettings && gsettings set org.gnome.desktop.interface icon-theme "$icon-theme"
+  command -v gsettings && gsettings set org.gnome.desktop.interface gtk-theme "$gtk-theme"
+  command -v gsettings && gsettings set org.gnome.desktop.interface cursor-theme "$cursor-theme"
+  command -v gsettings && gsettings set org.gnome.desktop.interface color-scheme "$color-scheme"
+}
 
-set $urgent_fg #eb6f92
-set $urgent_text #191724
+# client windows -------------------------------------------------------------
+# border background text indicator child_border
+client.focused          $accent    $accent    $fg           $indicator   $accent
+client.focused_inactive $inactive  $inactive  $inactive_fg  $inactive    $inactive
+client.unfocused        $unfocused $unfocused $unfocused_fg $unfocused   $unfocused
+client.urgent           $urgent    $urgent    $urgent_fg    $urgent      $urgent
 
-set $statusline_text #e0def4
+# bar ------------------------------------------------------------------------
+bar {
+  separator_symbol " ▌"
+  icon_theme $icon-theme
 
-set $gtk-theme Materia-dark
-set $color-scheme prefer-dark
+  colors {
+    separator $bg
+    statusline $statusline
+    background $bg
+
+    focused_separator $inactive
+    focused_statusline $statusline
+    focused_background $bg
+
+    focused_workspace $accent $accent $bg
+    active_workspace $bg $bg $indicator
+    inactive_workspace $bg $bg $inactive_fg
+    urgent_workspace $warning $warning $bg
+  }
+}
 
 # vim: ft=swayconfig
