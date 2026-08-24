@@ -9,8 +9,6 @@
 # feeds the necessary commands to sway via `swaymsg -- <command>`. This
 # significantly reduces the colorscheme changing latency.
 
-set -e
-
 if ! swaymsg >/dev/null 2>/dev/null; then
   exit
 fi
@@ -26,10 +24,18 @@ if [ -z "$theme" ]; then
     | riced-menu)
 fi
 
-if [ ! -f "$SWAY_CONFIG_DIR/config.d/colorscheme/$theme" ]; then
-  notify-send --app-name "change-colorscheme" --urgency critical -- \
-    "failed to change colorscheme" "colorscheme '$theme' doesn't exist"
+error_exit() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send --app-name "change-colorscheme" --urgency critical -- \
+      "$1" "$2"
+  else
+      printf "%s: %s\n" "$1" "$2" >&2
+  fi
   exit 1
+}
+
+if [ ! -f "$SWAY_CONFIG_DIR/config.d/colorscheme/$theme" ]; then
+  error_exit "failed to change colorscheme" "colorscheme '$theme' doesn't exist"
 fi
 
 source_colorscheme() (
@@ -43,8 +49,8 @@ source_colorscheme() (
         continue
         ;;
     esac
-      swaymsg -- "$trimmed"
-  done <"$SWAY_THEME_DIR/$theme"
+    printf "%s;\0" "$trimmed"
+  done | xargs -r0 -- swaymsg --
 )
 
 execute_commands() {
@@ -89,17 +95,23 @@ execute_bar_colors_commands() (
 )
 
 # Source colorscheme
-source_colorscheme
+if ! source_colorscheme <"$SWAY_THEME_DIR/$theme";  then
+  error_exit "failed to source colorscheme file: $SWAY_THEME_DIR/$theme"
+fi
 
 # Read and execute commands from visual config to set colors
 while IFS= read -r line; do
   trimmed=${line#"${line%%[![:space:]]*}"}
   case $trimmed in
     '# DYNAMIC COMMAND BEGIN')
-      execute_commands
+      if ! execute_commands; then
+        error_exit "failed to execute command"
+      fi
       ;;
     '# BAR COLORS DYNAMIC COMMAND BEGIN')
-      execute_bar_colors_commands
+      if !execute_bar_colors_commands; then
+        error_exit "failed to execute bar colors command"
+      fi
       ;;
   esac
 done <"$SWAY_CONFIG_DIR/config.d/visual"
