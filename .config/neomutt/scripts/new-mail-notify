@@ -1,4 +1,8 @@
 #!/bin/sh
 
-notify-send --icon=/usr/share/neomutt/logo/neomutt.svg -- 'New Email' \
-  "$1 new messages, $2 unread." 1>/dev/null 2>&1
+if [ -n "$DISPLAY$WAYLAND_DISPLAY" ] && command -v notify-send >/dev/null 2>&1; then
+  notify-send --icon=/usr/share/neomutt/logo/neomutt.svg -- 'New Email' \
+    "$1 new messages, $2 unread." 1>/dev/null 2>&1
+else
+  ring-bell 1>/dev/null 2>&1
+fi
