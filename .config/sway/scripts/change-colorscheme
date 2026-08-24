@@ -109,7 +109,7 @@ while IFS= read -r line; do
       fi
       ;;
     '# BAR COLORS DYNAMIC COMMAND BEGIN')
-      if !execute_bar_colors_commands; then
+      if ! execute_bar_colors_commands; then
         error_exit "failed to execute bar colors command"
       fi
       ;;
