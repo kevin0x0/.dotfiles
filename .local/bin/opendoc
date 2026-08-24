@@ -1,7 +1,7 @@
 #!/bin/sh
 
 docdir=$(xdg-user-dir DOCUMENTS; echo x)
-docdir=${docdir%x}
+docdir=${docdir%$'\n'x}
 if ! doc=$(find -L "$docdir" -type f -name '*.pdf' | riced-menu -l 20); then
   return 0
 fi
