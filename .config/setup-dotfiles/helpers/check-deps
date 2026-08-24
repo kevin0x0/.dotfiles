@@ -1,10 +1,10 @@
-check_availability() (
+helper_check_deps() (
   header_outputed=
   while read -r cmd description; do
     if ! command -v -- "$cmd" >/dev/null 2>&1; then
       if [ -z "$header_outputed" ]; then
         header_outputed=1
-        "$1" "the following commands are $2:"
+        "$1" "$2"
       fi
       "$1" "$cmd: $description"
     fi
@@ -12,44 +12,5 @@ check_availability() (
 
   [ -z "$header_outputed" ]
 )
-
-check_deps_in_dir() {
-  ret=0
-  for f in "$1"/*; do
-    [ -f "$f" ] || continue
-    [ -r "$f" ] || continue
-
-    {
-      read -r requirementlevel remaining
-      read -r condition
-      read -r empty
-
-      if ! eval " $condition" >/dev/null 2>&1; then
-        continue
-      fi
-
-      case $requirementlevel in
-        required)
-          logger=$2
-          ;;
-        recommended)
-          logger=info
-          ;;
-        optional)
-          logger=msg
-          ;;
-        *)
-          logger=msg
-          ;;
-      esac
-
-      if ! check_availability "$logger" "$requirementlevel $remaining"; then
-        ret=1
-      fi
-    } <"$f"
-  done
-
-  return "$ret"
-}
 
 # vim: ft=sh

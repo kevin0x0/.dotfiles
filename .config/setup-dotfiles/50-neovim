@@ -11,6 +11,24 @@ if [ -e nvim ]; then
   return
 fi
 
-git clone https://github.com/kevin0x0/nvim
+check_deps() {
+  helper_check_deps error "the following commands are required for pulling neovim config" <<'EOF'
+git the stupid content tracker
+EOF
+}
+
+check_deps || error_exit "stopped"
+
+repo_url=https://github.com/kevin0x0/nvim
+if ! git clone "$repo_url"; then
+  error_exit "failed to clone $repo_url"
+fi
+
+helper_check_deps warning "the following commands are required by neovim config" <<'EOF'
+git the stupid content tracker
+tree-sitter cli for tree-sitter, a incremental parsing library
+EOF
+
+return 0
 
 # vim: ft=sh
