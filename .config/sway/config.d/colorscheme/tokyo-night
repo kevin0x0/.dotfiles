@@ -6,7 +6,7 @@
 set $bg           #1a1b26
 set $fg           #1a1b26
 set $accent       #7aa2f7
-set $indicator    #7dcfff
+set $indicator    #ff9e64
 set $inactive     #3b4261
 set $inactive_fg  #a9b1d6
 set $unfocused    #24283b
