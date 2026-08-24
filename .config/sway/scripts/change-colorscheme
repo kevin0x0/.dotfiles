@@ -60,32 +60,15 @@ flatten_sway_config_commands() {
   done
 }
 
-correct_bar_command() (
-  set --
-  while read -r bar_id; do
-    set -- "$@" "$bar_id"
-  done <<EOF
-$(swaymsg -rt get_bar_config | jq -c '.[]')
-EOF
-
-  while read -r cmd; do
-    case $cmd in
-      'bar '*)
-        subcmd=${cmd#bar\ }
-        for bar_id; do
-          printf "bar %s %s;\0" "$bar_id" "$subcmd"
-        done
-        ;;
-      *)
-        printf "%s;\0" "$cmd"
-        ;;
-    esac
+make_nul_terminated() {
+  while IFS= read -r cmd; do
+    printf "%s;\0" "$cmd"
   done
-)
+}
 
 source_sway_config_runtime() {
   flatten_sway_config_commands \
-    | correct_bar_command \
+    | make_nul_terminated \
     | xargs -r0 -- swaymsg --
 }
 

@@ -17,7 +17,7 @@ exec_always {
   command -v gsettings && gsettings set org.gnome.desktop.interface font-name "$font"
 }
 
-bar {
+bar default {
   font $monofont, Bold 12
   gaps 4
   position top
