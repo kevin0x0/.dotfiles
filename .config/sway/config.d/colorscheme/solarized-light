@@ -1,5 +1,5 @@
 # Commands must not cross multiple lines via backslash line-continuing.
-# Command bar must not be specified a bar id
+# Command bar shall be specified a bar id
 # Commands must be available at runtime
 
 # palette ----------------------------------------------------------------
@@ -15,6 +15,7 @@ set $urgent       #dc322f
 set $urgent_fg    #eee8d5
 set $warning      #cb4b16
 set $statusline   #657b83
+set $binding      #d33682
 
 # appearance ---------------------------------------------------------------
 set $gtk-theme     Materia-light
@@ -39,7 +40,7 @@ client.unfocused        $unfocused $unfocused $unfocused_fg $unfocused   $unfocu
 client.urgent           $urgent    $urgent    $urgent_fg    $urgent      $urgent
 
 # bar ------------------------------------------------------------------------
-bar {
+bar default {
   separator_symbol " ▌"
   icon_theme $icon-theme
 
@@ -56,6 +57,7 @@ bar {
     active_workspace $bg $bg $indicator
     inactive_workspace $bg $bg $inactive_fg
     urgent_workspace $warning $warning $bg
+    binding_mode $binding $binding $bg
   }
 }
 
