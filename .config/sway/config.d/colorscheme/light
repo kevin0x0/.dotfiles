@@ -1,21 +1,62 @@
-set $main_bg #f2ebe5
+# Commands must not cross multiple lines via backslash line-continuing.
+# Command bar must not be specified a bar id
+# Commands must be available at runtime
 
-set $focused_fg #9a5e39
-set $focused_indicator #d79f70
-set $focused_text #3f2f24
+# palette ----------------------------------------------------------------
+set $bg           #f2ebe5
+set $fg           #3f2f24
+set $accent       #9a5e39
+set $indicator    #d79f70
+set $inactive     #b79068
+set $inactive_fg  #6a4e3a
+set $unfocused    #e1c5b2
+set $unfocused_fg #8b6f5d
+set $urgent       #d9534f
+set $urgent_fg    #ffffff
+set $warning      #d8a657
+set $statusline   #7a5a42
 
-set $inactive_fg #b79068
-set $inactive_text #6a4e3a
+# appearance ---------------------------------------------------------------
+set $gtk-theme     Materia-light
+set $color-scheme  prefer-light
+set $icon-theme    Adwaita
+set $cursor-theme  capitaine-cursors
 
-set $unfocused_fg #e1c5b2
-set $unfocused_text #8b6f5d
+seat * xcursor_theme $cursor-theme
 
-set $urgent_fg #d9534f
-set $urgent_text #ffffff
+exec_always {
+  command -v gsettings && gsettings set org.gnome.desktop.interface icon-theme "$icon-theme"
+  command -v gsettings && gsettings set org.gnome.desktop.interface gtk-theme "$gtk-theme"
+  command -v gsettings && gsettings set org.gnome.desktop.interface cursor-theme "$cursor-theme"
+  command -v gsettings && gsettings set org.gnome.desktop.interface color-scheme "$color-scheme"
+}
 
-set $statusline_text #7a5a42
+# client windows -------------------------------------------------------------
+# border background text indicator child_border
+client.focused          $accent    $accent    $fg           $indicator   $accent
+client.focused_inactive $inactive  $inactive  $inactive_fg  $inactive    $inactive
+client.unfocused        $unfocused $unfocused $unfocused_fg $unfocused   $unfocused
+client.urgent           $urgent    $urgent    $urgent_fg    $urgent      $urgent
 
-set $gtk-theme Materia-light
-set $color-scheme prefer-light
+# bar ------------------------------------------------------------------------
+bar {
+  separator_symbol " ▌"
+  icon_theme $icon-theme
+
+  colors {
+    separator $bg
+    statusline $statusline
+    background $bg
+
+    focused_separator $inactive
+    focused_statusline $statusline
+    focused_background $bg
+
+    focused_workspace $accent $accent $bg
+    active_workspace $bg $bg $indicator
+    inactive_workspace $bg $bg $inactive_fg
+    urgent_workspace $warning $warning $bg
+  }
+}
 
 # vim: ft=swayconfig

@@ -38,80 +38,55 @@ if [ ! -f "$SWAY_CONFIG_DIR/config.d/colorscheme/$theme" ]; then
   error_exit "failed to change colorscheme" "colorscheme '$theme' doesn't exist"
 fi
 
-source_colorscheme() (
-  while IFS= read -r line; do
-    trimmed=${line#"${line%%[![:space:]]*}"}
-    case $trimmed in
-      '#'*)
+flatten_sway_config_commands() {
+  # Without IFS= ,the leading and trailing spaces are trimmed out by shell
+  while read -r line; do
+    case $line in
+      '#'*|'')
         continue
         ;;
-      '')
-        continue
+      '}')
+        break
+        ;;
+      *' {')
+        if ! flatten_sway_config_commands "$1${line%"{"}"; then
+          return 1
+        fi
+        ;;
+      *)
+        printf "%s\n" "$1$line"
         ;;
     esac
-    printf "%s;\0" "$trimmed"
-  done | xargs -r0 -- swaymsg --
-)
-
-execute_commands() {
-  while IFS= read -r line; do
-    trimmed=${line#"${line%%[![:space:]]*}"}
-    case $trimmed in
-      '# DYNAMIC COMMAND END')
-        return
-        ;;
-      '#'*)
-        continue
-        ;;
-      '')
-        continue
-        ;;
-    esac
-
-    printf "%s;\0" "$trimmed"
-  done | xargs -r0 -- swaymsg --
+  done
 }
 
-execute_bar_colors_commands() (
-  bar_ids=$(swaymsg -rt get_bar_config | jq -r '.[]')
+correct_bar_command() (
+  set --
+  while read -r bar_id; do
+    set -- "$@" "$bar_id"
+  done <<EOF
+$(swaymsg -rt get_bar_config | jq -c '.[]')
+EOF
 
-  while IFS= read -r line; do
-    trimmed=${line#"${line%%[![:space:]]*}"}
-    case $trimmed in
-      '# BAR COLORS DYNAMIC COMMAND END')
-        return
+  while read -r cmd; do
+    case $cmd in
+      'bar '*)
+        subcmd=${cmd#bar\ }
+        for bar_id; do
+          printf "bar %s %s;\0" "$bar_id" "$subcmd"
+        done
         ;;
-      '#'*)
-        continue
-        ;;
-      '')
-        continue
+      *)
+        printf "%s;\0" "$cmd"
         ;;
     esac
-    for bar_id in $bar_ids; do
-      printf "bar %s colors %s;\0" "$bar_id" "$trimmed"
-    done
-  done | xargs -r0 -- swaymsg --
+  done
 )
 
-# Source colorscheme
-if ! source_colorscheme <"$SWAY_THEME_DIR/$theme";  then
-  error_exit "failed to source colorscheme file: $SWAY_THEME_DIR/$theme"
-fi
+source_sway_config_runtime() {
+  flatten_sway_config_commands \
+    | correct_bar_command \
+    | xargs -r0 -- swaymsg --
+}
 
-# Read and execute commands from visual config to set colors
-while IFS= read -r line; do
-  trimmed=${line#"${line%%[![:space:]]*}"}
-  case $trimmed in
-    '# DYNAMIC COMMAND BEGIN')
-      if ! execute_commands; then
-        error_exit "failed to execute command"
-      fi
-      ;;
-    '# BAR COLORS DYNAMIC COMMAND BEGIN')
-      if ! execute_bar_colors_commands; then
-        error_exit "failed to execute bar colors command"
-      fi
-      ;;
-  esac
-done <"$SWAY_CONFIG_DIR/config.d/visual"
+source_sway_config_runtime <"$SWAY_CONFIG_DIR/config.d/colorscheme/$theme"

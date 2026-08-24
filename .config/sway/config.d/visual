@@ -1,17 +1,7 @@
-# Lines beginning with DYNAMIC COMMAND BEGIN and DYNAMIC COMMAND END  
-# enclose commands that will be executed by  
-# $XDG_CONFIG_HOME/sway/scripts/change-colorscheme.  
-# Similarly, lines starting with BAR COLORS DYNAMIC COMMAND BEGIN and BAR
-# COLORS DYNAMIC COMMAND END  are used for commands related to swaybar colors.
-
 include colorscheme/$("${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/get-colorscheme")
-
-set $gnome-schema org.gnome.desktop.interface
 
 set $monofont monospace
 set $font Adwaita Sans
-set $cursor-theme capitaine-cursors
-set $icon-theme Adwaita
 
 font pango: $monofont, Bold 12
 
@@ -22,25 +12,10 @@ smart_borders on
 gaps inner 4
 
 seat * hide_cursor 5000
-seat * xcursor_theme $cursor-theme
 
 exec_always {
-  command -v gsettings && gsettings set $gnome-schema icon-theme "$icon-theme"
-  command -v gsettings && gsettings set $gnome-schema cursor-theme "$cursor-theme"
-  command -v gsettings && gsettings set $gnome-schema font-name "$font"
+  command -v gsettings && gsettings set org.gnome.desktop.interface font-name "$font"
 }
-
-# DYNAMIC COMMAND BEGIN
-exec_always command -v gsettings && gsettings set $gnome-schema gtk-theme "$gtk-theme"
-exec_always command -v gsettings && gsettings set $gnome-schema color-scheme "$color-scheme"
-
-# border background text indicator child_border
-client.focused $focused_fg $focused_fg $focused_text $focused_indicator $focused_fg
-client.focused_inactive $inactive_fg $inactive_fg $inactive_text $inactive_fg $inactive_fg
-client.unfocused $unfocused_fg $unfocused_fg $unfocused_text $unfocused_fg $unfocused_fg
-client.urgent $urgent_fg $urgent_fg $urgent_text $urgent_fg $urgent_fg
-
-# DYNAMIC COMMAND END
 
 bar {
   font $monofont, Bold 12
@@ -48,26 +23,8 @@ bar {
   position top
   tray_padding 4
   status_padding 0
-  separator_symbol " ▌"
-  icon_theme $icon-theme
 
   status_command i3status
-  colors {
-    # BAR COLORS DYNAMIC COMMAND BEGIN
-    separator $main_bg
-    statusline $statusline_text
-    background $main_bg
-
-    focused_separator $inactive_fg
-    focused_statusline $statusline_text
-    focused_background $main_bg
-
-    focused_workspace $focused_fg $focused_fg $main_bg
-    active_workspace $main_bg $main_bg $focused_indicator
-    inactive_workspace $main_bg $main_bg $inactive_text
-    urgent_workspace $main_bg $main_bg $urgent_fg
-    # BAR COLORS DYNAMIC COMMAND END
-  }
 }
 
 # vim: ft=swayconfig
