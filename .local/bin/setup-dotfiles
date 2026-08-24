@@ -82,6 +82,12 @@ if [ -n "$opt_checkout" ]; then
   fi
 fi
 
+for f in "${XDG_CONFIG_HOME:-$HOME/.config}"/setup-dotfiles/helpers/*; do
+  [ -f "$f" ] || continue
+  [ -r "$f" ] || continue
+  . -- "$f" || exit 1
+done
+
 # We rely on the lexicographic order of the drop-in script names in C locale to
 # guarantee the correct execution order.
 LC_ALL=C

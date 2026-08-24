@@ -1,7 +1,0 @@
-. -- "$SCRIPT_DIR/helpers/check-deps"
-
-if ! check_deps_in_dir "$SCRIPT_DIR/setup-deps/" error; then
-  return 1
-fi
-
-# vim: ft=sh

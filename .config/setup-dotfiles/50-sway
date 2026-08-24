@@ -1,4 +1,12 @@
-# Create wall paper directories for sway
+# Create wall paper symlink for sway
+
+check_deps() {
+  helper_check_deps error "the following commands are required for creating wallpaper symlink for sway:" <<'EOF'
+xdg-user-dir find an XDG user dir
+EOF
+}
+
+check_deps || error_exit "stopped"
 
 current=$(xdg-user-dir PICTURES)/sway-current-wallpaper
 if [ -e "$current" ]; then
@@ -7,5 +15,25 @@ if [ -e "$current" ]; then
 fi
 
 ln -sf -- /dev/null "$current"
+
+helper_check_deps warning "the following commands are required for running sway:" <<'EOF'
+swaymsg sway cli
+swaybg wallpaper tool
+firefox browser
+i3status bar
+wmenu dynamic menu for wayland
+wmenu-run app launcher
+foot terminal emulator
+grim screenshot utility
+slurp screen region selector
+mako notification daemon
+makoctl mako cli
+swayimg image viewer
+brightnessctl brightness control tool
+xdg-user-dir XDG user directory getter
+pkill kill processes by name
+EOF
+
+return 0
 
 # vim: ft=sh

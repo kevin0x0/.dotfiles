@@ -1,9 +1,0 @@
-required for better terminal experience
-true
-
-curl transfer a URL
-bash bourne-again shell
-xdg-open opens a file or URL
-jq command-line json processor
-highlight source code highlighter
-lf terminal file manager
