@@ -1,17 +1,116 @@
-#!/usr/bin/env bash
-
-shopt -s extglob
-
-IMAGES=()
-MEDIA=()
-TEXTS=()
-DIRS=()
-OTHERS=()
+#!/bin/sh
 
 xdg_open_files() {
   for f; do
     nohup xdg-open "$f" </dev/null &>/dev/null &
   done
+}
+
+open_images() {
+  count=$#
+  while [ "$count" -ne 0 ]; do
+    count=$((count - 1))
+    f=$1
+    shift
+
+    case $(file --brief --mime-type -- "$f" 2>/dev/null) in
+      image/*)
+        set -- "$@" "$f"
+        ;;
+    esac
+  done
+
+  if [ "$#" -eq 0 ]; then
+    return 0
+  fi
+
+  if command -v swayimg >/dev/null 2>&1; then
+    flags=
+    # Gallary mode for multiple images
+    [ "$#" -gt 1 ] && flags="$flags -g"
+    swayimg $flags -- "$@" </dev/null >/dev/null 2>&1 &
+  else
+    xdg_open_files "$@"
+  fi
+}
+
+open_media() {
+  count=$#
+  while [ "$count" -ne 0 ]; do
+    count=$((count - 1))
+    f=$1
+    shift
+
+    case $(file --brief --mime-type -- "$f" 2>/dev/null) in
+      audio/*|video/*)
+        set -- "$@" "$f"
+        ;;
+    esac
+  done
+
+  if [ "$#" -eq 0 ]; then
+    return 0
+  fi
+
+
+  if command -v mpv >/dev/null 2>&1; then
+    mpv -- "$@" </dev/null >/dev/null 2>&1 &
+  else
+    xdg_open_files "$@"
+  fi
+}
+
+open_text() {
+  count=$#
+  while [ "$count" -ne 0 ]; do
+    count=$((count - 1))
+    f=$1
+    shift
+
+    case $(file --brief --mime-type -- "$f" 2>/dev/null) in
+      application/json|\
+      application/yaml|\
+      application/toml|\
+      application/mbox|\
+      text/*)
+        set -- "$@" "$f"
+        ;;
+    esac
+  done
+
+  if [ "$#" -eq 0 ]; then
+    return 0
+  fi
+
+  if command -v "${EDITOR:=vim}" >/dev/null 2>&1; then
+    "$EDITOR" -- "$@"
+  else
+    xdg_open_files "$@"
+  fi
+}
+
+open_others() {
+  count=$#
+  while [ "$count" -ne 0 ]; do
+    count=$((count - 1))
+    f=$1
+    shift
+
+    case $(file --brief --mime-type -- "$f" 2>/dev/null) in
+      image/*|audio/*|video/*|text/*|\
+      application/json|\
+      application/yaml|\
+      application/toml|\
+      application/mbox)
+        continue
+        ;;
+      *)
+        set -- "$@" "$f"
+        ;;
+    esac
+  done
+
+  xdg_open_files "$@"
 }
 
 myrealpath() {
@@ -33,72 +132,21 @@ myrealpath() {
   printf "%s" "$link"
 }
 
-for f in "$@"; do
+# Resolve symbolic links
+count=$#
+while [ "$count" -ne 0 ]; do
+  count=$((count - 1))
+  f=$1
+  shift
+
   if [ -L "$f" ]; then
     f=$(myrealpath "$f"; echo x)
     f=${f%x}
   fi
-  case $(file --brief --mime-type -- "$f" 2>/dev/null) in
-    image/*)
-      IMAGES+=("$f")
-      ;;
-    @(audio|video)/*)
-      MEDIA+=("$f")
-      ;;
-    @(application/@(json|yaml|toml)|text/*))
-      TEXTS+=("$f")
-      ;;
-    inode/directory)
-      DIRS+=("$f")
-      ;;
-    *)
-      OTHERS+=("$f")
-      ;;
-  esac
+  set -- "$@" "$f"
 done
 
-if [ ${#DIRS[@]} -ne 0 ]; then
-  if [ ${#IMAGES[@]} -ne 0 ]; then
-    IMAGES+=("${DIRS[@]}")
-  elif [ ${#TEXTS[@]} -ne 0 ]; then
-    TEXTS+=("${DIRS[@]}")
-  else
-    OTHERS+=("${DIRS[@]}")
-  fi
-fi
-
-if [ ${#IMAGES[@]} -ne 0 ]; then
-  if type -P swayimg &>/dev/null; then
-    flags=
-    # Gallary mode for multiple images
-    [ ${#IMAGES[@]} -gt 1 ] && flags="$flags -g"
-
-    # Recursively scan for images if there is a directory
-    for image in "${IMAGES[@]}"; do
-      if [ -d "$image" ]; then
-        flags="$flags -r"
-        break
-      fi
-    done
-
-    swayimg $flags -- "${IMAGES[@]}" </dev/null &>/dev/null &
-  else
-    xdg_open_files "${IMAGES[@]}"
-  fi
-fi
-
-if [ ${#MEDIA[@]} -ne 0 ]; then
-  if type -P mpv &>/dev/null; then
-    mpv -- "${MEDIA[@]}" </dev/null &>/dev/null &
-  else
-    xdg_open_files "${MEDIA[@]}"
-  fi
-fi
-
-if [ ${#OTHERS[@]} -ne 0 ]; then
-  xdg_open_files "${OTHERS[@]}"
-fi
-
-if [ ${#TEXTS[@]} -ne 0 ]; then
-  ${EDITOR:-vim} -- "${TEXTS[@]}" </dev/null 2>/dev/null
-fi
+open_images "$@"
+open_media "$@"
+open_text "$@"
+open_others "$@"
