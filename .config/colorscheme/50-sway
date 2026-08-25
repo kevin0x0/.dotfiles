@@ -1,5 +1,3 @@
-set -e
-
 SWAY_CONFIG=${XDG_CONFIG_HOME:-$HOME/.config}/sway
 COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/sway/colorscheme
 
