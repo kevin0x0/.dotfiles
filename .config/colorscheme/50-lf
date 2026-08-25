@@ -1,5 +1,3 @@
-set -e
-
 COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/lf/colorscheme
 
 if [ ! -e "$(dirname -- $COLOR_THEME_FILE)" ]; then
