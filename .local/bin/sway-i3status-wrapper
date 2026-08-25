@@ -1,0 +1,43 @@
+#!/bin/sh
+
+readable_file() { 
+  [ -f "$1" ] && [ -r "$1" ]
+}
+
+assert_readable_file() { 
+  if ! readable_file "$1"; then
+    printf "%s not exists or is not readable file\n" "$1" >&2
+    exit 1
+  fi
+}
+
+I3_STATUS_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}/i3status
+if [ ! -d "$I3_STATUS_CONFIG_HOME" ]; then
+  printf "%s not exist\n" "$I3_STATUS_CONFIG_HOME" >&2
+  exit 1
+fi
+
+theme=$1
+if [ -z "$theme" ]; then
+  color_theme_file=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/sway-i3status/colorscheme
+  if readable_file "$color_theme_file"; then
+    theme=$(cat -- "$color_theme_file")
+  else
+    theme=catppuccin-mocha
+  fi
+fi
+
+colorscheme=$I3_STATUS_CONFIG_HOME/colorscheme/$theme
+assert_readable_file "$colorscheme"
+
+config=$I3_STATUS_CONFIG_HOME/config-$theme
+[ -e "$config" ] && assert_readable_file "$config"
+
+base=$I3_STATUS_CONFIG_HOME/base-config
+assert_readable_file "$base"
+
+if [ ! -e "$config" ] || ! cat -- "$base" "$colorscheme" | cmp -s -- - "$config"; then
+  cat -- "$base" "$colorscheme" >"$config"
+fi
+
+exec i3status -c "$config"

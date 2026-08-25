@@ -1,0 +1,19 @@
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/sway-i3status/colorscheme
+
+if [ ! -e "$(dirname -- $COLOR_THEME_FILE)" ]; then
+  if ! mkdir -p "$(dirname -- $COLOR_THEME_FILE)"; then
+    echo "can not create state file for i3status" >&2
+    exit 1
+  fi
+fi
+
+theme=$1
+printf "%s\n" "$theme" > "$COLOR_THEME_FILE"
+
+if ! swaymsg -q >/dev/null 2>&1; then
+  exit 0
+fi
+
+swaymsg -- "bar default status_command -; bar default status_command sway-i3status-wrapper $theme"
+
+# vim: ft=sh
