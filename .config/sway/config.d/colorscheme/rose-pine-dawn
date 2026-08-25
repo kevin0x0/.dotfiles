@@ -7,8 +7,8 @@ set $bg           #faf4ed
 set $fg           #faf4ed
 set $accent       #56949f
 set $indicator    #ea9d34
-set $inactive     #dfdad9
-set $inactive_fg  #9893a5
+set $inactive     #d3cede
+set $inactive_fg  #797593
 set $unfocused    #f4ede8
 set $unfocused_fg #9893a5
 set $urgent       #b4637a
@@ -20,7 +20,6 @@ set $binding      #907aa9
 # appearance ---------------------------------------------------------------
 set $gtk-theme     rose-pine-dawn-gtk
 set $color-scheme  prefer-light
-set $prefer-dark   false
 set $icon-theme    Adwaita
 set $cursor-theme  capitaine-cursors
 

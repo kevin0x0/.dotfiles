@@ -7,7 +7,7 @@ set $bg           #1e1e2e
 set $fg           #1e1e2e
 set $accent       #cba6f7
 set $indicator    #94e2d5
-set $inactive     #45475a
+set $inactive     #585b70
 set $inactive_fg  #a6adc8
 set $unfocused    #313244
 set $unfocused_fg #585b70
@@ -20,7 +20,6 @@ set $binding      #89dceb
 # appearance ---------------------------------------------------------------
 set $gtk-theme     catppuccin-mocha-mauve-standard+default
 set $color-scheme  prefer-dark
-set $prefer-dark   true
 set $icon-theme    Adwaita
 set $cursor-theme  capitaine-cursors
 

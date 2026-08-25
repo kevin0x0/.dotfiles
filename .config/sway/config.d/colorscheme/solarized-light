@@ -7,7 +7,7 @@ set $bg           #eee8d5
 set $fg           #eee8d5
 set $accent       #268bd2
 set $indicator    #b58900
-set $inactive     #93a1a1
+set $inactive     #e6dfc8
 set $inactive_fg  #586e75
 set $unfocused    #fdf6e3
 set $unfocused_fg #93a1a1
@@ -20,7 +20,6 @@ set $binding      #d33682
 # appearance ---------------------------------------------------------------
 set $gtk-theme     NumixSolarizedLightBlue
 set $color-scheme  prefer-light
-set $prefer-dark   false
 set $icon-theme    Adwaita
 set $cursor-theme  capitaine-cursors
 

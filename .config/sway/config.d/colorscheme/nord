@@ -7,8 +7,8 @@ set $bg           #2e3440
 set $fg           #2e3440
 set $accent       #88c0d0
 set $indicator    #d08770
-set $inactive     #4c566a
-set $inactive_fg  #81a1c1
+set $inactive     #616e88
+set $inactive_fg  #e5e9f0
 set $unfocused    #3b4252
 set $unfocused_fg #4c566a
 set $urgent       #bf616a
@@ -20,7 +20,6 @@ set $binding      #b48ead
 # appearance ---------------------------------------------------------------
 set $gtk-theme     Nordic
 set $color-scheme  prefer-dark
-set $prefer-dark   true
 set $icon-theme    Adwaita
 set $cursor-theme  capitaine-cursors
 
