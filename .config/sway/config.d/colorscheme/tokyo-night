@@ -7,7 +7,7 @@ set $bg           #1a1b26
 set $fg           #1a1b26
 set $accent       #7aa2f7
 set $indicator    #ff9e64
-set $inactive     #3b4261
+set $inactive     #565f89
 set $inactive_fg  #a9b1d6
 set $unfocused    #24283b
 set $unfocused_fg #565f89
@@ -20,7 +20,6 @@ set $binding      #bb9af7
 # appearance ---------------------------------------------------------------
 set $gtk-theme     Tokyonight-Dark
 set $color-scheme  prefer-dark
-set $prefer-dark   true
 set $icon-theme    Adwaita
 set $cursor-theme  capitaine-cursors
 
