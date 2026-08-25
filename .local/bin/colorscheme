@@ -57,6 +57,7 @@ if [ -d "$CONFIG_DIR/colorscheme-alias" ]; then
 fi
 
 export COLORSCHEME_STATE_HOME
+LC_ALL=C
 for script in "$CONFIG_DIR"/*; do
   [ -f "$script" ] || continue
   sh -- "$script" "$real_theme"
