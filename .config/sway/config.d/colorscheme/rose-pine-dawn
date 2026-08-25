@@ -18,8 +18,9 @@ set $statusline   #575279
 set $binding      #907aa9
 
 # appearance ---------------------------------------------------------------
-set $gtk-theme     Materia-light
+set $gtk-theme     rose-pine-dawn-gtk
 set $color-scheme  prefer-light
+set $prefer-dark   false
 set $icon-theme    Adwaita
 set $cursor-theme  capitaine-cursors
 

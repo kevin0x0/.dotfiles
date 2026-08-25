@@ -18,8 +18,9 @@ set $statusline   #cdd6f4
 set $binding      #89dceb
 
 # appearance ---------------------------------------------------------------
-set $gtk-theme     Materia-dark
+set $gtk-theme     catppuccin-mocha-mauve-standard+default
 set $color-scheme  prefer-dark
+set $prefer-dark   true
 set $icon-theme    Adwaita
 set $cursor-theme  capitaine-cursors
 
