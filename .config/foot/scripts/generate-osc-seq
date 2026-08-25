@@ -1,0 +1,95 @@
+#!/bin/sh
+
+set256() {
+  printf "\033]4;%s;#%s\033\\" "$1" "$2"
+}
+
+setfg() {
+  printf "\033]10;#%s\033\\" "$1"
+}
+
+setbg() {
+  printf "\033]11;[%s]#%s\033\\" "$1" "$2"
+}
+
+setcursor() {
+  printf "\033]12;#%s\033\\" "$1"
+}
+
+
+setsbg() {
+  printf "\033]17;#%s\033\\" "$1"
+}
+
+
+setsfg() {
+  printf "\033]18;#%s\033\\" "$1"
+}
+
+# Read and drop section, we don't need it
+read -r section
+
+background=
+alpha=
+while IFS=$'= \t' read -r key val; do
+  val=${val%%#*} # trim comment
+  val=${val%%[[:spaces:]]*}
+
+  case $key in
+    \#*)
+      continue
+      ;;
+    cursor)
+      setcursor "$val"
+      ;;
+    foreground)
+      setfg "$val"
+      ;;
+    background)
+      background=$val
+      ;;
+    regular*)
+      number=${key#regular}
+      set256 "$number" "$val"
+      ;;
+    bright*)
+      number=$((${key#bright} + 8))
+      set256 "$number" "$val"
+      ;;
+    [0-9]|[0-9][0-9]|[0-9][0-9][0-9])
+      set256 "$key" "$val"
+      ;;
+    alpha)
+      alpha=$val
+      ;;
+    selection-foreground)
+      setsfg "$val"
+      ;;
+    selection-background)
+      setsbg "$val"
+      ;;
+    *)
+      continue
+      ;;
+  esac
+done
+
+
+case $alpha in
+  '')
+    alpha=100
+    ;;
+  1*)
+    alpha=100
+    ;;
+  0.*)
+    alpha=${alpha#0.}
+    alpha=${alpha}00
+    alpha=${alpha%"${alpha#??}"}
+    ;;
+  0)
+    alpha=0
+    ;;
+esac
+
+setbg "$alpha" "$background"
