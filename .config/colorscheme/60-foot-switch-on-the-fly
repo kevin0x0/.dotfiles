@@ -1,0 +1,23 @@
+
+theme=$1
+script_path="${XDG_CONFIG_HOME:-$HOME/.config}/foot/scripts/switch-colorscheme-on-the-fly"
+
+case $(uname -s) in
+  Linux|FreeBSD|OpenBSD|NetBSD)
+    ;;
+  *)
+    exit 0
+    ;;
+esac
+
+set -- /dev/pts/*[[:digit:]]*
+
+if [ ! -e "$1" ]; then
+  exit 0
+fi
+
+# Maybe need a lock to do atomic writing
+"$script_path" "$theme" \
+  | tee -- "$@" >/dev/null
+
+# vim: ft=sh
