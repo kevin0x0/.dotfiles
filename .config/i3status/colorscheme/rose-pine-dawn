@@ -1,0 +1,6 @@
+general {
+  colors = true
+  color_good = "#286983"
+  color_degraded = "#ea9d34"
+  color_bad = "#b4637a"
+}
