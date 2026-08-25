@@ -18,8 +18,9 @@ set $statusline   #e0def4
 set $binding      #9ccfd8
 
 # appearance ---------------------------------------------------------------
-set $gtk-theme     Materia-dark
+set $gtk-theme     rose-pine-gtk
 set $color-scheme  prefer-dark
+set $prefer-dark   true
 set $icon-theme    Adwaita
 set $cursor-theme  capitaine-cursors
 

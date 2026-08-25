@@ -20,6 +20,7 @@ set $binding      #3f9ca4
 # appearance ---------------------------------------------------------------
 set $gtk-theme     Materia-light
 set $color-scheme  prefer-light
+set $prefer-dark   false
 set $icon-theme    Adwaita
 set $cursor-theme  capitaine-cursors
 
