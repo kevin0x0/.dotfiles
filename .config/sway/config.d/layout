@@ -141,6 +141,19 @@ mode "resize" {
 }
 bindsym $mod+g mode "resize"
 
+mode "reset-size" {
+  bindsym $mod+w resize set width 50 ppt; mode "default"
+  bindsym $mod+Shift+w resize set width 50 ppt; mode "default"
+  bindsym $mod+h resize set height 50 ppt; mode "default"
+  bindsym $mod+Shift+h resize set height 50 ppt; mode "default"
+
+# Return to default mode
+  bindsym Return mode "default"
+  bindsym Escape mode "default"
+  bindsym $mod+g mode "default"
+}
+bindsym $mod+Shift+g mode "reset-size"
+
 # Quick resize
 bindsym $mod+s resize set width 60 ppt; resize set height 60 ppt
 bindsym $mod+Shift+s resize set width 40 ppt; resize set height 40 ppt
