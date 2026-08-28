@@ -4,7 +4,7 @@
 
 # palette ----------------------------------------------------------------
 set $bg           #f2ebe5
-set $fg           #3f2f24
+set $fg           #f2ebe5
 set $accent       #9a5e39
 set $indicator    #9a5c8f
 set $inactive     #d0b39d
