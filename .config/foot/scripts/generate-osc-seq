@@ -29,7 +29,7 @@ setsfg() {
 # Read and drop section, we don't need it
 read -r section
 
-background=
+background=002b36
 alpha=
 while IFS=$'= \t' read -r key val; do
   val=${val%%#*} # trim comment

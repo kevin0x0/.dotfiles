@@ -1,4 +1,4 @@
-include colorscheme/$("${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/get-colorscheme")
+include \"$("${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/get-colorscheme")\"
 
 set $monofont monospace
 set $font Adwaita Sans

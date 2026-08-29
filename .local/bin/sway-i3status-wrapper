@@ -22,27 +22,29 @@ if [ -z "$theme" ]; then
   color_theme_file=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/sway-i3status/colorscheme
   if readable_file "$color_theme_file"; then
     theme=$(cat -- "$color_theme_file")
-  else
-    theme=catppuccin-mocha
   fi
 fi
 
-colorscheme=$I3_STATUS_CONFIG_HOME/colorscheme/$theme
-assert_readable_file "$colorscheme"
+if [ -n "$theme" ]; then
+  colorscheme=$I3_STATUS_CONFIG_HOME/colorscheme/$theme
+  assert_readable_file "$colorscheme"
 
-config=$I3_STATUS_CONFIG_HOME/config-$theme
-[ -e "$config" ] && assert_readable_file "$config"
+  config=$I3_STATUS_CONFIG_HOME/config-$theme
+  [ -e "$config" ] && assert_readable_file "$config"
 
-base=$I3_STATUS_CONFIG_HOME/base-config
-assert_readable_file "$base"
+  base=$I3_STATUS_CONFIG_HOME/base-config
+  assert_readable_file "$base"
 
-if [ ! -e "$config" ] || [ -n "$(find "$base" "$colorscheme" -newer "$config")" ]; then
-  lockfile=$XDG_RUNTIME_DIR/sway-i3status-lock
-  while ! (set -C; : >"$lockfile") >/dev/null 2>&1; do
-    sleep 1
-  done
-  cat -- "$base" "$colorscheme" >"$config"
-  rm -- "$lockfile"
+  if [ ! -e "$config" ] || [ -n "$(find "$base" "$colorscheme" -newer "$config")" ]; then
+    lockfile=$XDG_RUNTIME_DIR/sway-i3status-lock
+    while ! (set -C; : >"$lockfile") >/dev/null 2>&1; do
+      sleep 1
+    done
+    cat -- "$base" "$colorscheme" >"$config"
+    rm -- "$lockfile"
+  fi
+else
+  config=$I3_STATUS_CONFIG_HOME/base-config
 fi
 
 exec i3status -c "$config"
