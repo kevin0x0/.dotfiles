@@ -1,47 +1,47 @@
 #!/bin/sh
 
-line_count=0
-line=
+stpl_line_count=0
+stpl_line=
 
 error() {
-  printf "in line %u: " "$line_count"
+  printf "in stpl_line %u: " "$stpl_line_count"
   printf "$@"
   echo
-  printf "%5u | %s\n" "$line_count" "$line"
+  printf "%5u | %s\n" "$stpl_line_count" "$stpl_line"
 } >&2
 
 expand_line() {
-  remaining=$line
+  stpl_remaining=$stpl_line
   while :; do
-    case "$remaining" in
-      "$opt_expansion_open"#*#"$opt_expansion_close")
-        # Ignore the comment line
+    case "$stpl_remaining" in
+      "$stpl_opt_expansion_open"#*#"$stpl_opt_expansion_close")
+        # Ignore the comment stpl_line
         break
         ;;
-      *"$opt_expansion_open"?*?"$opt_expansion_close"*)
-        head=${remaining%%"$opt_expansion_open"?*}
-        printf "%s" "$head"
+      *"$stpl_opt_expansion_open"?*?"$stpl_opt_expansion_close"*)
+        stpl_head=${stpl_remaining%%"$stpl_opt_expansion_open"?*}
+        printf "%s" "$stpl_head"
 
-        tail=${remaining#"$head$opt_expansion_open"}
-        mark=${tail%"${tail#?}"}
-        tail=${tail#?}
-        terminator="$mark$opt_expansion_close"
+        stpl_tail=${stpl_remaining#"$stpl_head$stpl_opt_expansion_open"}
+        stpl_mark=${stpl_tail%"${stpl_tail#?}"}
+        stpl_tail=${stpl_tail#?}
+        stpl_terminator="$stpl_mark$stpl_opt_expansion_close"
 
-        expr=${tail%%"$terminator"*}
-        tail=${tail#"$expr"}
-        remaining=${tail#"$terminator"}
+        stpl_expr=${stpl_tail%%"$stpl_terminator"*}
+        stpl_tail=${stpl_tail#"$stpl_expr"}
+        stpl_remaining=${stpl_tail#"$stpl_terminator"}
 
-        if [ -z "$tail" ]; then
-          error "expect '%s' to match '%s'" "$terminator" "$opt_expansion_open$mark"
+        if [ -z "$stpl_tail" ]; then
+          error "expect '%s' to match '%s'" "$stpl_terminator" "$stpl_opt_expansion_open$stpl_mark"
           exit 1
         fi
 
-        if ! command eval "printf \"%s\" \"$expr\"" 2>/dev/null; then
-          error "failed to do word expansion for: \"%s\"" "$expr"
+        if ! command eval "printf \"%s\" \"$stpl_expr\"" 2>/dev/null; then
+          error "failed to do word expansion for: \"%s\"" "$stpl_expr"
         fi
         ;;
       *)
-        printf "%s\n" "$remaining"
+        printf "%s\n" "$stpl_remaining"
         return
         ;;
     esac
@@ -49,39 +49,39 @@ expand_line() {
 }
 
 expand_file() {
-  while IFS= read -r line; do
-    line_count=$((line_count + 1))
+  while IFS= read -r stpl_line; do
+    stpl_line_count=$((stpl_line_count + 1))
     expand_line
   done
 }
 
-opt_expansion_open='{'
-opt_expansion_close='}'
-opt_output=
+stpl_opt_expansion_open='{'
+stpl_opt_expansion_close='}'
+stpl_opt_output=
 while getopts "l:r:s:o:" opt; do
   case $opt in
     l)
-      opt_expansion_open=$OPTARG
+      stpl_opt_expansion_open=$OPTARG
       ;;
     r)
-      opt_expansion_close=$OPTARG
+      stpl_opt_expansion_close=$OPTARG
       ;;
     s)
       case $OPTARG in
         */*)
-          filepath=$OPTARG
+          stpl_filepath=$OPTARG
           ;;
         *)
-          filepath=./$OPTARG
+          stpl_filepath=./$OPTARG
           ;;
       esac
-      if ! command . -- "$filepath"; then
+      if ! command . -- "$stpl_filepath"; then
         printf "failed to source %s\n" "$OPTARG" >&2
         exit 1
       fi
       ;;
     o)
-      opt_output=$OPTARG
+      stpl_opt_output=$OPTARG
       ;;
     '?')
       exit 2
@@ -92,14 +92,14 @@ done
 shift "$((OPTIND - 1))"
 
 if [ -z "$1" ]; then
-  if [ -n "$opt_output" ]; then
-    expand_file >"$opt_output"
+  if [ -n "$stpl_opt_output" ]; then
+    expand_file >"$stpl_opt_output"
   else
     expand_file
   fi
 elif [ -f "$1" ] && [ -r "$1" ]; then
-  if [ -n "$opt_output" ]; then
-    expand_file <"$1" >"$opt_output"
+  if [ -n "$stpl_opt_output" ]; then
+    expand_file <"$1" >"$stpl_opt_output"
   else
     expand_file <"$1"
   fi
