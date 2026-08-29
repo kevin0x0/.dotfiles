@@ -35,25 +35,29 @@ cmd on-init &{{
   : "${XDG_CONFIG_HOME:=$HOME/.config}"
   : "${XDG_STATE_HOME:=$HOME/.local/state}"
   COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/lf/colorscheme
-  filename=catppuccin-mocha
+  filename=
   if [ -f "$COLOR_THEME_FILE" ] && [ -r "$COLOR_THEME_FILE" ]; then
     filename=$(cat -- "$COLOR_THEME_FILE")
   fi
-  filename=$(printf "%s" "$filename" | sed 's/\\/\\\\/g; s/"/\\"/g')
-  case $(termcolors) in
-    16777216)
-      filename=16777216-$filename
-      ;;
-    256)
-      filename=256-$filename
-      ;;
-    2|none)
-      filename=none
-      ;;
-    *)
-      filename=8
-      ;;
-  esac
+  if [ -n "$filename" ]; then
+    filename=$(printf "%s" "$filename" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    case $(termcolors) in
+      16777216)
+        filename=16777216-$filename
+        ;;
+      256)
+        filename=256-$filename
+        ;;
+      2|none)
+        filename=none
+        ;;
+      *)
+        filename=8
+        ;;
+    esac
+  else
+    filename=none
+  fi
   escaped_config_home=$(printf "%s" "$XDG_CONFIG_HOME" | sed 's/\\/\\\\/g; s/"/\\"/g')
   source_color="source \"$escaped_config_home/lf/colorscheme/$filename\";"
   rulerfile="$escaped_config_home/lf/ruler"

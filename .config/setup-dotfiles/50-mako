@@ -5,6 +5,6 @@ fi
 COLORSCHEME_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/mako/colorscheme/
 STATE_FILE=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/mako/colorscheme
 mkdir -p "$(dirname -- "$STATE_FILE")"
-ln -sf -- "$COLORSCHEME_DIR/catppuccin-mocha" "$STATE_FILE"
+ln -sf -- "/dev/null" "$STATE_FILE"
 
 # vim: ft=sh
