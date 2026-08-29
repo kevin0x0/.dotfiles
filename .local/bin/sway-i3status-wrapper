@@ -36,7 +36,7 @@ config=$I3_STATUS_CONFIG_HOME/config-$theme
 base=$I3_STATUS_CONFIG_HOME/base-config
 assert_readable_file "$base"
 
-if [ ! -e "$config" ] || ! cat -- "$base" "$colorscheme" | cmp -s -- - "$config"; then
+if [ ! -e "$config" ] || [ -n "$(find "$base" "$colorscheme" -newer "$config")" ]; then
   lockfile=$XDG_RUNTIME_DIR/sway-i3status-lock
   while ! (set -C; : >"$lockfile") >/dev/null 2>&1; do
     sleep 1
