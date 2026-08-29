@@ -1,6 +1,0 @@
-general {
-  colors = true
-  color_good = "#9ece6a"
-  color_degraded = "#e0af68"
-  color_bad = "#f7768e"
-}
