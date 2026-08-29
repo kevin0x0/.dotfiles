@@ -1,7 +1,7 @@
 COLORSCHEME_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/mako/colorscheme
 COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/mako/colorscheme
 
-theme=$1
+theme=$COLORSCHEME_REAL_THEME
 ln -sf -- "$COLORSCHEME_DIR/$theme" "$COLOR_THEME_FILE"
 
 makoctl reload >/dev/null 2>/dev/null|| true

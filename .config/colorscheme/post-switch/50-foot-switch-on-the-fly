@@ -1,5 +1,4 @@
-
-theme=$1
+theme=$COLORSCHEME_REAL_THEME
 script_path="${XDG_CONFIG_HOME:-$HOME/.config}/foot/scripts/switch-colorscheme-on-the-fly"
 
 case $(uname -s) in

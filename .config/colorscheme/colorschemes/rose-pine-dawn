@@ -1,0 +1,19 @@
+# terminal colors
+bg=faf4ed
+fg=575279
+black=f2e9e1  red=b4637a  green=286983  yellow=ea9d34
+blue=56949f  magenta=907aa9  cyan=d7827e  white=575279
+bright_black=9893a5
+bright_red=$red  bright_green=$green  bright_yellow=$yellow  bright_blue=$blue
+bright_magenta=$magenta  bright_cyan=$cyan  bright_white=797593
+
+# gui semantics
+accent=56949f  accent_fg=faf4ed  indicator=ea9d34
+inactive=d3cede  inactive_fg=797593  unfocused=f4ede8  unfocused_fg=9893a5
+urgent=b4637a  urgent_fg=faf4ed
+warning=d7827e  binding=907aa9  statusline=575279
+surface=dfdad9
+
+# metadata
+kind=light
+gtk_theme=rose-pine-dawn-gtk

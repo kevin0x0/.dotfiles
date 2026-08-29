@@ -1,0 +1,6 @@
+general {
+  colors = true
+  { color_good = "#$green" }
+  { color_degraded = "#$yellow" }
+  { color_bad = "#$red" }
+}

@@ -1,0 +1,3 @@
+{ COLORS='-S $accent -s $accent_fg -N $bg -n $fg -M $unfocused -m $accent' }
+
+# vim: ft=sh

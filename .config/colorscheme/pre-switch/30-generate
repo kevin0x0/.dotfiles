@@ -1,0 +1,31 @@
+theme=$COLORSCHEME_COLORSCHEMES_DIR/$COLORSCHEME_REAL_THEME
+
+[ -f "$theme" ] || exit 0
+
+for f in "$COLORSCHEME_SPECS_DIR"/*; do
+  [ -f "$f" ] || continue
+  [ -r "$f" ] || continue
+
+  . -- "$f"
+  target=${f##*/}
+  template=$COLORSCHEME_TEMPLATES_DIR/$target
+  helper=$COLORSCHEME_HELPERS_DIR/$target
+
+  [ -f "$template" ] || continue
+
+  if [ -f "$output" ]; then
+    [ -f "$helper" ] && [ -z "$(find "$theme" "$template" "$helper" -newer "$output")" ] && exit 0
+    [ ! -f "$helper" ] && [ -z "$(find "$theme" "$template" -newer "$output")" ] && exit 0
+  elif [ -e "$output" ]; then
+    printf "%s is not a file" "$output" >&2
+    exit 1
+  fi
+
+  if [ -f "$helper" ]; then
+    stpl -s "$theme" -s "$helper" -o "$output" -- "$template" || exit 1
+  else
+    stpl -s "$theme" -o "$output" -- "$template" || exit 1
+  fi
+done
+
+# vim: ft=sh

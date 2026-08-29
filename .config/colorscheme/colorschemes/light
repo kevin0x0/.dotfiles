@@ -1,0 +1,19 @@
+# terminal colors
+bg=f2ebe5
+fg=3f2f24
+black=3f2f24  red=c14c31  green=8f6e34  yellow=d8935e
+blue=4c78b0  magenta=9a5c8f  cyan=3f9ca4  white=e5d7ca
+bright_black=7a5a42
+bright_red=ff6b5f  bright_green=aee26b  bright_yellow=ffd47f  bright_blue=6ea9ff
+bright_magenta=ef89c2  bright_cyan=56cfd6  bright_white=ffffff
+
+# gui semantics
+accent=9a5e39  accent_fg=f2ebe5  indicator=9a5c8f
+inactive=d0b39d  inactive_fg=6a4e3a  unfocused=e1c5b2  unfocused_fg=8b6f5d
+urgent=d9534f  urgent_fg=ffffff
+warning=d8a657  binding=3f9ca4  statusline=7a5a42
+surface=e1c5b2
+
+# metadata
+kind=light
+gtk_theme=Materia-light

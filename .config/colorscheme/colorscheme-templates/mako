@@ -1,0 +1,15 @@
+{ background-color=#$bg }
+{ text-color=#$fg }
+{ border-color=#$accent }
+
+[urgency=critical]
+height=300
+{ text-color=#$red }
+{ border-color=#$red }
+
+[urgency=low]
+height=150
+{ text-color=#$unfocused_fg }
+{ border-color=#$surface }
+
+# vim: ft=dosini
