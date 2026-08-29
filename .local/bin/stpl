@@ -36,8 +36,9 @@ expand_line() {
           exit 1
         fi
 
-        if ! command eval "printf \"%s\" \"$stpl_expr\"" 2>/dev/null; then
-          error "failed to do word expansion for: \"%s\"" "$stpl_expr"
+        stpl_cmd=$'stpl_result=$(cat <<EOF\n'"$stpl_expr"$'\nEOF\n) && printf "%s" "$stpl_result"'
+        if ! command eval "$stpl_cmd" 2>/dev/null; then
+          error "failed to do here-doc word expansion for: %s" "$stpl_expr"
         fi
         ;;
       *)
