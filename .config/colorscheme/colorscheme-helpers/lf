@@ -12,6 +12,7 @@ hex_to_rgb() {
 fg_rgb=$(hex_to_rgb "$fg")
 bg_rgb=$(hex_to_rgb "$bg")
 accent_rgb=$(hex_to_rgb "$accent")
+cyan_rgb=$(hex_to_rgb "$cyan")
 green_rgb=$(hex_to_rgb "$green")
 magenta_rgb=$(hex_to_rgb "$magenta")
 red_rgb=$(hex_to_rgb "$red")
