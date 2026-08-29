@@ -27,6 +27,7 @@ hex_to_256() {
 fg_256=$(hex_to_256 "$fg")
 bg_256=$(hex_to_256 "$bg")
 accent_256=$(hex_to_256 "$accent")
+cyan_256=$(hex_to_256 "$cyan")
 green_256=$(hex_to_256 "$green")
 magenta_256=$(hex_to_256 "$magenta")
 red_256=$(hex_to_256 "$red")
