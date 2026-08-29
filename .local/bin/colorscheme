@@ -58,9 +58,16 @@ fi
 
 export COLORSCHEME_STATE_HOME
 LC_ALL=C
-for script in "$CONFIG_DIR"/*; do
-  [ -f "$script" ] || continue
-  sh -- "$script" "$real_theme"
-done
+
+do_scripts() {
+  for script in "$CONFIG_DIR/$1"/*; do
+    [ -f "$script" ] || continue
+    sh -- "$script" "$real_theme"
+  done
+}
+
+do_scripts pre-switch
+do_scripts switch
+do_scripts post-switch
 
 printf "%s\n" "$theme" >"$COLOR_THEME_FILE"
