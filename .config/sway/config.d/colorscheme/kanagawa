@@ -20,7 +20,6 @@ set $binding      #957fb8
 # appearance ---------------------------------------------------------------
 set $gtk-theme     Kanagawa-Dark
 set $color-scheme  prefer-dark
-set $prefer-dark   true
 set $icon-theme    Adwaita
 set $cursor-theme  capitaine-cursors
 
