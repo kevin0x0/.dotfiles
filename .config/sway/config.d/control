@@ -47,9 +47,9 @@ mode "settings" {
     $mod+q mode "default"
     $mod+Shift+q mode "default"
     # Set wallpaper
-    $mod+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/change-wallpaper\"; mode "default"
+    $mod+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/switch-wallpaper\"; mode "default"
     # Set wallpaper persistently
-    $mod+Shift+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/change-wallpaper -p\"; mode "default"
+    $mod+Shift+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/switch-wallpaper -p\"; mode "default"
   }
 }
 bindsym $mod+x mode "settings"

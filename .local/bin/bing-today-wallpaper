@@ -42,5 +42,5 @@ if ! curl $silent -- "$url" > "$dir/$title.jpg"; then
 fi
 
 if [ "$opt_set" = true ]; then
-  "${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/change-wallpaper" -p -- "$dir/$title.jpg"
+  "${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/switch-wallpaper" -p -- "$dir/$title.jpg"
 fi

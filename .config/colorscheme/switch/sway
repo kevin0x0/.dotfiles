@@ -11,6 +11,6 @@ fi
 theme=$COLORSCHEME_REAL_THEME
 printf "%s\n" "$theme" > "$COLOR_THEME_FILE"
 
-"$SWAY_CONFIG/scripts/change-colorscheme" "$theme"
+"$SWAY_CONFIG/scripts/switch-colorscheme" "$theme"
 
 # vim: ft=sh
