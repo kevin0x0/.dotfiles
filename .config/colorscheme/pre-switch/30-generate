@@ -14,8 +14,8 @@ for f in "$COLORSCHEME_SPECS_DIR"/*; do
   [ -f "$template" ] || continue
 
   if [ -f "$output" ]; then
-    [ -f "$helper" ] && [ -z "$(find "$theme" "$template" "$helper" -newer "$output")" ] && exit 0
-    [ ! -f "$helper" ] && [ -z "$(find "$theme" "$template" -newer "$output")" ] && exit 0
+    [ -f "$helper" ] && [ -z "$(find "$theme" "$template" "$helper" -newer "$output")" ] && continue
+    [ ! -f "$helper" ] && [ -z "$(find "$theme" "$template" -newer "$output")" ] && continue
   elif [ -e "$output" ]; then
     printf "%s is not a file" "$output" >&2
     exit 1
