@@ -1,0 +1,22 @@
+hex_to_rgb() {
+  awk -v h="$1" '
+    function h2d(c) { return index("0123456789abcdef", c) - 1 }
+    BEGIN {
+      r = h2d(substr(h,1,1))*16 + h2d(substr(h,2,1))
+      g = h2d(substr(h,3,1))*16 + h2d(substr(h,4,1))
+      b = h2d(substr(h,5,1))*16 + h2d(substr(h,6,1))
+      printf "%d;%d;%d", r, g, b
+    }'
+}
+
+fg_rgb=$(hex_to_rgb "$fg")
+bg_rgb=$(hex_to_rgb "$bg")
+accent_rgb=$(hex_to_rgb "$accent")
+green_rgb=$(hex_to_rgb "$green")
+magenta_rgb=$(hex_to_rgb "$magenta")
+red_rgb=$(hex_to_rgb "$red")
+yellow_rgb=$(hex_to_rgb "$yellow")
+surface_rgb=$(hex_to_rgb "$surface")
+unfocused_fg_rgb=$(hex_to_rgb "$unfocused_fg")
+
+# vim: ft=sh

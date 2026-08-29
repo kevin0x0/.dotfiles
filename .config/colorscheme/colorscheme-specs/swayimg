@@ -1,0 +1,3 @@
+output=${XDG_CONFIG_HOME:-$HOME/.config}/swayimg/colorscheme/$COLORSCHEME_REAL_THEME.lua
+
+# vim: ft=sh

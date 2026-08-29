@@ -1,0 +1,22 @@
+{ set cursoractivefmt "\033[1;38;5;$fg_256;48;5;${accent_256}m" }
+{ set cursorparentfmt "\033[1;38;5;$fg_256;48;5;${green_256}m" }
+{ set cursorpreviewfmt "\033[1;38;5;$fg_256;48;5;${accent_256}m" }
+{ set promptfmt "\033[1;48;5;${bg_256}m\033[38;5;${accent_256};1m%u\033[38;5;${fg_256}m@\033[38;5;${magenta_256}m%h\033[38;5;${fg_256}m:\033[38;5;${accent_256}m%w%S\033[0m" }
+
+{ set cutfmt "\033[1;38;5;$fg_256;48;5;${red_256}m" }
+{ set copyfmt "\033[1;38;5;$fg_256;48;5;${yellow_256}m" }
+{ set selectfmt "\033[1;38;5;$bg_256;48;5;${accent_256}m" }
+{ set visualfmt "\033[48;5;${surface_256}m" }
+
+{ set user_modefmt "\033[1;38;5;$bg_256;48;5;${accent_256}m" }
+{ set user_permfmt "\033[1;48;5;$bg_256;38;5;${accent_256}m" }
+{ set user_linkcountfmt "\033[1;48;5;$bg_256;38;5;${unfocused_fg_256}m" }
+{ set user_userfmt "\033[1;48;5;$bg_256;38;5;${green_256}m" }
+{ set user_groupfmt "\033[1;48;5;$bg_256;38;5;${unfocused_fg_256}m" }
+{ set user_sizefmt "\033[1;48;5;$bg_256;38;5;${accent_256}m" }
+{ set user_modtimefmt "\033[1;48;5;$bg_256;38;5;${unfocused_fg_256}m" }
+{ set user_linkfmt "\033[1;38;5;${magenta_256}m" }
+{ set user_iovertfmt "\033[1;38;5;$bg_256;48;5;${accent_256}m" }
+{ set user_filterfmt "\033[1;38;5;$bg_256;48;5;${accent_256}m" }
+
+# vim: ft=lf

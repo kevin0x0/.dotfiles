@@ -6,7 +6,7 @@ if [ ! -e  "$(dirname -- $COLOR_THEME_FILE)" ]; then
   fi
 fi
 
-theme=$1
+theme=$COLORSCHEME_REAL_THEME
 printf "%s\n" "$theme" > "$COLOR_THEME_FILE"
 
 # Unfortunately, it seems there is no simple solution to notify running neomutt

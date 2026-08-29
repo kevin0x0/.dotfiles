@@ -42,27 +42,34 @@ if [ -z "$theme" ]; then
 fi
 real_theme=$theme
 
-CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/colorscheme
+COLORSCHEME_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}/colorscheme
 
-if [ ! -d "$CONFIG_DIR" ]; then
-  echo "'$CONFIG_DIR' doesn't exist or not a directory" >&2
+if [ ! -d "$COLORSCHEME_CONFIG_HOME" ]; then
+  echo "'$COLORSCHEME_CONFIG_HOME' doesn't exist or not a directory" >&2
   exit 1
 fi
 
-if [ -d "$CONFIG_DIR/colorscheme-alias" ]; then
-  if [ -f "$CONFIG_DIR/colorscheme-alias/$theme" ] && \
-    [ -r "$CONFIG_DIR/colorscheme-alias/$theme" ]; then
-    real_theme=$(cat -- "$CONFIG_DIR/colorscheme-alias/$theme")
+if [ -d "$COLORSCHEME_CONFIG_HOME/colorscheme-alias" ]; then
+  if [ -f "$COLORSCHEME_CONFIG_HOME/colorscheme-alias/$theme" ] && \
+    [ -r "$COLORSCHEME_CONFIG_HOME/colorscheme-alias/$theme" ]; then
+    real_theme=$(cat -- "$COLORSCHEME_CONFIG_HOME/colorscheme-alias/$theme")
   fi
 fi
 
 export COLORSCHEME_STATE_HOME
-LC_ALL=C
+export COLORSCHEME_CONFIG_HOME
+export COLORSCHEME_TEMPLATES_DIR="$COLORSCHEME_CONFIG_HOME/colorscheme-templates"
+export COLORSCHEME_HELPERS_DIR="$COLORSCHEME_CONFIG_HOME/colorscheme-helpers"
+export COLORSCHEME_COLORSCHEMES_DIR="$COLORSCHEME_CONFIG_HOME/colorschemes"
+export COLORSCHEME_SPECS_DIR="$COLORSCHEME_CONFIG_HOME/colorscheme-specs"
+export COLORSCHEME_REAL_THEME="$real_theme"
+export COLORSCHEME_THEME="$theme"
 
 do_scripts() {
-  for script in "$CONFIG_DIR/$1"/*; do
+  LC_ALL=C
+  for script in "$COLORSCHEME_CONFIG_HOME/$1"/*; do
     [ -f "$script" ] || continue
-    sh -- "$script" "$real_theme"
+    sh -- "$script"
   done
 }
 
