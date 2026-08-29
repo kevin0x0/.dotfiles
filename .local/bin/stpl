@@ -1,0 +1,109 @@
+#!/bin/sh
+
+line_count=0
+line=
+
+error() {
+  printf "in line %u: " "$line_count"
+  printf "$@"
+  echo
+  printf "%5u | %s\n" "$line_count" "$line"
+} >&2
+
+expand_line() {
+  remaining=$line
+  while :; do
+    case "$remaining" in
+      "$opt_expansion_open"#*#"$opt_expansion_close")
+        # Ignore the comment line
+        break
+        ;;
+      *"$opt_expansion_open"?*?"$opt_expansion_close"*)
+        head=${remaining%%"$opt_expansion_open"?*}
+        printf "%s" "$head"
+
+        tail=${remaining#"$head$opt_expansion_open"}
+        mark=${tail%"${tail#?}"}
+        tail=${tail#?}
+        terminator="$mark$opt_expansion_close"
+
+        expr=${tail%%"$terminator"*}
+        tail=${tail#"$expr"}
+        remaining=${tail#"$terminator"}
+
+        if [ -z "$tail" ]; then
+          error "expect '%s' to match '%s'" "$terminator" "$opt_expansion_open$mark"
+          exit 1
+        fi
+
+        if ! command eval "printf \"%s\" \"$expr\"" 2>/dev/null; then
+          error "failed to do word expansion for: \"%s\"" "$expr"
+        fi
+        ;;
+      *)
+        printf "%s\n" "$remaining"
+        return
+        ;;
+    esac
+  done
+}
+
+expand_file() {
+  while IFS= read -r line; do
+    line_count=$((line_count + 1))
+    expand_line
+  done
+}
+
+opt_expansion_open='{'
+opt_expansion_close='}'
+opt_output=
+while getopts "l:r:s:o:" opt; do
+  case $opt in
+    l)
+      opt_expansion_open=$OPTARG
+      ;;
+    r)
+      opt_expansion_close=$OPTARG
+      ;;
+    s)
+      case $OPTARG in
+        */*)
+          filepath=$OPTARG
+          ;;
+        *)
+          filepath=./$OPTARG
+          ;;
+      esac
+      if ! command . -- "$filepath"; then
+        printf "failed to source %s\n" "$OPTARG" >&2
+        exit 1
+      fi
+      ;;
+    o)
+      opt_output=$OPTARG
+      ;;
+    '?')
+      exit 2
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
+
+if [ -z "$1" ]; then
+  if [ -n "$opt_output" ]; then
+    expand_file >"$opt_output"
+  else
+    expand_file
+  fi
+elif [ -f "$1" ] && [ -r "$1" ]; then
+  if [ -n "$opt_output" ]; then
+    expand_file <"$1" >"$opt_output"
+  else
+    expand_file <"$1"
+  fi
+else
+  printf "%s is not a readable file\n" "$1" >&2
+  exit 1
+fi
