@@ -26,7 +26,7 @@ fi
 
 error_exit() {
   if command -v notify-send >/dev/null 2>&1; then
-    notify-send --app-name "change-colorscheme" --urgency critical -- \
+    notify-send --app-name "switch-colorscheme" --urgency critical -- \
       "$1" "$2"
   else
       printf "%s: %s\n" "$1" "$2" >&2

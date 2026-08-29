@@ -70,7 +70,7 @@ bindsym $mod+Shift+8 move container to workspace number 8
 bindsym $mod+Shift+9 move container to workspace number 9
 bindsym $mod+Shift+0 move container to workspace number 10
 # General
-bindsym $mod+w exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/change-workspace\"
+bindsym $mod+w exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/switch-workspace\"
 bindsym $mod+Shift+w exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/move-to-workspace\"
 bindsym $mod+comma workspace prev
 bindsym $mod+period workspace next
