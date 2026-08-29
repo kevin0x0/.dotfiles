@@ -1,0 +1,19 @@
+# terminal colors
+bg=1d2021
+fg=d4be98
+black=282828  red=ea6962  green=a9b665  yellow=d8a657
+blue=7daea3  magenta=d3869b  cyan=89b482  white=d4be98
+bright_black=7c6f64
+bright_red=$red  bright_green=$green  bright_yellow=$yellow  bright_blue=$blue
+bright_magenta=$magenta  bright_cyan=$cyan  bright_white=ddc7a1
+
+# gui semantics
+accent=7daea3  accent_fg=1d2021  indicator=e78a4e
+inactive=665c54  inactive_fg=ddc7a1  unfocused=282828  unfocused_fg=7c6f64
+urgent=ea6962  urgent_fg=1d2021
+warning=d8a657  binding=d3869b  statusline=d4be98
+surface=7daea3
+
+# metadata
+kind=dark
+gtk_theme=Gruvbox-Material-Dark
