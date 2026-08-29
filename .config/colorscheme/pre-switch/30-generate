@@ -21,6 +21,8 @@ for f in "$COLORSCHEME_SPECS_DIR"/*; do
     exit 1
   fi
 
+  mkdir -- "${output%/*}"
+
   if [ -f "$helper" ]; then
     stpl -s "$theme" -s "$helper" -o "$output" -- "$template" || exit 1
   else
