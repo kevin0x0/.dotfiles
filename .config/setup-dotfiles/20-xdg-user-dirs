@@ -5,7 +5,7 @@ fi
 
 info "xdg-user-dirs-update not available, create diretories directly"
 
-: "${XDG_CONFIG_HOME:-$HOME/.config}"
+: "${XDG_CONFIG_HOME:=$HOME/.config}"
 if [ ! -r "$XDG_CONFIG_HOME/user-dirs.dirs" ]; then
   error_exit "$XDG_CONFIG_HOME/user-dirs.dirs does not exist or is not readable"
 fi
