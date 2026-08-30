@@ -1,28 +1,29 @@
-hex_to_256() {
-  awk -v h="$1" '
-    function h2d(c) { return index("0123456789abcdef", c) - 1 }
-    function abs(x) { return x < 0 ? -x : x }
-    BEGIN {
-      r = h2d(substr(h,1,1))*16 + h2d(substr(h,2,1))
-      g = h2d(substr(h,3,1))*16 + h2d(substr(h,4,1))
-      b = h2d(substr(h,5,1))*16 + h2d(substr(h,6,1))
-      lv[0]=0; lv[1]=95; lv[2]=135; lv[3]=175; lv[4]=215; lv[5]=255
-      cr=0; cg=0; cb=0; br=999; bg=999; bb=999
-      for (i=0; i<6; i++) {
-        if (abs(lv[i]-r) < br) { br=abs(lv[i]-r); cr=i }
-        if (abs(lv[i]-g) < bg) { bg=abs(lv[i]-g); cg=i }
-        if (abs(lv[i]-b) < bb) { bb=abs(lv[i]-b); cb=i }
-      }
-      cube = 16 + 36*cr + 6*cg + cb
-      crv=lv[cr]; cgv=lv[cg]; cbv=lv[cb]
-      cdist = (r-crv)^2 + (g-cgv)^2 + (b-cbv)^2
-      gl = int((r+g+b)/765*23 + 0.5)
-      if (gl > 23) gl = 23
-      gval = 8 + 10*gl
-      gdist = (r-gval)^2 + (g-gval)^2 + (b-gval)^2
-      if (gdist < cdist) printf "%d", 232+gl; else printf "%d", cube
-    }'
-}
+hex_to_256() (
+  r=${1%????}
+  g=${1#??}
+  g=${g%??}
+  b=${1#????}
+
+  r=$((0x$r))
+  g=$((0x$g))
+  b=$((0x$b))
+
+  cr=$((r <= 47 ? 0 : r <= 95 ? 1 : ((r - 35) / 40)))
+  crv=$((cr == 0 ? 0 : (55 + cr * 40)))
+  cg=$((g <= 47 ? 0 : g <= 95 ? 1 : ((g - 35) / 40)))
+  cgv=$((cg == 0 ? 0 : (55 + cg * 40)))
+  cb=$((b <= 47 ? 0 : b <= 95 ? 1 : ((b - 35) / 40)))
+  cbv=$((cb == 0 ? 0 : (55 + cb * 40)))
+
+  gl=$((((r + g + b) * 23 + 382) / 765))
+
+  cd=$(((crv - r) * (crv - r) + (cgv - g) * (cgv - g) + (cbv - b) * (cbv - b)))
+
+  gval=$((8 + 10 * gl))
+  gd=$(((r - gval) * (r - gval) + (g - gval) * (g - gval) + (b - gval) * (b - gval)))
+
+  printf "%u" "$((cd < gd ? (16 + 36 * cr + 6 * cg + cb) : (232 + gl)))"
+)
 
 fg_256=$(hex_to_256 "$fg")
 bg_256=$(hex_to_256 "$bg")
