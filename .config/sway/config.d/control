@@ -91,5 +91,5 @@ bindsym $mod+o opacity plus 0.02
 bindsym $mod+Shift+o opacity minus 0.02
 
 # Toggle colorscheme
-bindsym $mod+q exec colorscheme
+bindsym $mod+q exec colorscheme -s
 # vim: ft=swayconfig
