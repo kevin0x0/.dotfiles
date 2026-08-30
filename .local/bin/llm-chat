@@ -174,14 +174,14 @@ done
 
 shift "$((OPTIND - 1))"
 
-: "${XDG_RUNTIME_DIR:?"environment variable XDG_RUNTIME_DIR is unset or empty."}"
-reasoning=$XDG_RUNTIME_DIR/llm-chat.reasoning.$$
-content=$XDG_RUNTIME_DIR/llm-chat.content.$$
-tool_calls=$XDG_RUNTIME_DIR/llm-chat.tool_calls.$$
-input=$XDG_RUNTIME_DIR/llm-chat.input.$$
-session=$XDG_RUNTIME_DIR/llm-chat.session.$$
-this_turn=$XDG_RUNTIME_DIR/llm-chat.this_turn.$$
-tmp=$XDG_RUNTIME_DIR/llm-chat.tmp.$$
+RUNTIME_STATE_DIR=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}
+reasoning=$RUNTIME_STATE_DIR/llm-chat.reasoning.$$
+content=$RUNTIME_STATE_DIR/llm-chat.content.$$
+tool_calls=$RUNTIME_STATE_DIR/llm-chat.tool_calls.$$
+input=$RUNTIME_STATE_DIR/llm-chat.input.$$
+session=$RUNTIME_STATE_DIR/llm-chat.session.$$
+this_turn=$RUNTIME_STATE_DIR/llm-chat.this_turn.$$
+tmp=$RUNTIME_STATE_DIR/llm-chat.tmp.$$
 
 clean_command=
 for f in "$reasoning" "$content" "$tool_calls" "$input" "$session" \
