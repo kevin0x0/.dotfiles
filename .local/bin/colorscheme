@@ -23,15 +23,25 @@ if [ ! -d "$COLORSCHEME_CONFIG_HOME" ]; then
 fi
 
 
-COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/current_theme
+CURRENT_THEME_FILE=$COLORSCHEME_STATE_HOME/current_theme
+CURRENT_ALPHA_FILE=$COLORSCHEME_STATE_HOME/current_alpha
 
-if [ ! -f "$COLOR_THEME_FILE" ]; then
-  if [ -e "$COLOR_THEME_FILE" ]; then
-    echo "'$COLOR_THEME_FILE' exists but not a file" >&2
+if [ ! -f "$CURRENT_THEME_FILE" ]; then
+  if [ -e "$CURRENT_THEME_FILE" ]; then
+    echo "'$CURRENT_THEME_FILE' exists but not a file" >&2
     exit 1
   fi
   
-  printf "%s\n" 'light' >"$COLOR_THEME_FILE"
+  printf "%s\n" 'light' >"$CURRENT_THEME_FILE"
+fi
+
+if [ ! -f "$CURRENT_ALPHA_FILE" ]; then
+  if [ -e "$CURRENT_ALPHA_FILE" ]; then
+    echo "'$CURRENT_ALPHA_FILE' exists but not a file" >&2
+    exit 1
+  fi
+  
+  echo >"$CURRENT_ALPHA_FILE"
 fi
 
 opt_alpha=
@@ -58,7 +68,7 @@ shift "$((OPTIND - 1))"
 
 theme=$1
 if [ -z "$theme" ]; then
-  current_theme=$(cat "$COLOR_THEME_FILE")
+  current_theme=$(cat "$CURRENT_THEME_FILE")
   case $current_theme in
     dark)
       theme=light
@@ -71,6 +81,11 @@ if [ -z "$theme" ]; then
       ;;
   esac
 fi
+
+if [ -z "$opt_alpha" ]; then
+  opt_alpha=$(cat "$CURRENT_ALPHA_FILE")
+fi
+
 real_theme=$theme
 
 if [ -d "$COLORSCHEME_CONFIG_HOME/alias" ]; then
@@ -106,4 +121,5 @@ do_scripts pre-switch
 do_scripts switch
 do_scripts post-switch
 
-printf "%s\n" "$theme" >"$COLOR_THEME_FILE"
+printf "%s\n" "$theme" >"$CURRENT_THEME_FILE"
+printf "%s\n" "$opt_alpha" >"$CURRENT_ALPHA_FILE"
