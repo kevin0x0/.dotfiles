@@ -44,7 +44,7 @@ if [ ! -f "$CURRENT_ALPHA_FILE" ]; then
   echo >"$CURRENT_ALPHA_FILE"
 fi
 
-opt_alpha=
+opt_alpha=$(cat "$CURRENT_ALPHA_FILE")
 while getopts "a:" opt; do
   case $opt in
     a)
@@ -52,8 +52,11 @@ while getopts "a:" opt; do
         [0-9a-fA-F][0-9a-fA-F])
           opt_alpha=$OPTARG
           ;;
+        '')
+          opt_alpha=
+          ;;
         *)
-          printf "alpha value must be two hexadecimal digits\n" >&2
+          printf "alpha value must be empty or two hexadecimal digits\n" >&2
           exit 2
           ;;
       esac
@@ -80,10 +83,6 @@ if [ -z "$theme" ]; then
       theme=dark
       ;;
   esac
-fi
-
-if [ -z "$opt_alpha" ]; then
-  opt_alpha=$(cat "$CURRENT_ALPHA_FILE")
 fi
 
 real_theme=$theme
