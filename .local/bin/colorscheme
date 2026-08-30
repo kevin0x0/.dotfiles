@@ -44,16 +44,30 @@ if [ ! -f "$CURRENT_ALPHA_FILE" ]; then
   echo >"$CURRENT_ALPHA_FILE"
 fi
 
-opt_alpha=$(cat "$CURRENT_ALPHA_FILE")
-while getopts "a:" opt; do
+alpha=$(cat "$CURRENT_ALPHA_FILE")
+theme=$(cat "$CURRENT_THEME_FILE")
+while getopts "sa:" opt; do
   case $opt in
+    s)
+      case $theme in
+        dark)
+          theme=light
+          ;;
+        light)
+          theme=dark
+          ;;
+        *)
+          theme=dark
+          ;;
+      esac
+      ;;
     a)
       case $OPTARG in
         [0-9a-fA-F][0-9a-fA-F])
-          opt_alpha=$OPTARG
+          alpha=$OPTARG
           ;;
         '')
-          opt_alpha=
+          alpha=
           ;;
         *)
           printf "alpha value must be empty or two hexadecimal digits\n" >&2
@@ -69,24 +83,9 @@ done
 
 shift "$((OPTIND - 1))"
 
-theme=$1
-if [ -z "$theme" ]; then
-  current_theme=$(cat "$CURRENT_THEME_FILE")
-  case $current_theme in
-    dark)
-      theme=light
-      ;;
-    light)
-      theme=dark
-      ;;
-      *)
-      theme=dark
-      ;;
-  esac
-fi
+[ -n "$1" ] && theme=$1
 
 real_theme=$theme
-
 if [ -d "$COLORSCHEME_CONFIG_HOME/alias" ]; then
   if [ -f "$COLORSCHEME_CONFIG_HOME/alias/$theme" ] && \
     [ -r "$COLORSCHEME_CONFIG_HOME/alias/$theme" ]; then
@@ -102,11 +101,11 @@ export COLORSCHEME_COLORSCHEMES_DIR="$COLORSCHEME_CONFIG_HOME/colorschemes"
 export COLORSCHEME_SPECS_DIR="$COLORSCHEME_CONFIG_HOME/specs"
 export COLORSCHEME_REAL_THEME="$real_theme"
 export COLORSCHEME_THEME="$theme"
-export COLORSCHEME_ALPHA="$opt_alpha"
+export COLORSCHEME_ALPHA="$alpha"
 
 export COLORSCHEME_THEME_FILE="$real_theme"
 # real theme name with alpha encoded
-export COLORSCHEME_THEME_FILE_A="$real_theme${opt_alpha:+-}$opt_alpha"
+export COLORSCHEME_THEME_FILE_A="$real_theme${alpha:+-}$alpha"
 
 do_scripts() {
   LC_ALL=C
@@ -121,4 +120,4 @@ do_scripts switch
 do_scripts post-switch
 
 printf "%s\n" "$theme" >"$CURRENT_THEME_FILE"
-printf "%s\n" "$opt_alpha" >"$CURRENT_ALPHA_FILE"
+printf "%s\n" "$alpha" >"$CURRENT_ALPHA_FILE"
