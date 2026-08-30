@@ -1,0 +1,18 @@
+#!/bin/sh
+
+RUNTIME_STATE_DIR=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}
+
+remaining=$#
+while [ "$remaining" -ne 0 ]; do
+  remaining=$((remaining - 1))
+  lockfile=$RUNTIME_STATE_DIR/lock-$1
+  shift
+  if ! (umask 0077; set -C; : >"$lockfile") 2>/dev/null; then
+    shift "$remaining"
+    for f; do
+      rm -- "$f"
+    done
+    exit 1
+  fi
+  set -- "$@" "$lockfile"
+done

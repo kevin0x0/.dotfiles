@@ -1,6 +1,8 @@
 #!/bin/sh
 
-set -e
+lock switch-colorscheme
+trap 'unlock switch-colorscheme' EXIT
+trap 'unlock switch-colorscheme; trap - INT; kill -s INT $$' INT
 
 COLORSCHEME_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme
 
@@ -96,7 +98,7 @@ do_scripts() {
   LC_ALL=C
   for script in "$COLORSCHEME_CONFIG_HOME/$1"/*; do
     [ -f "$script" ] || continue
-    sh -- "$script"
+    sh -- "$script" || exit
   done
 }
 
