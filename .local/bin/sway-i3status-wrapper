@@ -36,12 +36,9 @@ if [ -n "$theme" ]; then
   assert_readable_file "$base"
 
   if [ ! -e "$config" ] || [ -n "$(find "$base" "$colorscheme" -newer "$config")" ]; then
-    lockfile=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/sway-i3status-lock
-    while ! (set -C; : >"$lockfile") >/dev/null 2>&1; do
-      sleep 1
-    done
+    lock sway-i3status
     cat -- "$base" "$colorscheme" >"$config"
-    rm -- "$lockfile"
+    unlock sway-i3status
   fi
 else
   config=$I3_STATUS_CONFIG_HOME/base-config
