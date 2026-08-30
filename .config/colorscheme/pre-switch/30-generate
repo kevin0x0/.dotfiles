@@ -6,28 +6,37 @@ for f in "$COLORSCHEME_SPECS_DIR"/*; do
   [ -f "$f" ] || continue
   [ -r "$f" ] || continue
 
-  . -- "$f"
   target=${f##*/}
   template=$COLORSCHEME_TEMPLATES_DIR/$target
-  helper=$COLORSCHEME_HELPERS_DIR/$target
-
   [ -f "$template" ] || continue
 
+  . -- "$f"
+  mkdir -p -- "${output%/*}"
+
+  set -- "$theme"
+  extra_info="$extra_info "
+  while [ -n "$extra_info" ]; do
+    info=${extra_info%% *}
+    extra_info=${extra_info#* }
+    set -- "$@" "$COLORSCHEME_EXTRA_DIR/$info"
+  done
+
   if [ -f "$output" ]; then
-    [ -f "$helper" ] && [ -z "$(find "$theme" "$template" "$helper" -newer "$output")" ] && continue
-    [ ! -f "$helper" ] && [ -z "$(find "$theme" "$template" -newer "$output")" ] && continue
+    [ -z "$(find "$@" "$template" -newer "$output")" ] && continue
   elif [ -e "$output" ]; then
     printf "%s is not a file" "$output" >&2
     exit 1
   fi
 
-  mkdir -- "${output%/*}"
+  count=$#
+  while [ "$count" -ne 0 ]; do
+    count=$((count - 1))
+    info=$1
+    shift
+    set -- "$@" -s "$info"
+  done
 
-  if [ -f "$helper" ]; then
-    stpl -s "$theme" -s "$helper" -o "$output" -- "$template" || exit 1
-  else
-    stpl -s "$theme" -o "$output" -- "$template" || exit 1
-  fi
+  stpl "$@" -o "$output" -- "$template" || exit 1
 done
 
 # vim: ft=sh

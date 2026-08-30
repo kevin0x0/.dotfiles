@@ -8,7 +8,7 @@ if [ ! -e "$(dirname -- $COLOR_THEME_FILE)" ]; then
   fi
 fi
 
-theme=$COLORSCHEME_REAL_THEME
+theme=$COLORSCHEME_THEME_FILE_A
 printf "%s\n" "$theme" > "$COLOR_THEME_FILE"
 
 "$SWAY_CONFIG/scripts/switch-colorscheme" "$theme"

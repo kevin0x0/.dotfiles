@@ -1,3 +1,4 @@
-output=${XDG_CONFIG_HOME:-$HOME/.config}/sway/config.d/colorscheme/$COLORSCHEME_REAL_THEME
+output=${XDG_CONFIG_HOME:-$HOME/.config}/sway/config.d/colorscheme/$COLORSCHEME_THEME_FILE_A
+[ -n "$COLORSCHEME_ALPHA" ] && extra_info=alpha
 
 # vim: ft=sh

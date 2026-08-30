@@ -1,3 +1,4 @@
-output=${XDG_CONFIG_HOME:-$HOME/.config}/swayimg/colorscheme/$COLORSCHEME_REAL_THEME.lua
+output=${XDG_CONFIG_HOME:-$HOME/.config}/swayimg/colorscheme/${COLORSCHEME_THEME_FILE_A}.lua
+[ -n "$COLORSCHEME_ALPHA" ] && extra_info=alpha
 
 # vim: ft=sh

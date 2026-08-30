@@ -7,7 +7,7 @@ if [ ! -e "$(dirname -- $COLOR_THEME_FILE)" ]; then
   fi
 fi
 
-theme=$COLORSCHEME_REAL_THEME
+theme=$COLORSCHEME_THEME_FILE
 printf "%s\n" "$theme" > "$COLOR_THEME_FILE"
 
 if ! swaymsg -q >/dev/null 2>&1; then

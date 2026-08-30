@@ -1,17 +1,17 @@
 return function()
   -- Text overlay configuration
-  { swayimg.text.color = 0xff$fg }           -- foreground text color
+  { swayimg.text.color = 0x${alpha_hex:-ff}$fg }           -- foreground text color
   { swayimg.text.background = 0xc0$bg }      -- text background color
   swayimg.text.shadow = 0xff000000          -- text shadow color
 
   -- Image viewer mode
   swayimg.viewer.set_window_background(0x00000000) -- window background color
-  { swayimg.viewer.set_image_chessboard(20, 0xff$surface, 0xff$bg) } -- chessboard
-  { swayimg.viewer.mark_color = 0xff$accent }           -- mark icon color
+  { swayimg.viewer.set_image_chessboard(20, 0x${alpha_hex:-ff}$surface, 0x${alpha_hex:-ff}$bg) } -- chessboard
+  { swayimg.viewer.mark_color = 0x${alpha_hex:-ff}$accent }           -- mark icon color
 
   -- Gallery mode
-  { swayimg.gallery.border_color = 0xff$accent }           -- border color for selected thumbnail
-  { swayimg.gallery.selected_color = 0xff$unfocused }         -- background color for selected thumbnail
+  { swayimg.gallery.border_color = 0x${alpha_hex:-ff}$accent }           -- border color for selected thumbnail
+  { swayimg.gallery.selected_color = 0x${alpha_hex:-ff}$unfocused }         -- background color for selected thumbnail
   { swayimg.gallery.unselected_color = 0xa0$bg }       -- background color for unselected thumbnail
   swayimg.gallery.window_color = 0x00000000           -- window background color
 end

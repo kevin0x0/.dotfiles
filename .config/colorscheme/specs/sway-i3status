@@ -1,3 +1,3 @@
-output=${XDG_CONFIG_HOME:-$HOME/.config}/i3status/colorscheme/$COLORSCHEME_REAL_THEME
+output=${XDG_CONFIG_HOME:-$HOME/.config}/i3status/colorscheme/$COLORSCHEME_THEME_FILE
 
 # vim: ft=sh
