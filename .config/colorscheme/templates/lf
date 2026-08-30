@@ -1,7 +1,7 @@
 { set cursoractivefmt "\033[1;38;2;$bg_rgb;48;2;${accent_rgb}m" }
 { set cursorparentfmt "\033[1;38;2;$bg_rgb;48;2;${green_rgb}m" }
 { set cursorpreviewfmt "\033[1;38;2;$bg_rgb;48;2;${cyan_rgb}m" }
-{ set promptfmt "\033[1;48;2;${bg_rgb}m\033[38;2;${accent_rgb};1m%u\033[38;2;${fg_rgb}m@\033[38;2;${magenta_rgb}m%h\033[38;2;${fg_rgb}m:\033[38;2;${accent_rgb}m%w%S\033[0m" }
+{ set promptfmt "\033[1;48;2;${bg_rgb}m\033[38;2;${cyan_rgb};1m%u\033[38;2;${fg_rgb}m@\033[38;2;${magenta_rgb}m%h\033[38;2;${fg_rgb}m:\033[38;2;${yellow_rgb}m%w%S\033[0m" }
 
 { set cutfmt "\033[1;38;2;$bg_rgb;48;2;${red_rgb}m" }
 { set copyfmt "\033[1;38;2;$bg_rgb;48;2;${yellow_rgb}m" }
