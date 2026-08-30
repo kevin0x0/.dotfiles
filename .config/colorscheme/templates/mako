@@ -1,4 +1,4 @@
-{ background-color=#$bg }
+{ background-color=#$bg$alpha_hex }
 { text-color=#$fg }
 { border-color=#$accent }
 

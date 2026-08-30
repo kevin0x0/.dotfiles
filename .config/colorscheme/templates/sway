@@ -14,10 +14,10 @@ exec_always {
 
 # client windows -------------------------------------------------------------
 # border background text indicator child_border
-client.focused          { #$accent #$accent #$accent_fg #$indicator #$accent }
-client.focused_inactive { #$inactive #$inactive #$inactive_fg #$inactive #$inactive }
-client.unfocused        { #$unfocused #$unfocused #$unfocused_fg #$unfocused #$unfocused }
-client.urgent           { #$urgent #$urgent #$urgent_fg #$urgent #$urgent }
+client.focused          { #$accent$alpha_hex #$accent$alpha_hex #$accent_fg #$indicator #$accent$alpha_hex }
+client.focused_inactive { #$inactive$alpha_hex #$inactive$alpha_hex #$inactive_fg #$inactive$alpha_hex #$inactive$alpha_hex }
+client.unfocused        { #$unfocused$alpha_hex #$unfocused$alpha_hex #$unfocused_fg #$unfocused$alpha_hex #$unfocused$alpha_hex }
+client.urgent           { #$urgent$alpha_hex #$urgent$alpha_hex #$urgent_fg #$urgent$alpha_hex #$urgent$alpha_hex }
 
 # bar ------------------------------------------------------------------------
 bar default {
@@ -27,11 +27,11 @@ bar default {
   colors {
     separator { #$bg }
     statusline { #$statusline }
-    background { #$bg }
+    background { #$bg$alpha_hex }
 
     focused_separator { #$inactive }
     focused_statusline { #$statusline }
-    focused_background { #$bg }
+    focused_background { #$bg$alpha_hex }
 
     focused_workspace { #$accent #$accent #$bg }
     active_workspace { #$bg #$bg #$indicator }

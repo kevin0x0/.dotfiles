@@ -26,6 +26,7 @@
 { search-box-no-match=$bright_black $red }
 { search-box-match=$bright_black $yellow }
 { urls=$accent }
+{ ${COLORSCHEME_ALPHA:+"alpha=$alpha_float"} }
 
 # cursor=<inverse foreground/background>
 

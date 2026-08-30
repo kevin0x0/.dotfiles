@@ -13,6 +13,13 @@ if [ ! -d "$COLORSCHEME_STATE_HOME" ]; then
   mkdir -p -- "$COLORSCHEME_STATE_HOME"
 fi
 
+COLORSCHEME_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}/colorscheme
+
+if [ ! -d "$COLORSCHEME_CONFIG_HOME" ]; then
+  echo "'$COLORSCHEME_CONFIG_HOME' doesn't exist or not a directory" >&2
+  exit 1
+fi
+
 
 COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/current_theme
 
@@ -24,6 +31,28 @@ if [ ! -f "$COLOR_THEME_FILE" ]; then
   
   printf "%s\n" 'light' >"$COLOR_THEME_FILE"
 fi
+
+opt_alpha=
+while getopts "a:" opt; do
+  case $opt in
+    a)
+      case $OPTARG in
+        [0-9a-fA-F][0-9a-fA-F])
+          opt_alpha=$OPTARG
+          ;;
+        *)
+          printf "alpha value must be two hexadecimal digits\n" >&2
+          exit 2
+          ;;
+      esac
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
 
 theme=$1
 if [ -z "$theme" ]; then
@@ -42,13 +71,6 @@ if [ -z "$theme" ]; then
 fi
 real_theme=$theme
 
-COLORSCHEME_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}/colorscheme
-
-if [ ! -d "$COLORSCHEME_CONFIG_HOME" ]; then
-  echo "'$COLORSCHEME_CONFIG_HOME' doesn't exist or not a directory" >&2
-  exit 1
-fi
-
 if [ -d "$COLORSCHEME_CONFIG_HOME/alias" ]; then
   if [ -f "$COLORSCHEME_CONFIG_HOME/alias/$theme" ] && \
     [ -r "$COLORSCHEME_CONFIG_HOME/alias/$theme" ]; then
@@ -59,11 +81,16 @@ fi
 export COLORSCHEME_STATE_HOME
 export COLORSCHEME_CONFIG_HOME
 export COLORSCHEME_TEMPLATES_DIR="$COLORSCHEME_CONFIG_HOME/templates"
-export COLORSCHEME_HELPERS_DIR="$COLORSCHEME_CONFIG_HOME/helpers"
+export COLORSCHEME_EXTRA_DIR="$COLORSCHEME_CONFIG_HOME/extra"
 export COLORSCHEME_COLORSCHEMES_DIR="$COLORSCHEME_CONFIG_HOME/colorschemes"
 export COLORSCHEME_SPECS_DIR="$COLORSCHEME_CONFIG_HOME/specs"
 export COLORSCHEME_REAL_THEME="$real_theme"
 export COLORSCHEME_THEME="$theme"
+export COLORSCHEME_ALPHA="$opt_alpha"
+
+export COLORSCHEME_THEME_FILE="$real_theme"
+# real theme name with alpha encoded
+export COLORSCHEME_THEME_FILE_A="$real_theme${opt_alpha:+-}$opt_alpha"
 
 do_scripts() {
   LC_ALL=C

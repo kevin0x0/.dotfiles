@@ -1,0 +1,7 @@
+alpha_hex=$COLORSCHEME_ALPHA
+alpha_float=$((0x$COLORSCHEME_ALPHA * 100 / 255))
+if [ "$alpha_float" = 100 ]; then
+  alpha_float=1
+else
+  alpha_float=0.$alpha_float
+fi

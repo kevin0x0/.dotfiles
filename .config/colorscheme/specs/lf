@@ -1,3 +1,4 @@
-output=${XDG_CONFIG_HOME:-$HOME/.config}/lf/colorscheme/16777216-$COLORSCHEME_REAL_THEME
+output=${XDG_CONFIG_HOME:-$HOME/.config}/lf/colorscheme/16777216-$COLORSCHEME_THEME_FILE
+extra_info=lf
 
 # vim: ft=sh
