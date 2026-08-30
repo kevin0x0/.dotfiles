@@ -4,7 +4,7 @@ stpl_line_count=0
 stpl_line=
 
 error() {
-  printf "in stpl_line %u: " "$stpl_line_count"
+  printf "in line %u: " "$stpl_line_count"
   printf "$@"
   echo
   printf "%5u | %s\n" "$stpl_line_count" "$stpl_line"
@@ -15,7 +15,7 @@ expand_line() {
   while :; do
     case "$stpl_remaining" in
       "$stpl_opt_expansion_open"#*#"$stpl_opt_expansion_close")
-        # Ignore the comment stpl_line
+        # Ignore the comment line
         break
         ;;
       *"$stpl_opt_expansion_open"?*?"$stpl_opt_expansion_close"*)
