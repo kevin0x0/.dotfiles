@@ -11,7 +11,7 @@ assert_readable_file() {
   fi
 }
 
-I3_STATUS_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}/i3status
+I3_STATUS_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}/sway-i3status
 if [ ! -d "$I3_STATUS_CONFIG_HOME" ]; then
   printf "%s not exist\n" "$I3_STATUS_CONFIG_HOME" >&2
   exit 1
