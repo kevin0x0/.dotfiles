@@ -1,0 +1,16 @@
+#!/bin/sh
+
+config=${XDG_CONFIG_HOME:-$HOME/.config}/menu-wrapper
+[ -f "$config" ] && [ -r "$config" ] && . -- "$config"
+
+if [ -z "$backend" ]; then
+  command -v wmenu >/dev/null 2>&1 && backend=wmenu
+  command -v fuzzel >/dev/null 2>&1 && backend=fuzzel
+fi
+
+if [ -z "$backend" ]; then
+  printf "no backend available\n" >&2
+  exit 1
+fi
+
+exec "menu-wrapper-$backend" "$@"

@@ -1,0 +1,7 @@
+COLORSCHEME_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/fuzzel/colorscheme
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/fuzzel/colorscheme
+
+theme=$COLORSCHEME_THEME_FILE_A
+ln -sf -- "$COLORSCHEME_DIR/$theme" "$COLOR_THEME_FILE"
+
+# vim: ft=sh

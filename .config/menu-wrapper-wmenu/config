@@ -3,7 +3,7 @@ FONTFAMILY='monospace'
 # Font by fontconfig format
 FONT="$FONTFAMILY, Bold 14"
 
-colorfile="${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/riced-menu/colorscheme"
+colorfile="${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/menu-wrapper-wmenu/colorscheme"
 
 COLORS=
 if [ -f "$colorfile" ] && [ -r "$colorfile" ]; then

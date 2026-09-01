@@ -6,4 +6,4 @@ else
   WMENU_PROMPT="enter password: "
 fi
 
-exec riced-menu -P -p "$WMENU_PROMPT" </dev/null 2>/dev/null
+exec menu-wrapper dmenu -P -p "$WMENU_PROMPT" </dev/null 2>/dev/null

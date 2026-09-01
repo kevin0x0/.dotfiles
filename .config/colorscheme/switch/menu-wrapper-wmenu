@@ -1,8 +1,8 @@
-COLORSCHEME_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/riced-menu/colorscheme
-COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/riced-menu/colorscheme
+COLORSCHEME_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/menu-wrapper-wmenu/colorscheme
+COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/menu-wrapper-wmenu/colorscheme
 if [ ! -e  "$(dirname -- $COLOR_THEME_FILE)" ]; then
   if ! mkdir -p "$(dirname -- $COLOR_THEME_FILE)"; then
-    echo "can not create state file for riced-menu" >&2
+    echo "can not create state file for menu-wrapper-wmenu" >&2
     exit 1
   fi
 fi

@@ -1,0 +1,10 @@
+if [ "${XDG_STATE_HOME:-$HOME/.local/state}" != ~/.local/state ]; then
+  error_exit "XDG_STATE_HOME must be set to ~/.local/state"
+fi
+
+COLORSCHEME_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/fuzzel/colorscheme/
+STATE_FILE=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/fuzzel/colorscheme
+mkdir -p "$(dirname -- "$STATE_FILE")"
+ln -sf -- "/dev/null" "$STATE_FILE"
+
+# vim: ft=sh

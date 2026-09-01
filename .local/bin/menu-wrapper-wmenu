@@ -1,0 +1,70 @@
+#!/bin/sh
+
+CONFIG_FILE=${XDG_CONFIG_HOME:-$HOME/.config}/menu-wrapper-wmenu/config
+[ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
+
+mode=$1
+shift
+
+opt_vertical=
+opt_prompt=
+opt_password=
+while getopts "vPp:" opt; do
+  case $opt in
+    v)
+      opt_vertical=1
+      ;;
+    P)
+      opt_password=1
+      ;;
+    p)
+      opt_prompt=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
+
+set -f
+set -- "$@" $COLORS -f "$FONT" ${opt_vertical:+-l 8}
+[ -n "$opt_prompt" ] && set -- "$@" -p "$opt_prompt"
+[ -n "$opt_password" ] && set -- "$@" -P
+
+list_desktops() {
+  {
+    dir=${XDG_DATA_HOME:-$HOME/.local/share}/applications
+    [ -d "$dir" ] && find "$dir" -type f -name '*.desktop'
+    printf "%s\0" "${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" \
+      | tr ':' '\000' \
+      | xargs -r0 -- printf "%s/applications\0" \
+      | xargs -r0 -- sh -c 'for arg; do [ -d "$arg" ] && find "$arg" -type f -name "*.desktop"; done' --
+  } | awk -F / '{print $NF}' \
+    | sort -u
+}
+
+case $mode in
+  run)
+    exec wmenu-run "$@"
+    ;;
+  dmenu)
+    exec wmenu "$@"
+    ;;
+  drun)
+    selection=$(list_desktops | wmenu -i "$@") || exit
+    command -v gtk-launch >/dev/null 2>&1 && exec gtk-launch -- "$selection"
+    message="A desktop launcher is required(currently only gtk-launch)" 
+    if [ -n "$DISPLAY$WAYLAND_DISPLAY" ] && command -v notify-send >/dev/null 2>&1; then
+      notify-send --urgency=critical --app-name=menu-wrapper-wmenu "Failure" "$message"
+    else
+      printf "%s\n" "$message" >&2
+    fi
+    exit 1
+    ;;
+  *)
+    printf "Unknown mode %s\n" "$mode" >&2
+    exit 2
+    ;;
+esac

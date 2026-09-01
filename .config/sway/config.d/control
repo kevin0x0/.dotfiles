@@ -1,6 +1,5 @@
 
 set $term foot
-set $menu riced-menu-run
 set $broswer firefox
 
 # Fast start
@@ -16,7 +15,9 @@ bindsym {
   # Kill focused window
   $mod+Shift+q kill
   # Start your launcher
-  $mod+d exec $menu
+  $mod+d exec menu-wrapper drun
+  # Start your launcher
+  $mod+Shift+d exec menu-wrapper run
   # Open documents
   $mod+i exec opendoc
 }
@@ -68,8 +69,8 @@ bindsym $mod+n exec makoctl dismiss -a
 bindsym $mod+Shift+n exec makoctl restore
 # invoke action
 bindsym $mod+a exec makoctl invoke
-# invoke action selected via riced-menu
-bindsym $mod+Shift+a exec makoctl menu -- riced-menu -l 2
+# invoke action selected via menu
+bindsym $mod+Shift+a exec makoctl menu -- menu-wrapper dmenu -v
 
 
 #
