@@ -21,7 +21,7 @@ theme=$1
 if [ -z "$theme" ]; then
   theme=$(cd "$SWAY_CONFIG_DIR/config.d"; find colorscheme -type f \
     | cut -d '/' -f 2 \
-    | riced-menu)
+    | menu-wrapper dmenu)
 fi
 
 error_exit() {

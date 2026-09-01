@@ -2,7 +2,7 @@
 
 docdir=$(xdg-user-dir DOCUMENTS; echo x)
 docdir=${docdir%$'\n'x}
-if ! doc=$(find -L "$docdir" -type f -name '*.pdf' | riced-menu -l 20); then
+if ! doc=$(find -L "$docdir" -type f -name '*.pdf' | menu-wrapper dmenu -v); then
   return 0
 fi
 

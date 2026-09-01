@@ -1,4 +1,0 @@
-output=${XDG_CONFIG_HOME:-$HOME/.config}/riced-menu/colorscheme/$COLORSCHEME_THEME_FILE_A
-[ -n "$COLORSCHEME_ALPHA" ] && extra_info=alpha
-
-# vim: ft=sh

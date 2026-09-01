@@ -1,0 +1,39 @@
+[colors]
+
+# Window background (supports transparency via --alpha)
+{ background=$bg${alpha_hex:-ff} }
+
+# Unselected entry text
+{ text=${fg}ff }
+
+# Prompt character(s) shown before the input
+{ prompt=${accent}ff }
+
+# Placeholder string shown when the input is empty
+{ placeholder=${unfocused_fg}ff }
+
+# Input string
+{ input=${fg}ff }
+
+# Matched substring in unselected entries
+{ match=${accent}ff }
+
+# Background of the selected entry
+{ selection=${accent}ff }
+
+# Text of the selected entry
+{ selection-text=${accent_fg}ff }
+
+# Matched substring in the selected entry
+{ selection-match=$([ "$kind" = dark ] && printf ffffff || printf 000000)ff }
+
+# Window border
+{ border=${inactive}ff }
+
+# Match count shown at the right of the input
+{ counter=${unfocused_fg}ff }
+
+# Message string
+{ message=${warning}ff }
+
+# vim: ft=dosini
