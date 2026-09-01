@@ -386,3 +386,7 @@ swayimg.gallery.on_image_change(function()
   local image = swayimg.gallery.get_image()
   swayimg.title = "Gallery: " .. (image and image.path or "")
 end)
+
+-- load extra config
+
+pcall(require, "extra")
