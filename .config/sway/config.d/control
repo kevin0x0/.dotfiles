@@ -15,9 +15,9 @@ bindsym {
   # Kill focused window
   $mod+Shift+q kill
   # Start your launcher
-  $mod+d exec menu-wrapper drun
+  $mod+d exec menu-wrapper run
   # Start your launcher
-  $mod+Shift+d exec menu-wrapper run
+  $mod+Shift+d exec menu-wrapper drun
   # Open documents
   $mod+i exec opendoc
 }
