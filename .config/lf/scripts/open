@@ -82,7 +82,7 @@ open_text() {
     return 0
   fi
 
-  if command -v "${EDITOR:=vim}" >/dev/null 2>&1; then
+  if command -v -- "${EDITOR:=vim}" >/dev/null 2>&1; then
     "$EDITOR" -- "$@"
   else
     xdg_open_files "$@"
