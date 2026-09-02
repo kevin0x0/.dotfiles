@@ -89,7 +89,7 @@ bindsym $mod+greater move container to workspace next; workspace next
 bindsym $mod+b splith
 bindsym $mod+v splitv
 bindsym $mod+t splitt
-bindsym $mod+Shift+r split none
+bindsym $mod+r split none
 
 # Switch the current container between different layout styles
 # bindsym $mod+s layout stacking
