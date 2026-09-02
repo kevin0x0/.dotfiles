@@ -37,9 +37,7 @@ list_executables() {
 
 case $mode in
   run)
-    # '--' is supported by exec in IEEE Std 1003.1-2024, but we use command to
-    # get the absolute path for compatibility.
-    exec "$(command -v -- "$(list_executables | fuzzel --dmenu "$@")")"
+    sh -c "$(list_executables | fuzzel --dmenu "$@")"
     ;;
   drun)
     exec fuzzel "$@"
