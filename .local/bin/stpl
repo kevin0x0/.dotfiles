@@ -3,14 +3,14 @@
 stpl_line_count=0
 stpl_line=
 
-error() {
+stpl_error() {
   printf "in line %u: " "$stpl_line_count"
   printf "$@"
   echo
   printf "%5u | %s\n" "$stpl_line_count" "$stpl_line"
 } >&2
 
-expand_line() {
+stpl_expand_line() {
   stpl_remaining=$stpl_line
   while :; do
     case "$stpl_remaining" in
@@ -32,7 +32,7 @@ expand_line() {
         stpl_remaining=${stpl_tail#"$stpl_terminator"}
 
         if [ -z "$stpl_tail" ]; then
-          error "expect '%s' to match '%s'" "$stpl_terminator" "$stpl_opt_expansion_open$stpl_mark"
+          stpl_error "expect '%s' to match '%s'" "$stpl_terminator" "$stpl_opt_expansion_open$stpl_mark"
           exit 1
         fi
 
@@ -41,7 +41,7 @@ expand_line() {
         else
           stpl_cmd=$'stpl_result=$(cat <<EOF\n'"$stpl_expr"$'\nEOF\n) && printf "%s" "$stpl_result"'
           if ! command eval "$stpl_cmd" 2>/dev/null; then
-            error "failed to do here-doc word expansion for: %s" "$stpl_expr"
+            stpl_error "failed to do here-doc word expansion for: %s" "$stpl_expr"
           fi
         fi
         ;;
@@ -53,10 +53,10 @@ expand_line() {
   done
 }
 
-expand_file() {
+stpl_expand_file() {
   while IFS= read -r stpl_line; do
     stpl_line_count=$((stpl_line_count + 1))
-    expand_line
+    stpl_expand_line
   done
 }
 
@@ -98,15 +98,15 @@ shift "$((OPTIND - 1))"
 
 if [ -z "$1" ]; then
   if [ -n "$stpl_opt_output" ]; then
-    expand_file >"$stpl_opt_output"
+    stpl_expand_file >"$stpl_opt_output"
   else
-    expand_file
+    stpl_expand_file
   fi
 elif [ -f "$1" ] && [ -r "$1" ]; then
   if [ -n "$stpl_opt_output" ]; then
-    expand_file <"$1" >"$stpl_opt_output"
+    stpl_expand_file <"$1" >"$stpl_opt_output"
   else
-    expand_file <"$1"
+    stpl_expand_file <"$1"
   fi
 else
   printf "%s is not a readable file\n" "$1" >&2
