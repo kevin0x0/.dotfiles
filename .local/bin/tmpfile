@@ -4,7 +4,7 @@ if command -v mktemp >/dev/null 2>&1; then
   exec mktemp
 fi
 
-tmpfile_base=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/tmp.$$
+tmpfile_base=${TMPDIR:-/tmp}/tmp.$$
 i=0
 tmpfile=$tmpfile_base.$i
 while ! (set -C; : >"$tmpfile") 2>/dev/null; do
