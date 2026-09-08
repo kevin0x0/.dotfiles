@@ -1,4 +1,5 @@
 
 for_window [class="wechat"] floating enable
 for_window [app_id="swayimg"] border none, floating enable
+for_window [app_id="mpv"] floating enable
 # vim: ft=swayconfig
