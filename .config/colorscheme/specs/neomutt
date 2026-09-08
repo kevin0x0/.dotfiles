@@ -1,4 +1,4 @@
 output=${XDG_CONFIG_HOME:-$HOME/.config}/neomutt/colorscheme/256-$COLORSCHEME_THEME_FILE
-extra_info=neomutt
+extra_info='hex-to-256 neomutt'
 
 # vim: ft=sh
