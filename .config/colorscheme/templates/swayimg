@@ -14,4 +14,18 @@ return function()
   { swayimg.gallery.selected_color = 0x${alpha_hex:-ff}$unfocused }         -- background color for selected thumbnail
   { swayimg.gallery.unselected_color = 0xa0$bg }       -- background color for unselected thumbnail
   swayimg.gallery.window_color = 0x00000000           -- window background color
+
+  -- Extra colors
+  return {
+    -- Colors for image format specific configuration
+    format_conf = {
+      ttf = {                     -- font preview
+        color = { 0xff$fg },       -- font color
+        background = { 0x${alpha_hex:-ff}$bg },   -- background color
+      },
+      video = {                   -- storyboard from video files
+        label = { 0xff$accent },        -- label color in gallery mode
+      }
+    }
+  }
 end
