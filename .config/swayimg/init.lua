@@ -37,21 +37,21 @@ swayimg.viewer.preload = 1                       -- number of images to preload
 swayimg.viewer.history = 1                       -- number of the history cache
 swayimg.viewer.pinch_factor = 1.0                -- pinch gesture factor
 swayimg.viewer.text = {
-  topleft = {             -- top left text block scheme
-    "File: {name}",
-    "Format: {format}",
-    "File size: {sizehr}",
-    "File time: {time}",
-    "EXIF date: {meta.Exif.Photo.DateTimeOriginal}",
-    "EXIF camera: {meta.Exif.Image.Model}"
+  topleft = {
+    "File:\t{name}",
+    "Format:\t{format}",
+    "File size:\t{sizehr}",
+    "File time:\t{time}",
+    "EXIF date:\t{meta.Exif.Photo.DateTimeOriginal}",
+    "EXIF camera:\t{meta.Exif.Image.Model}"
   },
-  topright = {            -- top right text block scheme
-  "Image: {list.index} of {list.total}",
-  "Frame: {frame.index} of {frame.total}",
-  "Size: {frame.width}x{frame.height}"
+  topright = {
+    "Image:\t{list.index} of {list.total}",
+    "Frame:\t{frame.index} of {frame.total}",
+    "Size:\t{frame.width}x{frame.height}"
   },
-  bottomleft = {          -- bottom left text block scheme
-    "Scale: {scale}"
+  bottomleft = {
+    "Scale:\t{scale}"
   }
 }
 
@@ -235,15 +235,12 @@ swayimg.slideshow.default_scale = "fit"             -- default image scale
 swayimg.slideshow.set_window_background("auto")     -- window background mode
 swayimg.slideshow.history = 0                       -- number of the history cache
 swayimg.slideshow.text = {
-  topleft = {             -- top left text block scheme
-    "File: {name}",
-    "Format: {format}",
-    "File size: {sizehr}",
+  topleft = {
+    "File:\t{name}"
   },
-  topright = {            -- top right text block scheme
-  "Image: {list.index} of {list.total}",
-  "Frame: {frame.index} of {frame.total}",
-  },
+  topright = {
+    "{list.index} of {list.total}"
+  }
 }
 
 
@@ -289,12 +286,10 @@ swayimg.gallery.preload = false                     -- preloading invisible thum
 swayimg.gallery.pstore = false                      -- enable persistent storage for thumbnails
 swayimg.gallery.text = {
   topleft = {             -- top left text block scheme
-    "File: {name}",
-    "File size: {sizehr}",
-    "EXIF date: {meta.Exif.Photo.DateTimeOriginal}",
+    "File:\t{name}",
   },
   topright = {            -- top right text block scheme
-  "Image: {list.index} of {list.total}",
+    "Image:\t{list.index} of {list.total}",
   },
 }
 
