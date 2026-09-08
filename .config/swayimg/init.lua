@@ -1,47 +1,3 @@
-local CONFIG_DIR = (function()
-  local dir = os.getenv("XDG_CONFIG_HOME")
-  if dir then
-    return dir
-  end
-  local home = os.getenv("HOME")
-  if home then
-    local state_dir = ".config"
-    if home[#home] ~= '/' then
-      state_dir = '/' ..state_dir
-    end
-    return home .. state_dir
-  end
-  return nil
-end)()
-
-local function reload_colorscheme()
-  local colorscheme = ""
-  if CONFIG_DIR then
-    local handle = io.popen(CONFIG_DIR .. "/swayimg/get-colorscheme", "r")
-    if handle then
-      local read_colorscheme = handle:read("*l")
-      if read_colorscheme then
-        colorscheme = read_colorscheme
-      end
-    end
-  end
-
-  if colorscheme == "" then
-    return
-  end
-
-  local success, callback = pcall(require, "colorscheme." .. colorscheme)
-  if success then
-    callback()
-  end
-end
-
-reload_colorscheme()
-
-for _, appmode in ipairs { "slideshow", "viewer", "gallery" } do
-  swayimg[appmode].on_signal('USR1', reload_colorscheme)
-end
-
 -- General config
 swayimg.mode = "viewer"                   -- mode at startup
 swayimg.antialiasing = true               -- anti-aliasing
@@ -80,22 +36,24 @@ swayimg.viewer.loop = true                       -- enable image list loop mode
 swayimg.viewer.preload = 1                       -- number of images to preload
 swayimg.viewer.history = 1                       -- number of the history cache
 swayimg.viewer.pinch_factor = 1.0                -- pinch gesture factor
-swayimg.viewer.set_text("topleft", {             -- top left text block scheme
-  "File: {name}",
-  "Format: {format}",
-  "File size: {sizehr}",
-  "File time: {time}",
-  "EXIF date: {meta.Exif.Photo.DateTimeOriginal}",
-  "EXIF camera: {meta.Exif.Image.Model}"
-})
-swayimg.viewer.set_text("topright", {            -- top right text block scheme
+swayimg.viewer.text = {
+  topleft = {             -- top left text block scheme
+    "File: {name}",
+    "Format: {format}",
+    "File size: {sizehr}",
+    "File time: {time}",
+    "EXIF date: {meta.Exif.Photo.DateTimeOriginal}",
+    "EXIF camera: {meta.Exif.Image.Model}"
+  },
+  topright = {            -- top right text block scheme
   "Image: {list.index} of {list.total}",
   "Frame: {frame.index} of {frame.total}",
   "Size: {frame.width}x{frame.height}"
-})
-swayimg.viewer.set_text("bottomleft", {          -- bottom left text block scheme
-  "Scale: {scale}"
-})
+  },
+  bottomleft = {          -- bottom left text block scheme
+    "Scale: {scale}"
+  }
+}
 
 -- helper function
 local function toggle_info()
@@ -276,7 +234,18 @@ swayimg.slideshow.timeout = 5                       -- timeout to switch image
 swayimg.slideshow.default_scale = "fit"             -- default image scale
 swayimg.slideshow.set_window_background("auto")     -- window background mode
 swayimg.slideshow.history = 0                       -- number of the history cache
-swayimg.slideshow.set_text("topleft", { "{name}" }) -- top left text block scheme
+swayimg.slideshow.text = {
+  topleft = {             -- top left text block scheme
+    "File: {name}",
+    "Format: {format}",
+    "File size: {sizehr}",
+  },
+  topright = {            -- top right text block scheme
+  "Image: {list.index} of {list.total}",
+  "Frame: {frame.index} of {frame.total}",
+  },
+}
+
 
 swayimg.slideshow.on_key("g", function()
   swayimg.slideshow.open("first")
@@ -318,12 +287,17 @@ swayimg.gallery.pinch_factor = 100.0                -- pinch gesture factor
 swayimg.gallery.cache = 100                         -- number of thumbnails stored in memory
 swayimg.gallery.preload = false                     -- preloading invisible thumbnails
 swayimg.gallery.pstore = false                      -- enable persistent storage for thumbnails
-swayimg.gallery.set_text("topleft", {               -- top left text block scheme
-  "File: {name}"
-})
-swayimg.gallery.set_text("topright", {              -- top right text block scheme
-  "{list.index} of {list.total}"
-})
+swayimg.gallery.text = {
+  topleft = {             -- top left text block scheme
+    "File: {name}",
+    "File size: {sizehr}",
+    "EXIF date: {meta.Exif.Photo.DateTimeOriginal}",
+  },
+  topright = {            -- top right text block scheme
+  "Image: {list.index} of {list.total}",
+  },
+}
+
 
 -- Key and mouse bindings in gallery mode (example only, not all):
 
@@ -388,5 +362,94 @@ swayimg.gallery.on_image_change(function()
 end)
 
 -- load extra config
-
 pcall(require, "extra")
+
+-- configuration for dynamic colorsheme switching
+local CONFIG_DIR = (function()
+  local dir = os.getenv("XDG_CONFIG_HOME")
+  if dir then
+    return dir
+  end
+  local home = os.getenv("HOME")
+  if home then
+    local state_dir = ".config"
+    if home[#home] ~= '/' then
+      state_dir = '/' ..state_dir
+    end
+    return home .. state_dir
+  end
+  return nil
+end)()
+
+local function merge_conf(to, from)
+  if type(from) ~= 'table' then
+    return from
+  end
+
+  if type(to) ~= 'table' then
+    to = {}
+  end
+
+  for k, v in pairs(from) do
+    to[k] = merge_conf(to[k], v)
+  end
+
+  return to
+end
+
+local function set_format_conf(extra)
+  -- Format specific configuration
+  local format_conf = {
+    raw = {             -- "raw" image format settings
+      enable = true,    -- enable RAW format decoder
+      camera_wb = true  -- use camera white balance
+    },
+    ttf = {                    -- font preview settings
+      enable = true,           -- enable font decoder
+      text = "The quick brown fox jumps over the lazy dog 0123456789",
+      color = 0xffffffff,      -- font color
+      background = 0x00000000  -- background color
+    },
+    video = {             -- storyboard from video files
+      enable = true,      -- enable video storyboard
+      size = 300,         -- size (width) of a single tile (frame)
+      columns = 3,        -- number of columns in storyboard
+      rows = 3,           -- number of rows in storyboard
+      padding = 5,        -- gap between frames in pixels
+      label = 0x0affffff  -- label color in gallery mode
+    },
+  }
+  swayimg.format_conf = merge_conf(format_conf, extra or {})
+end
+
+local function reload_colorscheme()
+  local colorscheme = ""
+  if CONFIG_DIR then
+    local handle = io.popen(CONFIG_DIR .. "/swayimg/get-colorscheme", "r")
+    if handle then
+      local read_colorscheme = handle:read("*l")
+      if read_colorscheme then
+        colorscheme = read_colorscheme
+      end
+    end
+  end
+
+  if colorscheme == "" then
+    return
+  end
+
+  local success, callback = pcall(require, "colorscheme." .. colorscheme)
+  if success then
+    local extra_colors = callback()
+    if extra_colors then
+      set_format_conf(extra_colors.format_conf)
+    end
+  end
+end
+
+reload_colorscheme()
+
+for _, appmode in ipairs { "slideshow", "viewer", "gallery" } do
+  swayimg[appmode].on_signal('USR1', reload_colorscheme)
+end
+
