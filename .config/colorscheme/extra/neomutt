@@ -1,5 +1,3 @@
-. -- "$COLORSCHEME_EXTRA_DIR/hex-to-256"
-
 red_256=$(hex_to_256 "$red")
 accent_256=$(hex_to_256 "$accent")
 bg_256=$(hex_to_256 "$bg")
