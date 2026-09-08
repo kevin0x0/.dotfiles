@@ -44,9 +44,12 @@ if [ ! -f "$CURRENT_ALPHA_FILE" ]; then
   echo >"$CURRENT_ALPHA_FILE"
 fi
 
+opt_list=
+opt_print=
+
 alpha=$(cat "$CURRENT_ALPHA_FILE")
 theme=$(cat "$CURRENT_THEME_FILE")
-while getopts "sa:" opt; do
+while getopts "sa:lp" opt; do
   case $opt in
     s)
       case $theme in
@@ -75,6 +78,12 @@ while getopts "sa:" opt; do
           ;;
       esac
       ;;
+    l)
+      opt_list=1
+      ;;
+    p)
+      opt_print=1
+      ;;
     \?)
       exit 2
       ;;
@@ -82,6 +91,18 @@ while getopts "sa:" opt; do
 done
 
 shift "$((OPTIND - 1))"
+
+export COLORSCHEME_STATE_HOME
+export COLORSCHEME_CONFIG_HOME
+export COLORSCHEME_TEMPLATES_DIR="$COLORSCHEME_CONFIG_HOME/templates"
+export COLORSCHEME_EXTRA_DIR="$COLORSCHEME_CONFIG_HOME/extra"
+export COLORSCHEME_COLORSCHEMES_DIR="$COLORSCHEME_CONFIG_HOME/colorschemes"
+export COLORSCHEME_SPECS_DIR="$COLORSCHEME_CONFIG_HOME/specs"
+
+if [ -n "$opt_list" ]; then
+  (cd -- "$COLORSCHEME_COLORSCHEMES_DIR"; printf "%s\n" *)
+  exit
+fi
 
 [ -n "$1" ] && theme=$1
 
@@ -93,12 +114,11 @@ if [ -d "$COLORSCHEME_CONFIG_HOME/alias" ]; then
   fi
 fi
 
-export COLORSCHEME_STATE_HOME
-export COLORSCHEME_CONFIG_HOME
-export COLORSCHEME_TEMPLATES_DIR="$COLORSCHEME_CONFIG_HOME/templates"
-export COLORSCHEME_EXTRA_DIR="$COLORSCHEME_CONFIG_HOME/extra"
-export COLORSCHEME_COLORSCHEMES_DIR="$COLORSCHEME_CONFIG_HOME/colorschemes"
-export COLORSCHEME_SPECS_DIR="$COLORSCHEME_CONFIG_HOME/specs"
+if [ -n "$opt_print" ]; then
+  printf "%s\n" "$real_theme"
+  exit
+fi
+
 export COLORSCHEME_REAL_THEME="$real_theme"
 export COLORSCHEME_THEME="$theme"
 export COLORSCHEME_ALPHA="$alpha"
