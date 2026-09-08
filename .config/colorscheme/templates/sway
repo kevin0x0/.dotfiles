@@ -33,9 +33,10 @@ bar default {
     focused_statusline { #$statusline }
     focused_background { #$bg$alpha_hex }
 
+    # workspace colors: border background text
     focused_workspace { #$accent #$accent #$bg }
     active_workspace { #$bg #$bg #$indicator }
-    inactive_workspace { #$bg #$bg #$inactive_fg }
+    inactive_workspace { #$bg$alpha_hex #$bg$alpha_hex #$inactive_fg }
     urgent_workspace { #$warning #$warning #$bg }
     binding_mode { #$binding #$binding #$bg }
   }
