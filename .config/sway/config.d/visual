@@ -1,9 +1,6 @@
 include \"$("${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/get-colorscheme")\"
 
-set $monofont monospace
-set $font Adwaita Sans
-
-font pango: $monofont, Bold 12
+font pango: sans-serif, 12
 
 titlebar_border_thickness 3
 default_border pixel 3
@@ -13,12 +10,8 @@ gaps inner 4
 
 seat * hide_cursor 5000
 
-exec_always {
-  command -v gsettings && gsettings set org.gnome.desktop.interface font-name "$font"
-}
-
 bar default {
-  font $monofont, Bold 12
+  font monospace, 12
   gaps 4
   position top
   tray_padding 4
@@ -26,5 +19,7 @@ bar default {
 
   status_command sway-i3status-wrapper
 }
+
+for_window [app_id="foot"] title_format <span font="monospace">%title</span>
 
 # vim: ft=swayconfig
