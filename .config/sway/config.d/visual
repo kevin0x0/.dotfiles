@@ -1,6 +1,6 @@
 include \"$("${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/get-colorscheme")\"
 
-font pango: sans-serif, 12
+font pango: sans-serif, 10
 
 titlebar_border_thickness 3
 default_border pixel 3
