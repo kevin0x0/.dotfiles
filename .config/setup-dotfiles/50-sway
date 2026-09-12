@@ -11,10 +11,9 @@ check_deps || error_exit "stopped"
 current=$(xdg-user-dir PICTURES)/sway-current-wallpaper
 if [ -e "$current" ]; then
   info "$current exists, skip wallpaper initialization"
-  return
+else
+  ln -sf -- /dev/null "$current"
 fi
-
-ln -sf -- /dev/null "$current"
 
 helper_check_deps warning "the following commands are required for running sway:" <<'EOF'
 swaymsg sway cli
