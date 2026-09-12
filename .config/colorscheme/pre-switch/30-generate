@@ -14,7 +14,7 @@ for f in "$COLORSCHEME_SPECS_DIR"/*; do
   mkdir -p -- "${output%/*}"
 
   set -- "$theme"
-  extra_info="$extra_info "
+  [ -n "$extra_info" ] && extra_info="$extra_info "
   while [ -n "$extra_info" ]; do
     info=${extra_info%% *}
     extra_info=${extra_info#* }
