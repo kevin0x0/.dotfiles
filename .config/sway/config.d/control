@@ -51,12 +51,16 @@ mode "settings" {
     $mod+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/switch-wallpaper\"; mode "default"
     # Set wallpaper persistently
     $mod+Shift+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/switch-wallpaper -p\"; mode "default"
+    # Reload the configuration file
+    $mod+c reload; mode "default"
+    # Toggle colorscheme
+    $mod+z exec colorscheme -s; mode "default"
+    # Switch colorscheme
+    $mod+Shift+z exec colorscheme -- \"$$(colorscheme -l | menu-wrapper dmenu)\"; mode "default"
   }
 }
 bindsym $mod+x mode "settings"
 
-# Reload the configuration file
-bindsym $mod+Shift+c reload
 
 # Exit sway (logs you out of your Wayland session)
 # bindsym $mod+escape exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -B 'Yes, exit sway' 'swaymsg exit'
@@ -91,6 +95,4 @@ bindsym --locked XF86MonBrightnessUp exec brightnessctl set 1%+
 bindsym $mod+o opacity plus 0.02
 bindsym $mod+Shift+o opacity minus 0.02
 
-# Toggle colorscheme
-bindsym $mod+q exec colorscheme -s
 # vim: ft=swayconfig
