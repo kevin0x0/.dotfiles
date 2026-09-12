@@ -1,0 +1,23 @@
+#!/bin/sh
+
+dirs=$(printf "%s" "${XDG_CONFIG_DIRS:-/etc/xdg}:${XDG_CONFIG_HOME:-$HOME/.config}" \
+        | tr : '\000' \
+        | xargs -r0 -- printf "%s/autostart:")
+dirs=${dirs%:}
+
+for term in "xdg-terminal-exec" "foot" "konsole" "nxterm" "color-xterm" \
+  "rxvt" "dtterm" "xterm"; do
+  command -v "$term" >/dev/null 2>&1 && break
+done
+
+if command -v dex >/dev/null 2>&1; then
+  if [ -z "$term" ]; then
+    dex -as "$dirs"
+  else
+    dex -as "$dirs" -t "$term"
+  fi
+  exit
+fi
+
+printf "%s\n" "can not find autostart launcher" >&2
+exit 1
