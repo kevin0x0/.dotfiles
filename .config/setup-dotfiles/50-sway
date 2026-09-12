@@ -21,8 +21,6 @@ swaymsg sway cli
 swaybg wallpaper tool
 firefox browser
 i3status bar
-wmenu dynamic menu for wayland
-wmenu-run app launcher
 foot terminal emulator
 grim screenshot utility
 slurp screen region selector
@@ -32,6 +30,11 @@ swayimg image viewer
 brightnessctl brightness control tool
 xdg-user-dir XDG user directory getter
 pkill kill processes by name
+EOF
+
+helper_check_any_deps warning "one of the following commands are required for running sway:" <<'EOF'
+wmenu dynamic menu for wayland
+fuzzel wayland app launcher and picker
 EOF
 
 return 0

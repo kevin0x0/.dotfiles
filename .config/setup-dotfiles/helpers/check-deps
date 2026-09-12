@@ -13,4 +13,29 @@ helper_check_deps() (
   [ -z "$header_outputed" ]
 )
 
+helper_check_any_deps() (
+  if ! tmp=$(tmpfile); then
+    error_exit "failed to create temporary file"
+  fi
+
+  cat >"$tmp"
+
+  satisfied=
+  while read -r cmd description; do
+    if command -v -- "$cmd" >/dev/null 2>&1; then
+      satisfied=1
+    fi
+  done <"$tmp"
+
+  [ -n "$satisfied" ] && { rm -- "$tmp"; return 0; }
+
+  "$1" "$2"
+  while read -r cmd description; do
+    "$1" "$cmd: $description"
+  done <"$tmp"
+
+  rm -- "$tmp"
+  return 1
+)
+
 # vim: ft=sh
