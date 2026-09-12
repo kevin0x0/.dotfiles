@@ -8,6 +8,10 @@ while [ ${#files} -ne 0 ]; do
       f=/
       files=${files#"/$filesep"}
       ;;
+    "/$filesep")
+      f=/
+      files=
+      ;;
     *)
       f=${files%%"$filesep"*}
       files=${files#*"$filesep"}
