@@ -95,4 +95,10 @@ bindsym --locked XF86MonBrightnessUp exec brightnessctl set 1%+
 bindsym $mod+o opacity plus 0.02
 bindsym $mod+Shift+o opacity minus 0.02
 
+# Toggle swaybar mode
+bindsym $mod+semicolon exec swaymsg bar default mode hide
+bindsym $mod+apostrophe exec swaymsg bar default mode dock
+bindsym $mod+Shift+semicolon exec swaymsg bar default mode invisible
+bindsym $mod+Shift+apostrophe exec swaymsg bar default mode overlay
+
 # vim: ft=swayconfig
