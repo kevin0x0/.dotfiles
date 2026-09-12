@@ -14,6 +14,21 @@ helper_check_deps() (
 )
 
 helper_check_any_deps() (
+  tmpfile() {
+    if command -v mktemp >/dev/null 2>&1; then
+      exec mktemp
+    fi
+
+    tmpfile_base=${TMPDIR:-/tmp}/tmp.$$
+    i=0
+    tmpfile=$tmpfile_base.$i
+    while ! (set -C; : >"$tmpfile") 2>/dev/null; do
+      i=$((i + 1))
+      tmpfile=$tmpfile_base.$i
+    done
+    printf "%s\n" "$tmpfile"
+  }
+
   if ! tmp=$(tmpfile); then
     error_exit "failed to create temporary file"
   fi
