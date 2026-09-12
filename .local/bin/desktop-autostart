@@ -14,7 +14,7 @@ if command -v dex >/dev/null 2>&1; then
   if [ -z "$term" ]; then
     dex -as "$dirs"
   else
-    dex -as "$dirs" -t "$term"
+    dex -as "$dirs" --term "$term"
   fi
   exit
 fi
