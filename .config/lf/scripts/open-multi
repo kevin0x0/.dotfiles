@@ -1,6 +1,6 @@
 #!/bin/sh
 
-filesep='////'
+filesep=$lf_filesep
 files=$fx$filesep
 while [ ${#files} -ne 0 ]; do
   case "$files" in
