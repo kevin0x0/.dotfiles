@@ -32,7 +32,7 @@ picdir=$(xdg-user-dir PICTURES)
 wallpaper_dir=$picdir/wallpaper
 
 if [ "$#" -eq 0 ]; then
-  imgfile=$(swayimg -g -e "swayimg.enable_overlay = false" -- "$wallpaper_dir"; echo x)
+  imgfile=$(swayimg -g -e "swayimg.overlay = false" -- "$wallpaper_dir"; echo x)
   imgfile=${imgfile%x}
 else
   imgfile="$1"
