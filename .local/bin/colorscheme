@@ -106,26 +106,17 @@ fi
 
 [ -n "$1" ] && theme=$1
 
-real_theme=$theme
-if [ -d "$COLORSCHEME_CONFIG_HOME/alias" ]; then
-  if [ -f "$COLORSCHEME_CONFIG_HOME/alias/$theme" ] && \
-    [ -r "$COLORSCHEME_CONFIG_HOME/alias/$theme" ]; then
-    real_theme=$(cat -- "$COLORSCHEME_CONFIG_HOME/alias/$theme")
-  fi
-fi
-
 if [ -n "$opt_print" ]; then
-  printf "%s\n" "$real_theme"
+  printf "%s\n" "$theme"
   exit
 fi
 
-export COLORSCHEME_REAL_THEME="$real_theme"
 export COLORSCHEME_THEME="$theme"
 export COLORSCHEME_ALPHA="$alpha"
 
-export COLORSCHEME_THEME_FILE="$real_theme"
-# real theme name with alpha encoded
-export COLORSCHEME_THEME_FILE_A="$real_theme${alpha:+-}$alpha"
+export COLORSCHEME_THEME_FILE="$theme"
+# theme name with alpha encoded
+export COLORSCHEME_THEME_FILE_A="$theme${alpha:+-}$alpha"
 
 do_scripts() {
   LC_ALL=C
