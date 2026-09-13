@@ -1,0 +1,25 @@
+DIR=${XDG_CONFIG_HOME:-$HOME/.config}/colorscheme/colorschemes
+
+dark=
+light=
+for c in "$DIR"/*; do
+  if (. -- "$c" && [ "$kind" = dark ]); then
+    dark=${c##*/}
+  else
+    light=${c##*/}
+  fi
+done
+
+if [ ! -e "$DIR/dark" ]; then
+  ln -sf -- "$dark" "$DIR/dark"
+  info "colorscheme alias 'dark'(symbolic link at '$DIR/dark') set to '$dark'" \
+    "you can set it to your preferred colorscheme via 'ln' utility later"
+fi
+
+if [ ! -e "$DIR/light" ]; then
+  ln -sf -- "$light" "$DIR/light"
+  info "colorscheme alias 'light'(symbolic link at '$DIR/light') set to '$light'" \
+    "you can set it to your preferred colorscheme via 'ln' utility later"
+fi
+
+# vim: ft=sh
