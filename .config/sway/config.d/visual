@@ -11,7 +11,7 @@ gaps inner 4
 seat * hide_cursor 5000
 
 bar default {
-  font monospace, 12
+  font monospace, 10
   gaps 4
   position top
   tray_padding 4
