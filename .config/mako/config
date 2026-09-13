@@ -8,7 +8,7 @@ height=150
 default-timeout=5000
 
 #format=<span weight="bold" size="12pt">%s</span> <small><span font="monospace" style="italic">%a</span></small>\n%b
-format=<span weight="semibold" size="12pt">%s </span> <small><span alpha="75%%">%a</span></small>\n%b
+format=<span weight="semibold" size="12pt">%s </span> <span alpha="75%%">%a</span>\n%b
 
 include=~/.local/state/colorscheme/mako/colorscheme
 
