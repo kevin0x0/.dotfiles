@@ -67,15 +67,20 @@ bindsym $mod+x mode "settings"
 bindsym $mod+escape exit
 
 # Notification
-# dismiss all notifications
-bindsym $mod+n exec makoctl dismiss -a
-# restore notification
-bindsym $mod+Shift+n exec makoctl restore
-# invoke action
-bindsym $mod+a exec makoctl invoke
-# invoke action selected via menu
-bindsym $mod+Shift+a exec makoctl menu -- menu-wrapper dmenu -v
-
+mode "notification" bindsym {
+  # go back to default mode
+  $mod+q mode "default"
+  $mod+Shift+q mode "default"
+  # dismiss all notifications
+  $mod+n exec makoctl dismiss -a; mode "default"
+  # restore notification
+  $mod+Shift+n exec makoctl restore
+  # invoke action
+  $mod+a exec makoctl invoke; mode "default"
+  # invoke action selected via menu
+  $mod+Shift+a exec makoctl menu -- menu-wrapper dmenu -v; mode "default"
+}
+bindsym $mod+n mode "notification"
 
 #
 # Utilities:
