@@ -1,7 +1,7 @@
 
 FONTFAMILY='monospace'
 # Font by fontconfig format
-FONT="$FONTFAMILY, Bold 14"
+FONT="$FONTFAMILY, 14"
 
 colorfile="${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/menu-wrapper-wmenu/colorscheme"
 
