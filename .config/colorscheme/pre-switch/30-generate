@@ -1,3 +1,16 @@
+
+newer_than_output() {
+  [ -n "$(find "$@" -newer "$output")" ] && return 0
+  count=$#
+  while [ "$count" -ne 0 ]; do
+    count=$((count - 1))
+    arg=$1
+    shift
+    [ -L "$arg" ] && set -- "$@" "$arg"
+  done
+  [ "$#" -ne 0 ] && [ -n "$(find -H "$@" -newer "$output")" ]
+}
+
 theme=$COLORSCHEME_COLORSCHEMES_DIR/$COLORSCHEME_THEME
 
 [ -f "$theme" ] || exit 0
@@ -22,7 +35,7 @@ for f in "$COLORSCHEME_SPECS_DIR"/*; do
   done
 
   if [ -f "$output" ]; then
-    [ -z "$(find "$@" "$template" -newer "$output")" ] && continue
+    newer_than_output "$@" "$template" || continue
   elif [ -e "$output" ]; then
     printf "%s is not a file" "$output" >&2
     exit 1
