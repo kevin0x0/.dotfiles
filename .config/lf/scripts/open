@@ -2,7 +2,7 @@
 
 xdg_open_files() {
   for f; do
-    nohup xdg-open "$f" </dev/null &>/dev/null &
+    nohup xdg-open "$f" </dev/null >/dev/null 2>&1 &
   done
 }
 
