@@ -9,9 +9,12 @@ case $(uname -s) in
     ;;
 esac
 
-set -- /dev/pts/*[[:digit:]]*
+set --
+for tty in /dev/pts/*[[:digit:]]*; do
+  [ -w "$tty" ] && set -- "$@" "$tty"
+done
 
-if [ ! -e "$1" ]; then
+if [ "$#" -eq 0 ]; then
   exit 0
 fi
 
