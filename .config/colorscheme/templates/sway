@@ -3,12 +3,9 @@
 # Commands must be available at runtime
 
 # appearance ---------------------------------------------------------------
-seat * xcursor_theme capitaine-cursors
 
 exec_always {
-  command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.desktop.interface icon-theme "Adwaita"
   command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.desktop.interface gtk-theme "{ $gtk_theme }"
-  command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.desktop.interface cursor-theme "capitaine-cursors"
   command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.desktop.interface color-scheme "prefer-{ $kind }"
 }
 
@@ -22,7 +19,6 @@ client.urgent           { #$urgent$alpha_hex #$urgent$alpha_hex #$urgent_fg #$ur
 # bar ------------------------------------------------------------------------
 bar default {
   separator_symbol " ▌"
-  icon_theme Adwaita
 
   colors {
     separator { #$bg }
