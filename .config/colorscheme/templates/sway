@@ -6,10 +6,10 @@
 seat * xcursor_theme capitaine-cursors
 
 exec_always {
-  command -v gsettings && gsettings set org.gnome.desktop.interface icon-theme "Adwaita"
-  command -v gsettings && gsettings set org.gnome.desktop.interface gtk-theme "{ $gtk_theme }"
-  command -v gsettings && gsettings set org.gnome.desktop.interface cursor-theme "capitaine-cursors"
-  command -v gsettings && gsettings set org.gnome.desktop.interface color-scheme "prefer-{ $kind }"
+  command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.desktop.interface icon-theme "Adwaita"
+  command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.desktop.interface gtk-theme "{ $gtk_theme }"
+  command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.desktop.interface cursor-theme "capitaine-cursors"
+  command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.desktop.interface color-scheme "prefer-{ $kind }"
 }
 
 # client windows -------------------------------------------------------------
