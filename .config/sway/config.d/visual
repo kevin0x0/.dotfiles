@@ -21,5 +21,6 @@ bar default {
 }
 
 for_window [app_id="foot"] title_format <span font="monospace">%title</span>
+title_align center
 
 # vim: ft=swayconfig
