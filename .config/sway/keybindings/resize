@@ -1,0 +1,41 @@
+include common
+
+mode "resize" bindsym {
+  $mod+m resize set width 50 ppt height 50 ppt; mode "default"
+  $mod+Shift+m resize set width 50 ppt height 50 ppt; mode "default"
+
+  $mod+s resize set width 60 ppt; resize set height 60 ppt; mode "default"
+  $mod+Shift+s resize set width 40 ppt; resize set height 40 ppt; mode "default"
+
+  $mod+Return exec sh -c 'swaymsg resize grow width 10; swaymsg resize grow height 10'
+  $mod+Shift+Return exec sh -c 'swaymsg resize shrink width 10; swaymsg resize shrink height 10'
+
+  $mod+w resize set width 60 ppt; mode "default"
+  $mod+Shift+w resize set width 40 ppt; mode "default"
+  $mod+e resize set height 60 ppt; mode "default"
+  $mod+Shift+e resize set height 40 ppt; mode "default"
+
+  $mod+$left focus left
+  $mod+$down focus down
+  $mod+$up focus up
+  $mod+$right focus right
+
+  $left resize grow left 5 ppt
+  $right resize grow right 5 ppt
+  $down resize grow down 5 ppt
+  $up resize grow up 5 ppt
+
+  Shift+$left resize shrink left 5 ppt
+  Shift+$right resize shrink right 5 ppt
+  Shift+$down resize shrink down 5 ppt
+  Shift+$up resize shrink up 5 ppt
+
+
+  # Return to default mode
+  Escape mode "default"
+  $mod+q mode "default"
+  $mod+Shift+q mode "default"
+  q mode "default"
+}
+bindsym $mod+s mode "resize"
+bindsym $mod+Shift+s mode "resize"
