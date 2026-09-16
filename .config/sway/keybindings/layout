@@ -47,7 +47,7 @@ mode "layout" bindsym {
   $mod+e layout toggle split
   $mod+shift+e layout toggle tabbed stacking
 
-  # Move the current window by small step
+  # Move the current window by small step for floating windows
   $mod+$left move left
   $mod+$down move down
   $mod+$up move up
