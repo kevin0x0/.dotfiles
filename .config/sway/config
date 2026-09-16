@@ -7,7 +7,7 @@ include misc
 include output
 include visual
 
-include extra_*
+include extra-*
 
 include keybindings/*
 
