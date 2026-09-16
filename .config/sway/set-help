@@ -1,0 +1,4 @@
+
+exec_always "${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/set-help-keybindings"
+
+# vim: ft=swayconfig

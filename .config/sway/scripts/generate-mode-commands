@@ -1,0 +1,34 @@
+#!/bin/sh
+
+SWAY_CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/sway
+cd -- "$SWAY_CONFIG_DIR"
+
+opt_bindsym_opt_regex=
+while getopts "t" opt; do
+  case $opt in
+    t)
+     opt_bindsym_opt_regex='\([[:space:]]*-[^[:space:]]*\)*'   
+     ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+mode=$1
+
+if [ "$mode" = default ]; then
+  "$SWAY_CONFIG_DIR/scripts/flatten-config-commands" keybindings/* \
+    | grep -e "^bindsym[[:space:]]*" \
+    | sed "s/^bindsym$opt_bindsym_opt_regex[[:space:]]*//"
+  exit
+fi
+
+mode_cmd_regex="mode[[:space:]]*\"$mode\""
+bindsym_cmd_regex="$mode_cmd_regex[[:space:]]*bindsym$opt_bindsym_opt_regex"
+grep -le "$mode_cmd_regex" keybindings/* \
+  | tr '\n' '\000' \
+  | xargs -r0 -- "$SWAY_CONFIG_DIR/scripts/flatten-config-commands" \
+  | grep -e "$bindsym_cmd_regex" \
+  | sed "s/^$bindsym_cmd_regex[[:space:]]*//"

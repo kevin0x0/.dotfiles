@@ -1,0 +1,16 @@
+#!/bin/sh
+
+SWAY_CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/sway
+
+if ! mode=$(swaymsg -rt get_binding_state | jq -r '.name'); then
+  exit 1
+fi
+
+tab=$'\t'
+if ! line=$("$SWAY_CONFIG_DIR/scripts/generate-mode-commands" -t "$mode" \
+  | sed "s/^\([^[:space:]]*\)[[:space:]]*/\1$tab/" \
+  | menu-wrapper dmenu -v -p "search command in $mode mode"); then
+  exit 1
+fi
+
+swaymsg -- "${line#*$tab}"
