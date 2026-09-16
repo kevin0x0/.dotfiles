@@ -35,8 +35,8 @@ bindsym {
 
   $mod+b splith
   $mod+v splitv
-  $mod+shift+b splith; layout tabbed
-  $mod+shift+v splitv; layout stacking
+  $mod+Shift+b splith; layout tabbed
+  $mod+Shift+v splitv; layout stacking
   $mod+r split none
 
   # Make the current focus fullscreen
@@ -76,7 +76,7 @@ mode "window" bindsym {
 
   $mod+t splitt; mode "default"
   $mod+e layout toggle split
-  $mod+shift+e layout toggle tabbed stacking
+  $mod+Shift+e layout toggle tabbed stacking
 
   # Move the current window by small step for floating windows
   $mod+Shift+$left move left
