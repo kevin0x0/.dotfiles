@@ -1,0 +1,32 @@
+#!/bin/sh
+
+flatten() {
+  # Without IFS= ,the leading and trailing spaces are trimmed out by shell
+  while read -r line; do
+    case $line in
+      '#'*|'')
+        continue
+        ;;
+      '}')
+        break
+        ;;
+      *' {')
+        if ! flatten "$1${line%"{"}"; then
+          return 1
+        fi
+        ;;
+      *)
+        printf "%s\n" "$1$line"
+        ;;
+    esac
+  done
+}
+
+if [ "$#" -eq 0 ]; then
+  flatten
+  exit
+fi
+
+for f; do
+  flatten <"$f"
+done
