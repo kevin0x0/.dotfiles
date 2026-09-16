@@ -10,6 +10,6 @@ height=300
 [urgency=low]
 height=150
 { text-color=#$unfocused_fg }
-{ border-color=#$surface }
+{ border-color=#$unfocused_fg }
 
 # vim: ft=dosini
