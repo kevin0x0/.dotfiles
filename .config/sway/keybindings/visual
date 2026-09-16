@@ -23,6 +23,10 @@ mode "visual" bindsym {
   $mod+u exec colorscheme -s; mode "default"
   # Switch colorscheme
   $mod+s exec colorscheme -- \"$$(colorscheme -l | menu-wrapper dmenu)\"; mode "default"
+
+  # Adjust opacity
+  $mod+o opacity plus 0.02
+  $mod+Shift+o opacity minus 0.02
 }
 bindsym $mod+u mode "visual"
 bindsym $mod+Shift+u mode "visual"

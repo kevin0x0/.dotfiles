@@ -35,9 +35,6 @@ mode "control" bindsym {
   --locked $mod+v exec audioctl set pvolume 5%+ && pkill -u "$(id -u)" -USR1 i3status
   --locked $mod+Shift+v exec audioctl set pvolume 5%- && pkill -u "$(id -u)" -USR1 i3status
   --locked $mod+m exec audioctl set pswitch toggle && pkill -u "$(id -u)" -USR1 i3status
-
-  $mod+o opacity plus 0.02
-  $mod+Shift+o opacity minus 0.02
 }
 bindsym $mod+o mode "control"
 
