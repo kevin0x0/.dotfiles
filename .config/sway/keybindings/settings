@@ -1,0 +1,17 @@
+include common
+
+# Settings
+mode "settings" bindsym {
+  Escape mode "default"
+  $mod+q mode "default"
+  $mod+Shift+q mode "default"
+  # Set wallpaper
+  $mod+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/switch-wallpaper\"; mode "default"
+  # Set wallpaper persistently
+  $mod+Shift+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/switch-wallpaper -p\"; mode "default"
+  # Reload the configuration file
+  $mod+c reload; mode "default"
+}
+bindsym $mod+x mode "settings"
+
+# vim: ft=swayconfig

@@ -1,0 +1,24 @@
+include common
+
+# Notification
+mode "notification" bindsym {
+  # go back to default mode
+  $mod+q mode "default"
+  $mod+Shift+q mode "default"
+  Escape mode "default"
+
+  # dismiss all notifications
+  $mod+n exec makoctl dismiss -a; mode "default"
+
+  # restore notification
+  $mod+Shift+n exec makoctl restore
+
+  # invoke action
+  $mod+a exec makoctl invoke; mode "default"
+
+  # invoke action selected via menu
+  $mod+Shift+a exec makoctl menu -- menu-wrapper dmenu -v; mode "default"
+}
+bindsym $mod+n mode "notification"
+
+# vim: ft=swayconfig

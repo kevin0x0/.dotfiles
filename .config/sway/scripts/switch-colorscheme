@@ -14,12 +14,12 @@ if ! swaymsg >/dev/null 2>/dev/null; then
 fi
 
 SWAY_CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/sway
-SWAY_THEME_DIR=$SWAY_CONFIG_DIR/config.d/colorscheme
+SWAY_THEME_DIR=$SWAY_CONFIG_DIR/colorscheme
 
 
 theme=$1
 if [ -z "$theme" ]; then
-  theme=$(cd "$SWAY_CONFIG_DIR/config.d"; find colorscheme -type f \
+  theme=$(cd "$SWAY_CONFIG_DIR"; find colorscheme -type f \
     | cut -d '/' -f 2 \
     | menu-wrapper dmenu)
 fi
@@ -34,7 +34,7 @@ error_exit() {
   exit 1
 }
 
-if [ ! -f "$SWAY_CONFIG_DIR/config.d/colorscheme/$theme" ]; then
+if [ ! -f "$SWAY_CONFIG_DIR/colorscheme/$theme" ]; then
   error_exit "failed to change colorscheme" "colorscheme '$theme' doesn't exist"
 fi
 
@@ -72,4 +72,4 @@ source_sway_config_runtime() {
     | xargs -r0 -- swaymsg --
 }
 
-source_sway_config_runtime <"$SWAY_CONFIG_DIR/config.d/colorscheme/$theme"
+source_sway_config_runtime <"$SWAY_CONFIG_DIR/colorscheme/$theme"

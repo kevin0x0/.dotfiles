@@ -1,0 +1,35 @@
+include common
+
+# Fast start
+bindsym {
+  # Start terminal
+  $mod+Return exec foot
+  # Start broswer
+  $mod+Shift+Return exec firefox
+  # Kill focused window
+  $mod+Shift+q kill
+  # Start your launcher
+  $mod+d exec menu-wrapper run
+  # Start your launcher
+  $mod+Shift+d exec menu-wrapper drun
+}
+
+mode "start" bindsym {
+  Escape mode "default"
+  $mod+q mode "default"
+  $mod+Shift+q mode "default"
+
+  # Open documents
+  $mod+o exec opendoc
+}
+bindsym $mod+Backslash mode "start"
+
+# Kill
+mode "stop" bindsym {
+  Escape mode "default"
+  $mod+q mode "default"
+  $mod+Shift+q mode "default"
+}
+bindsym $mod+Backspace mode "stop"
+
+# vim: ft=swayconfig

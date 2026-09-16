@@ -1,0 +1,30 @@
+include common
+
+bindsym {
+  # Toggle border
+  $mod+bracketright border normal
+  $mod+bracketleft border pixel
+  $mod+Shift+bracketright border csd
+  $mod+Shift+bracketleft border none
+}
+
+mode "visual" bindsym {
+  $mod+q mode "default"
+  $mod+Shift+q mode "default"
+  Escape mode "default"
+
+  # Toggle swaybar mode
+  $mod+bracketright exec swaymsg bar default mode hide; mode "default"
+  $mod+bracketleft exec swaymsg bar default mode dock; mode "default"
+  $mod+Shift+bracketright exec swaymsg bar default mode invisible; mode "default"
+  $mod+Shift+bracketleft exec swaymsg bar default mode overlay; mode "default"
+
+  # Toggle colorscheme
+  $mod+u exec colorscheme -s; mode "default"
+  # Switch colorscheme
+  $mod+s exec colorscheme -- \"$$(colorscheme -l | menu-wrapper dmenu)\"; mode "default"
+}
+bindsym $mod+u mode "visual"
+bindsym $mod+Shift+u mode "visual"
+
+# vim: ft=swayconfig
