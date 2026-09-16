@@ -15,6 +15,10 @@ theme=$COLORSCHEME_COLORSCHEMES_DIR/$COLORSCHEME_THEME
 
 [ -f "$theme" ] || exit 0
 
+# We don't guarantee the behaviour on receipt of signals except those
+# listed the next line
+trap '' TERM INT QUIT HUP
+
 for f in "$COLORSCHEME_SPECS_DIR"/*; do
   [ -f "$f" ] || continue
   [ -r "$f" ] || continue
@@ -23,33 +27,45 @@ for f in "$COLORSCHEME_SPECS_DIR"/*; do
   template=$COLORSCHEME_TEMPLATES_DIR/$target
   [ -f "$template" ] || continue
 
-  . -- "$f"
-  mkdir -p -- "${output%/*}"
+  (
+    . -- "$f"
+    mkdir -p -- "${output%/*}"
 
-  set -- "$theme"
-  [ -n "$extra_info" ] && extra_info="$extra_info "
-  while [ -n "$extra_info" ]; do
-    info=${extra_info%% *}
-    extra_info=${extra_info#* }
-    set -- "$@" "$COLORSCHEME_EXTRA_DIR/$info"
-  done
+    set -- "$theme"
+    [ -n "$extra_info" ] && extra_info="$extra_info "
+    while [ -n "$extra_info" ]; do
+      info=${extra_info%% *}
+      extra_info=${extra_info#* }
+      set -- "$@" "$COLORSCHEME_EXTRA_DIR/$info"
+    done
 
-  if [ -f "$output" ]; then
-    newer_than_output "$@" "$template" || continue
-  elif [ -e "$output" ]; then
-    printf "%s is not a file" "$output" >&2
-    exit 1
-  fi
+    if [ -f "$output" ]; then
+      newer_than_output "$@" "$template" || exit 0
+    elif [ -e "$output" ]; then
+      printf "%s is not a file" "$output" >&2
+      exit 1
+    fi
 
-  count=$#
-  while [ "$count" -ne 0 ]; do
-    count=$((count - 1))
-    info=$1
-    shift
-    set -- "$@" -s "$info"
-  done
+    count=$#
+    while [ "$count" -ne 0 ]; do
+      count=$((count - 1))
+      info=$1
+      shift
+      set -- "$@" -s "$info"
+    done
 
-  stpl "$@" -o "$output" -- "$template" || exit 1
+    stpl "$@" -o "$output" -- "$template" || exit 1
+  ) &
+  set -- "$@" "$!"
 done
+
+my_exitcode=0
+for pid; do
+  wait "$pid"
+  exitcode=$?
+  [ "$exitcode" -ne 0 ] && my_exitcode=$exitcode
+done
+
+exit "$my_exitcode"
 
 # vim: ft=sh
