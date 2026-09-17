@@ -1,0 +1,30 @@
+{
+  cat <<'EOF'
+Sway machine/personal-specific config (extra-* mechanism)
+
+config loads every extra-* snippet under ~/.config/sway/ through
+"include extra-*". These snippets hold machine-specific or personal sway
+config and are deliberately not tracked in any repository. For example:
+  - window rules (float apps like color pickers and password prompts)
+  - screen output (resolution, scale, wallpaper)
+  - cursor and icon theme
+
+When missing, "include extra-*" is silently ignored by sway, so startup
+is unaffected; create them per machine after the first deploy.
+
+Two kinds of machine-specific but almost always needed settings to keep
+in mind:
+  - polkit authentication agent: lets apps that need root show a
+    password dialog, e.g. in extra-autostart:
+      exec --no-startup-id /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+  - systemd user environment variables: sway does not import DISPLAY /
+    WAYLAND_DISPLAY into the systemd user environment on its own; without
+    them mako won't autostart and the input-method theme may misbehave.
+    On Arch, include /etc/sway/config.d/50-systemd-user.conf (see FS#63021).
+EOF
+} \
+  | while IFS= read -r line; do
+      msg "$line"
+    done
+
+# vim: ft=sh
