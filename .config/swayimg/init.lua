@@ -14,7 +14,7 @@ swayimg.imagelist.adjacent = false        -- add adjacent files from same dir
 swayimg.imagelist.fsmon = true            -- enable file system monitoring
 
 -- Text overlay configuration
-swayimg.text.font = "monospace"           -- font name
+swayimg.text.font = "sans-serif"           -- font name
 swayimg.text.size = 16                    -- font size in pixels
 swayimg.text.spacing = 0                  -- line spacing
 swayimg.text.padding = 10                 -- padding from window edge
