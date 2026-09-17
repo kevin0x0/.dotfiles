@@ -5,7 +5,8 @@ shift
 
 opt_prompt=
 opt_password=
-while getopts "vPp:" opt; do
+opt_width=
+while getopts "vPp:w:" opt; do
   case $opt in
     v)
       # Ignore
@@ -15,6 +16,9 @@ while getopts "vPp:" opt; do
       ;;
     p)
       opt_prompt=$OPTARG
+      ;;
+    w)
+      opt_width=$OPTARG
       ;;
     \?)
       exit 2
@@ -26,6 +30,7 @@ shift "$((OPTIND - 1))"
 
 set -- --mesg "$opt_prompt"
 [ -n "$opt_password" ] && set -- "$@" --password='*'
+[ -n "$opt_width" ] && set -- "$@" -w "$opt_width"
 
 list_executables() {
   printf "%s\0" "$PATH" \

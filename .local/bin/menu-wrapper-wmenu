@@ -9,7 +9,7 @@ shift
 opt_vertical=
 opt_prompt=
 opt_password=
-while getopts "vPp:" opt; do
+while getopts "vPp:w:" opt; do
   case $opt in
     v)
       opt_vertical=1
@@ -19,6 +19,9 @@ while getopts "vPp:" opt; do
       ;;
     p)
       opt_prompt=$OPTARG
+      ;;
+    w)
+      # Ignore
       ;;
     \?)
       exit 2
