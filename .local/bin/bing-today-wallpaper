@@ -28,8 +28,12 @@ if [ "$#" -eq 1 ]; then
   dir=$1
 fi
 
+if [ ! -e "$dir" ]; then
+  mkdir -- "$dir"
+fi
+
 if [ ! -d "$dir" ]; then
-  printf "%s doesn't exist or is not a directoroy\n" "$dir" >&2
+  printf "%s is not a directoroy\n" "$dir" >&2
   exit 1
 fi
 
