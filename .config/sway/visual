@@ -8,8 +8,6 @@ smart_borders on
 
 gaps inner 4
 
-seat * hide_cursor 5000
-
 bar default {
   font monospace, 10
   gaps 4
