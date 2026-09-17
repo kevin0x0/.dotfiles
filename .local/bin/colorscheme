@@ -122,8 +122,12 @@ export COLORSCHEME_THEME_FILE="$theme"
 export COLORSCHEME_THEME_FILE_A="$theme${alpha:+-}$alpha"
 
 do_scripts() {
+  savedLC=$LC_ALL
   LC_ALL=C
-  for script in "$COLORSCHEME_CONFIG_HOME/$1"/*; do
+  set -- "$COLORSCHEME_CONFIG_HOME/$1"/*
+  LC_ALL=$savedLC
+
+  for script; do
     [ -f "$script" ] || continue
     sh -- "$script" || exit
   done
