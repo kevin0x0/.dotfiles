@@ -19,8 +19,8 @@
 { bright6=$bright_cyan }
 { bright7=$bright_white }
 
-{ selection-foreground=$fg }
-{ selection-background=$surface }
+{ selection-foreground=$accent_fg }
+{ selection-background=$accent }
 { jump-labels=$bright_black $yellow }
 { scrollback-indicator=$bright_black $accent }
 { search-box-no-match=$bright_black $red }
