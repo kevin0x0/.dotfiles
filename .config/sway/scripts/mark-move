@@ -1,0 +1,8 @@
+#!/bin/sh
+
+PROMPT="move marked window to this workspace: "
+[ "${LC_ALL:-$LANG}" = zh_CN.UTF-8 ] && PROMPT="将标记窗口移入当前工作区："
+
+mark=$(run-sway-script get-mark -lp "$PROMPT") || exit
+
+swaymsg -- "[con_mark=\"$mark\"] move to workspace current, focus"

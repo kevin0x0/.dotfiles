@@ -1,0 +1,5 @@
+#!/bin/sh
+
+script=$1
+shift
+exec "${XDG_CONFIG_HOME:-$HOME/.config}/$script" "$@"

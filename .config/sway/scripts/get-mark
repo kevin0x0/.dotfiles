@@ -1,0 +1,42 @@
+#!/bin/sh
+
+opt_prompt=
+opt_list=
+while getopts "lp:" opt; do
+  case $opt in
+    l)
+      opt_list=1
+      ;;
+    p)
+      opt_prompt=$OPTARG
+      ;;
+  esac
+done
+
+error_exit() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send --app-name "switch-colorscheme" --urgency critical -- \
+      "$1" "$2"
+  else
+      printf "%s: %s\n" "$1" "$2" >&2
+  fi
+  exit 1
+}
+
+mark=$({ [ -n "$opt_list" ] && swaymsg -rt get_marks || printf "[]"; } \
+  | jq -r '.[]' \
+  | menu-wrapper dmenu -p "$opt_prompt")
+
+case $mark in
+  *[!-_+=\ a-z0-9]*)
+    summary="invalid mark"
+    body="mark should have pattern: [-_+=\ a-z0-9]+"
+    if [ "${LC_ALL:-$LANG}" = zh_CN.UTF-8 ]; then
+      summary="无效的标记"
+      body="标记应当具有模式: [-_+=\ a-z0-9]+"
+    fi
+    error_exit "$summary" "$body"
+    ;;
+esac
+
+printf "%s\n" "$mark"
