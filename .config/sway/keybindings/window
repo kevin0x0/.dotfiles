@@ -78,6 +78,9 @@ mode "window" bindsym {
   $mod+e layout toggle split
   $mod+Shift+e layout toggle tabbed stacking
 
+  $mod+s scratchpad show; mode "default"
+  $mod+Shift+s move scratchpad; mode "default"
+
   # Move the current window by small step for floating windows
   $mod+Shift+$left move left
   $mod+Shift+$down move down
