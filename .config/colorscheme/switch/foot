@@ -28,10 +28,10 @@ ln -sf -- "$colorscheme_file" "$slot"
 
 case $category in
   dark)
-    pkill -u "$(id -u)" -USR1 foot || true
+    pkill -USR1 -u "$(id -u)" foot || true
     ;;
   light)
-    pkill -u "$(id -u)" -USR2 foot || true
+    pkill -USR2 -u "$(id -u)" foot || true
     ;;
 esac
 
