@@ -5,6 +5,6 @@ set my_none = "$my_config_home/neomutt/none"
 set my_never_used = ''
 set my_last_source_variable = 'my_never_used'
 
-source "$my_config_home/neomutt/scripts/source-account-on-startup|"
+source "run-neomutt-script source-account-on-startup|"
 
 # vim: ft=neomuttrc

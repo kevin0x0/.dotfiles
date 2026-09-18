@@ -1,5 +1,35 @@
 #!/bin/sh
 
+CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}
+paths=$CONFIG_DIR:$PATH
+opt_test_existence=
+while getopts "ep:" opt; do
+  case $opt in
+    e)
+      opt_test_existence=1
+      ;;
+    p)
+      paths=$CONFIG_DIR/$OPTARG:$paths
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
 script=$1
 shift
-exec "${XDG_CONFIG_HOME:-$HOME/.config}/$script" "$@"
+scriptpath=
+while [ -n "$paths" ]; do
+  path=${paths%%:*}
+  if [ -f "$path/$script" ]; then
+    scriptpath="$path/$script"
+    [ -x "$path/$script" ] || exit 2
+    break
+  fi
+  paths=${paths#*:}
+done
+
+[ -z "$scriptpath" ] && exit 1
+
+[ -n "$opt_test_existence" ] && exit 0
+
+exec "$scriptpath" "$@"

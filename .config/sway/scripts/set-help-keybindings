@@ -2,5 +2,5 @@
 
 swaymsg -rt get_binding_modes \
   | jq --raw-output0 '.[]' \
-  | xargs -r0 -- printf "mode \"%s\" bindsym \$mod+Shift+slash exec \\\"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/search-command-in-mode\\\";\0" \
+  | xargs -r0 -- printf "mode \"%s\" bindsym \$mod+Shift+slash exec \\\"run-sway-script search-command-in-mode\\\";\0" \
   | xargs -r0 -- swaymsg --
