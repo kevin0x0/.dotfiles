@@ -1,8 +1,6 @@
 #!/bin/sh
 
-PROMPT="swap with marked window: "
-[ "${LC_ALL:-$LANG}" = zh_CN.UTF-8 ] && PROMPT="交换标记窗口位置："
-
+PROMPT=$(i18n -n sway-scripts "Swap with marked window: ")
 mark=$(run-sway-script get-mark -lp "$PROMPT") || exit
 
 swaymsg -- swap container with mark "\"$mark\""

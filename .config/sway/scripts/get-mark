@@ -22,12 +22,8 @@ mark=$({ [ -n "$opt_list" ] && swaymsg -rt get_marks || printf "[]"; } \
 
 case $mark in
   *[!-_+=\ a-z0-9]*)
-    summary="invalid mark"
-    body="mark should have pattern: [-_+=\ a-z0-9]+"
-    if [ "${LC_ALL:-$LANG}" = zh_CN.UTF-8 ]; then
-      summary="无效的标记"
-      body="标记应当具有模式: [-_+=\ a-z0-9]+"
-    fi
+    summary=$(i18n -n sway-scripts "Invalid mark")
+    body=$(i18n -n sway-scripts "Mark should have pattern: [-_+=\ a-z0-9]+")
     notify-or-print -en "get-mark" -- "$summary" "$body"
     exit 1
     ;;

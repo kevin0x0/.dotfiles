@@ -47,9 +47,9 @@ if [ -z "$opt_namespace" ]; then
     exit 1
   fi
 fi
+
 [ -z "$opt_locale" ] && opt_locale=${LC_ALL:-$LANG}
 [ -z "$opt_locale" ] && opt_locale=C
-
 
 file="${XDG_CONFIG_HOME:-$HOME/.config}/i18n/$opt_locale/$opt_namespace"
 

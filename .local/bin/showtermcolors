@@ -3,7 +3,7 @@
 validate_number() {
   case "$1" in
     *[!0-9]*)
-      echo "Need a number, got $1" >&2
+      i18n -n misc 'Need a number, got $1' "$1" >&2
       exit 1
       ;;
   esac

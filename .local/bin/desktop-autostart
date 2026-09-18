@@ -19,5 +19,5 @@ if command -v dex >/dev/null 2>&1; then
   exit
 fi
 
-printf "%s\n" "can not find autostart launcher" >&2
+i18n -n misc "Can not find autostart launcher" >&2
 exit 1

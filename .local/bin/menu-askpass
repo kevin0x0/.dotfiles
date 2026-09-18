@@ -1,9 +1,5 @@
 #!/bin/sh
 
-if [ "$LANG" = "zh_CN.UTF-8" ]; then
-  WMENU_PROMPT="请输入密码："
-else
-  WMENU_PROMPT="enter password: "
-fi
+WMENU_PROMPT=$(i18n -n menu "Enter password: ")
 
 exec menu-wrapper dmenu -P -p "$WMENU_PROMPT" </dev/null 2>/dev/null

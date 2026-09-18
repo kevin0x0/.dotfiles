@@ -1,8 +1,6 @@
 #!/bin/sh
 
-PROMPT="Jump to mark: "
-[ "${LC_ALL:-$LANG}" = zh_CN.UTF-8 ] && PROMPT="跳转到标记："
-
+PROMPT=$(i18n -n sway-scripts "Jump to mark: ")
 mark=$(run-sway-script get-mark -lp "$PROMPT") || exit
 
 swaymsg -- "[con_mark=\"$mark\"] focus"

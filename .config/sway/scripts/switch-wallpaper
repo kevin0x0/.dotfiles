@@ -26,14 +26,9 @@ fi
 
 case $imgfile in
   *$'\n'*)
-    if [ "$LANG" = zh_CN.UTF-8 ]; then
-      title="不支持的路径名" 
-      body="所选取的文件的路径中不能包含换行符"
-    else
-      title="unsupported pathname"
-      body="Pathnames containing newlines are not supported"
-    fi
-    notify-or-print -en switch-wallpaper -- "$title" "$body"
+    notify-or-print -en switch-wallpaper -- \
+      "$(i18n -n sway-scripts "Unsupported pathname")" \
+      "$(i18n -n sway-scripts "Pathnames containing newlines are not supported")"
     exit 1
     ;;
 esac
