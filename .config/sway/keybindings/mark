@@ -16,6 +16,8 @@ mode "mark" bindsym {
 bindsym $mod+Shift+m mode "mark"
 
 mode "mark-move" bindsym {
+  $mod+q mode "default"
+  $mod+Shift+q mode "default"
   Escape mode "default"
 
   Return exec run-sway-script mark-move; mode "default"
@@ -25,6 +27,8 @@ mode "mark-move" bindsym {
 }
 
 mode "mark-swap" bindsym {
+  $mod+q mode "default"
+  $mod+Shift+q mode "default"
   Escape mode "default"
 
   Return exec run-sway-script mark-swap; mode "default"
@@ -34,6 +38,8 @@ mode "mark-swap" bindsym {
 }
 
 mode "mark-jump" bindsym {
+  $mod+q mode "default"
+  $mod+Shift+q mode "default"
   Escape mode "default"
 
   Return exec run-sway-script mark-jump; mode "default"
@@ -42,6 +48,8 @@ mode "mark-jump" bindsym {
 bindsym $mod+apostrophe mode "mark-jump"
 
 mode "mark-set" bindsym {
+  $mod+q mode "default"
+  $mod+Shift+q mode "default"
   Escape mode "default"
 
   Return exec run-sway-script mark-set; mode "default"
@@ -51,7 +59,7 @@ bindsym $mod+m mode "mark-set"
 
 
 mode "mark-move" bindsym {
-  # letters=abcdefghijklmnopqrstuvwxyz
+  # letters=abcdefghijklmnoprstuvwxyz
   # for l in $(printf "%s\n" "$letters" | sed 's/./& /g'); do
   #   printf "%s\n" "$l [con_mark=\"$l\"] move to workspace current; mode \"default\""
   #   printf "%s\n" "\$mod+$l [con_mark=\"$l\"] move to workspace current; mode \"default\""
@@ -89,8 +97,6 @@ mode "mark-move" bindsym {
   $mod+o [con_mark="o"] move to workspace current, focus; mode "default"
   p [con_mark="p"] move to workspace current, focus; mode "default"
   $mod+p [con_mark="p"] move to workspace current, focus; mode "default"
-  q [con_mark="q"] move to workspace current, focus; mode "default"
-  $mod+q [con_mark="q"] move to workspace current, focus; mode "default"
   r [con_mark="r"] move to workspace current, focus; mode "default"
   $mod+r [con_mark="r"] move to workspace current, focus; mode "default"
   s [con_mark="s"] move to workspace current, focus; mode "default"
@@ -150,8 +156,6 @@ mode "mark-swap" bindsym {
   $mod+o swap container with mark "o"; mode "default"
   p swap container with mark "p"; mode "default"
   $mod+p swap container with mark "p"; mode "default"
-  q swap container with mark "q"; mode "default"
-  $mod+q swap container with mark "q"; mode "default"
   r swap container with mark "r"; mode "default"
   $mod+r swap container with mark "r"; mode "default"
   s swap container with mark "s"; mode "default"
@@ -211,8 +215,6 @@ mode "mark-jump" bindsym {
   $mod+o [con_mark="o"] focus; mode "default"
   p [con_mark="p"] focus; mode "default"
   $mod+p [con_mark="p"] focus; mode "default"
-  q [con_mark="q"] focus; mode "default"
-  $mod+q [con_mark="q"] focus; mode "default"
   r [con_mark="r"] focus; mode "default"
   $mod+r [con_mark="r"] focus; mode "default"
   s [con_mark="s"] focus; mode "default"
@@ -272,8 +274,6 @@ mode "mark-set" bindsym {
   $mod+o mark o; mode "default"
   p mark p; mode "default"
   $mod+p mark p; mode "default"
-  q mark q; mode "default"
-  $mod+q mark q; mode "default"
   r mark r; mode "default"
   $mod+r mark r; mode "default"
   s mark s; mode "default"
