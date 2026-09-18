@@ -52,7 +52,7 @@ mode "mark-jump" bindsym {
   $mod+Return exec run-sway-script mark-jump; mode "default"
   $mod+i exec run-sway-script mark-jump; mode "default"
 }
-bindsym $mod+apostrophe mode "mark-jump"
+bindsym $mod+semicolon mode "mark-jump"
 
 mode "mark-set" bindsym {
   $mod+q mode "default"
