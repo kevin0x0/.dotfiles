@@ -32,6 +32,7 @@ mode "control" bindsym {
   # Special keys to adjust brightness via brightnessctl
   --locked $mod+b exec brightnessctl set 1%-
   --locked $mod+Shift+b exec brightnessctl set 1%+
+  --locked $mod+s exec brightnessctl set 50%
 
   # Special keys to adjust volume
   --locked $mod+v exec audioctl set pvolume 5%- && pkill -u "$(id -u)" -USR1 i3status
