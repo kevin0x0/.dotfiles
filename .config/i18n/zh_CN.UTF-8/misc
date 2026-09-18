@@ -1,0 +1,12 @@
+# Can not find autostart launcher
+> 未找到自动启动器
+# $1 not found
+> 未找到 $1
+# None of provided files exists
+> 提供的文件均不存在
+# Need a number, got $1
+> 需要一个数字，却得到 $1
+# $1 not exists or is not readable file
+> $1 不存在或不是可读文件
+# $1 not exist
+> $1 不存在
