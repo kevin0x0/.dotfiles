@@ -30,11 +30,12 @@ mode "control" bindsym {
   --locked Escape mode "default" 
 
   # Special keys to adjust brightness via brightnessctl
-  --locked $mod+b exec brightnessctl set 1%+
-  --locked $mod+Shift+b exec brightnessctl set 1%-
+  --locked $mod+b exec brightnessctl set 1%-
+  --locked $mod+Shift+b exec brightnessctl set 1%+
+
   # Special keys to adjust volume
-  --locked $mod+v exec audioctl set pvolume 5%+ && pkill -u "$(id -u)" -USR1 i3status
-  --locked $mod+Shift+v exec audioctl set pvolume 5%- && pkill -u "$(id -u)" -USR1 i3status
+  --locked $mod+v exec audioctl set pvolume 5%- && pkill -u "$(id -u)" -USR1 i3status
+  --locked $mod+Shift+v exec audioctl set pvolume 5%+ && pkill -u "$(id -u)" -USR1 i3status
   --locked $mod+m exec audioctl set pswitch toggle && pkill -u "$(id -u)" -USR1 i3status
 }
 bindsym $mod+o mode "control"
