@@ -75,8 +75,8 @@ mode "window" bindsym {
   Escape mode "default"
 
   $mod+t splitt; mode "default"
-  $mod+e layout toggle split
-  $mod+Shift+e layout toggle tabbed stacking
+  $mod+e layout toggle split; mode "default"
+  $mod+Shift+e layout toggle tabbed stacking; mode "default"
 
   $mod+s scratchpad show; mode "default"
   $mod+Shift+s move scratchpad; mode "default"
