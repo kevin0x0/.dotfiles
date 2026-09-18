@@ -25,7 +25,7 @@ error_exit() {
 
 mark=$({ [ -n "$opt_list" ] && swaymsg -rt get_marks || printf "[]"; } \
   | jq -r '.[]' \
-  | menu-wrapper dmenu -p "$opt_prompt")
+  | menu-wrapper dmenu -p "$opt_prompt") || exit 
 
 case $mark in
   *[!-_+=\ a-z0-9]*)
