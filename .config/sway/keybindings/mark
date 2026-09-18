@@ -7,6 +7,8 @@ mode "mark" bindsym {
   $mod+m mode "mark-move"
   $mod+Shift+m mode "mark-move"
 
+  $mod+s mode "mark-swap"
+  $mod+Shift+s mode "mark-swap"
   $mod+p mode "mark-swap"
   $mod+Shift+p mode "mark-swap"
 
