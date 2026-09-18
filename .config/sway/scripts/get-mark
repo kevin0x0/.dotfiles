@@ -10,6 +10,9 @@ while getopts "lp:" opt; do
     p)
       opt_prompt=$OPTARG
       ;;
+    \?)
+      exit 2
+      ;;
   esac
 done
 
