@@ -1,0 +1,15 @@
+
+while read -r cmd; do
+  if ! command -v -- "$cmd" >/dev/null 2>&1; then
+    warning "POSIX Issue 8 '$cmd' is required"
+  fi
+done <<'EOF'
+readlink
+EOF
+
+if ! sh -c "x=\$'\t'; [ \"\${#x}\" -eq 1 ]" >/dev/null 2>&1; then
+  warning "the sh utility in current machine doesn't support \$'...' quoting (POSIX Issue 8), " \
+    "which is a feature many scripts in this repo rely on"
+fi
+
+# vim: ft=sh
