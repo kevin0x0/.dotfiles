@@ -26,6 +26,8 @@ mode "mark-move" bindsym {
   Shift+Return exec run-sway-script mark-move; mode "default"
   $mod+Return exec run-sway-script mark-move; mode "default"
   $mod+Shift+Return exec run-sway-script mark-move; mode "default"
+  $mod+i exec run-sway-script mark-move; mode "default"
+  $mod+Shift+i exec run-sway-script mark-move; mode "default"
 }
 
 mode "mark-swap" bindsym {
@@ -37,6 +39,8 @@ mode "mark-swap" bindsym {
   Shift+Return exec run-sway-script mark-swap; mode "default"
   $mod+Return exec run-sway-script mark-swap; mode "default"
   $mod+Shift+Return exec run-sway-script mark-swap; mode "default"
+  $mod+i exec run-sway-script mark-swap; mode "default"
+  $mod+Shift+i exec run-sway-script mark-swap; mode "default"
 }
 
 mode "mark-jump" bindsym {
@@ -46,6 +50,7 @@ mode "mark-jump" bindsym {
 
   Return exec run-sway-script mark-jump; mode "default"
   $mod+Return exec run-sway-script mark-jump; mode "default"
+  $mod+i exec run-sway-script mark-jump; mode "default"
 }
 bindsym $mod+apostrophe mode "mark-jump"
 
@@ -56,12 +61,13 @@ mode "mark-set" bindsym {
 
   Return exec run-sway-script mark-set; mode "default"
   $mod+Return exec run-sway-script mark-set; mode "default"
+  $mod+i exec run-sway-script mark-set; mode "default"
 }
 bindsym $mod+m mode "mark-set"
 
 
 mode "mark-move" bindsym {
-  # letters=abcdefghijklmnoprstuvwxyz
+  # letters=abcdefghjklmnoprstuvwxyz
   # for l in $(printf "%s\n" "$letters" | sed 's/./& /g'); do
   #   printf "%s\n" "$l [con_mark=\"$l\"] move to workspace current; mode \"default\""
   #   printf "%s\n" "\$mod+$l [con_mark=\"$l\"] move to workspace current; mode \"default\""
@@ -83,8 +89,6 @@ mode "mark-move" bindsym {
   $mod+g [con_mark="g"] move to workspace current, focus; mode "default"
   h [con_mark="h"] move to workspace current, focus; mode "default"
   $mod+h [con_mark="h"] move to workspace current, focus; mode "default"
-  i [con_mark="i"] move to workspace current, focus; mode "default"
-  $mod+i [con_mark="i"] move to workspace current, focus; mode "default"
   j [con_mark="j"] move to workspace current, focus; mode "default"
   $mod+j [con_mark="j"] move to workspace current, focus; mode "default"
   k [con_mark="k"] move to workspace current, focus; mode "default"
@@ -120,7 +124,7 @@ mode "mark-move" bindsym {
 }
 
 mode "mark-swap" bindsym {
-  # letters=abcdefghijklmnopqrstuvwxyz
+  # letters=abcdefghjklmnopqrstuvwxyz
   # for l in $(printf "%s\n" "$letters" | sed 's/./& /g'); do
   #   printf "%s\n" "$l swap container with mark \"$l\"; mode \"default\""
   #   printf "%s\n" "\$mod+$l swap container with mark \"$l\"; mode \"default\""
@@ -142,8 +146,6 @@ mode "mark-swap" bindsym {
   $mod+g swap container with mark "g"; mode "default"
   h swap container with mark "h"; mode "default"
   $mod+h swap container with mark "h"; mode "default"
-  i swap container with mark "i"; mode "default"
-  $mod+i swap container with mark "i"; mode "default"
   j swap container with mark "j"; mode "default"
   $mod+j swap container with mark "j"; mode "default"
   k swap container with mark "k"; mode "default"
@@ -179,7 +181,7 @@ mode "mark-swap" bindsym {
 }
 
 mode "mark-jump" bindsym {
-  # letters=abcdefghijklmnopqrstuvwxyz
+  # letters=abcdefghjklmnopqrstuvwxyz
   # for l in $(printf "%s\n" "$letters" | sed 's/./& /g'); do
   #   printf "%s\n" "$l [con_mark=\"$l\"] focus; mode \"default\""
   #   printf "%s\n" "\$mod+$l [con_mark=\"$l\"] focus; mode \"default\""
@@ -201,8 +203,6 @@ mode "mark-jump" bindsym {
   $mod+g [con_mark="g"] focus; mode "default"
   h [con_mark="h"] focus; mode "default"
   $mod+h [con_mark="h"] focus; mode "default"
-  i [con_mark="i"] focus; mode "default"
-  $mod+i [con_mark="i"] focus; mode "default"
   j [con_mark="j"] focus; mode "default"
   $mod+j [con_mark="j"] focus; mode "default"
   k [con_mark="k"] focus; mode "default"
@@ -238,7 +238,7 @@ mode "mark-jump" bindsym {
 }
 
 mode "mark-set" bindsym {
-  # letters=abcdefghijklmnopqrstuvwxyz
+  # letters=abcdefghjklmnopqrstuvwxyz
   # for l in $(printf "%s\n" "$letters" | sed 's/./& /g'); do
   #   printf "%s\n" "$l mark $l; mode \"default\""
   #   printf "%s\n" "\$mod+$l mark $l; mode \"default\""
@@ -260,8 +260,6 @@ mode "mark-set" bindsym {
   $mod+g mark g; mode "default"
   h mark h; mode "default"
   $mod+h mark h; mode "default"
-  i mark i; mode "default"
-  $mod+i mark i; mode "default"
   j mark j; mode "default"
   $mod+j mark j; mode "default"
   k mark k; mode "default"
