@@ -1,0 +1,26 @@
+# Invalid mark
+> 无效的标记
+# Mark should have pattern: [-_+=\ a-z0-9]+
+> 标记应当具有模式: [-_+=\ a-z0-9]+
+# Jump to mark: 
+> 跳转到标记
+# Move marked window to this workspace: 
+> 将标记窗口移入当前工作区：
+# Enter mark name: 
+> 输入标记名：
+# Swap with marked window: 
+> 交换标记窗口位置：
+# Move to workspace: 
+> 移动到工作区：
+# Search command in $1 mode
+> 在 $1 模式中搜索命令
+# Failed to switch colorscheme
+> 切换配色方案失败
+# Color scheme '$1' doesn't exist
+> 颜色主题 $1 不存在
+# Unsupported pathname
+> 不支持的路径名
+# Pathnames containing newlines are not supported
+> 所选取的文件的路径中不能包含换行符
+# Switch to workspace: 
+> 切换到工作区：

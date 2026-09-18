@@ -1,0 +1,79 @@
+#!/bin/sh
+
+expand() {
+  if [ "$fmt" = EOF ]; then
+    printf "EOF\n"
+    exit
+  fi
+
+  expand="cat <<EOF
+$fmt
+EOF
+"
+  eval "$expand"
+}
+
+opt_namespace=
+opt_locale=
+opt_silent=
+while getopts "n:l:s" opt; do
+  case $opt in
+    n)
+      opt_namespace=$OPTARG
+      ;;
+    l)
+      opt_locale=$OPTARG
+      ;;
+    s)
+      opt_silent=1
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
+fmt=$1
+shift
+
+[ -z "$opt_namespace" ] && opt_namespace=$I18N_NAMESPACE
+if [ -z "$opt_namespace" ]; then
+  if [ -n "$opt_silent" ]; then
+    expand "$@"
+    exit
+  else
+    i18n -sn "i18n" "namespace not specified" >&2
+    exit 1
+  fi
+fi
+[ -z "$opt_locale" ] && opt_locale=${LC_ALL:-$LANG}
+[ -z "$opt_locale" ] && opt_locale=C
+
+
+file="${XDG_CONFIG_HOME:-$HOME/.config}/i18n/$opt_locale/$opt_namespace"
+
+if [ ! -f "$file" ]; then
+  expand "$@"
+  exit
+fi
+
+if [ ! -r "$file" ]; then
+  if [ -n "$opt_silent" ]; then
+    expand "$@"
+    exit
+  else
+    i18n -sn "i18n" 'i18n info file $1 is not readable' "$file" >&2
+    exit 1
+  fi
+fi
+
+while IFS= read -r key; do
+  IFS= read -r val
+  if [ "# $fmt" = "$key" ]; then
+    fmt=${val#"> "}
+    break
+  fi
+done <"$file"
+
+expand "$@"

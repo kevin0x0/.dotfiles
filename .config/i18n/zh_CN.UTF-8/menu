@@ -1,0 +1,10 @@
+# Enter password: 
+> 请输入密码：
+# No backend available
+> 无可用后端
+# Failure
+> 失败
+# A desktop launcher is required (currently only gtk-launch)
+> 需要桌面启动器（当前仅支持 gtk-launch）
+# Unknown mode $1
+> 未知模式 $1
