@@ -9,8 +9,6 @@ mode "mark" bindsym {
 
   $mod+s mode "mark-swap"
   $mod+Shift+s mode "mark-swap"
-  $mod+p mode "mark-swap"
-  $mod+Shift+p mode "mark-swap"
 
   $mod+u [con_id=__focused__] unmark; mode "default"
   $mod+Shift+u [con_id=__focused__] unmark; mode "default"
