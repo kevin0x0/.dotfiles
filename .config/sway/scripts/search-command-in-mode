@@ -6,11 +6,13 @@ if ! mode=$(swaymsg -rt get_binding_state | jq -r '.name'); then
   exit 1
 fi
 
+PROMPT=$(i18n -n sway-scripts 'Search command in $1 mode' "$mode")
+
 if ! line=$(run-sway-script generate-mode-commands -t "$mode" \
   | while read -r key command; do
       printf "%-25s %s\n" "$key" "$command"
     done \
-  | menu-wrapper dmenu -vw 90 -p "search command in $mode mode"); then
+  | menu-wrapper dmenu -vw 90 -p "$PROMPT"); then
   exit 1
 fi
 

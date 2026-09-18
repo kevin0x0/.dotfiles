@@ -9,7 +9,7 @@ if [ -z "$backend" ]; then
 fi
 
 if [ -z "$backend" ]; then
-  printf "no backend available\n" >&2
+  i18n -n menu "No backend available" >&2
   exit 1
 fi
 

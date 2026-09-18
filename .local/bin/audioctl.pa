@@ -19,7 +19,7 @@ command_set() {
       pactl set-source-mute @DEFAULT_SOURCE@ "$@"
       ;;
     *)
-      echo "Unknown command: $1"
+      i18n -n audioctl 'Unknown command: $1' "$1"
       exit 1
       ;;
   esac
@@ -44,7 +44,7 @@ command_get() {
       pactl get-source-mute @DEFAULT_SOURCE@
       ;;
     *)
-      echo "Unknown command: $1"
+      i18n -n audioctl 'Unknown command: $1' "$1"
       exit 1
       ;;
   esac
@@ -60,7 +60,7 @@ case "$1" in
     command_get "$@"
     ;;
   *)
-    echo "Unknown command: $1"
+    i18n -n audioctl 'Unknown command: $1' "$1"
     exit 1
     ;;
 esac

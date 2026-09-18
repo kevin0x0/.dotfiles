@@ -58,12 +58,13 @@ case $mode in
   drun)
     selection=$(list_desktops | wmenu -i "$@") || exit
     command -v gtk-launch >/dev/null 2>&1 && exec gtk-launch -- "$selection"
-    message="A desktop launcher is required(currently only gtk-launch)" 
-    notify-or-print -en menu-wrapper-wmenu -- "Failure" "$message"
+    notify-or-print -en menu-wrapper-wmenu -- \
+      "$(i18n -n menu "Failure")" \
+      "$(i18n -n menu "A desktop launcher is required (currently only gtk-launch)")"
     exit 1
     ;;
   *)
-    printf "Unknown mode %s\n" "$mode" >&2
+    i18n -n menu 'Unknown mode $1' "$mode" >&2
     exit 2
     ;;
 esac

@@ -17,4 +17,4 @@ case $(uname) in
     ;;
 esac
 
-printf "No controller found\n" >&2
+i18n -n audioctl "No controller found" >&2

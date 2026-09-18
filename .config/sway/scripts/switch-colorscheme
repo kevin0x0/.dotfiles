@@ -25,8 +25,9 @@ if [ -z "$theme" ]; then
 fi
 
 if [ ! -f "$SWAY_CONFIG_DIR/colorscheme/$theme" ]; then
-  notify-or-print -en switch-colorscheme -- "failed to change colorscheme" \
-    "colorscheme '$theme' doesn't exist"
+  notify-or-print -en switch-colorscheme -- \
+    "$(i18n -n sway-scripts "Failed to switch colorscheme")" \
+    "$(i18n -n sway-scripts "Color scheme '\$1' doesn't exist" "$theme")"
   exit 1
 fi
 

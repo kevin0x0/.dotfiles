@@ -1,8 +1,6 @@
 #!/bin/sh
 
-PROMPT="enter mark name: "
-[ "${LC_ALL:-$LANG}" = zh_CN.UTF-8 ] && PROMPT="输入标记名："
-
+PROMPT=$(i18n -n sway-scripts "Enter mark name: ")
 mark=$(run-sway-script get-mark -p "$PROMPT") || exit
 
 swaymsg -- mark "\"$mark\""

@@ -1,7 +1,6 @@
 #!/bin/sh
 
-PROMPT="Workspace: "
-[ "$LANG" = zh_CN.UTF-8 ] && PROMPT="切换到工作区："
+PROMPT=$(i18n -n sway-scripts "Switch to workspace: ")
 
 workspace=$(swaymsg -rt get_workspaces \
   | jq -r '.[].name' \
