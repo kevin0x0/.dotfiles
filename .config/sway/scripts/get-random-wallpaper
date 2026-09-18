@@ -1,0 +1,13 @@
+#!/bin/sh
+
+picdir=$(xdg-user-dir PICTURES)
+wallpaper_dir=$picdir/wallpaper
+
+set -- "$wallpaper_dir"/*
+index=$(awk -v seed="$(date +%Y%m%d%H%M%S)" -v max="$#" '
+BEGIN {
+  srand(seed);
+  print(int(rand() * max));
+}')
+
+eval 'printf "%s\n" "${'"$index"'}"'

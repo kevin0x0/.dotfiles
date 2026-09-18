@@ -18,6 +18,7 @@ fi
 helper_check_deps warning "the following commands are required for running sway:" <<'EOF'
 swaymsg sway cli
 swaybg wallpaper tool
+swaylock screen locker for wayland
 firefox browser
 i3status bar
 foot terminal emulator
