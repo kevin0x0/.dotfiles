@@ -9,7 +9,7 @@ Requirements:
 3.  Use idiomatic expressions that LANGUAGE audiences can readily understand.
 4.  Paraphrase rather than translate literally; keep terminology accurate for
     professional content.
-6.  Output only the translation, without any notes, annotations, comments, or
+5.  Output only the translation, without any notes, annotations, comments, or
     explanations.
 
 All text after the line consisting solely of '-' below is the content to be
