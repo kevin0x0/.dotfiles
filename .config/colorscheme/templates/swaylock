@@ -1,32 +1,34 @@
-# 背景底色（图片加载前兜底，stretch 覆盖后不可见，不透明）
+# background color (fallback before the image loads; invisible once the
+# stretched wallpaper covers it, opaque)
 { color=#$bg }
 
-# 解锁环 ring —— 各状态（半透明，叠加在毛玻璃上）
+# unlock ring —— per state (semi-transparent, over the blurred layer)
 { ring-color=#$accent$alpha_hex }
 { ring-ver-color=#$warning$alpha_hex }
 { ring-wrong-color=#$urgent$alpha_hex }
 { ring-clear-color=#$unfocused_fg$alpha_hex }
 
-# 环内部 inside —— 半透明深色毛玻璃，保证指示器在壁纸上可读
+# ring inside —— semi-transparent dark layer so the indicator stays
+# readable on any wallpaper
 { inside-color=#$bg$alpha_hex }
 { inside-ver-color=#$bg$alpha_hex }
 { inside-wrong-color=#$bg$alpha_hex }
 { inside-clear-color=#$bg$alpha_hex }
 
-# 环与内部的分界线用 inside 颜色（无额外线）
+# line between the ring and inside uses the inside color (no extra line)
 line-uses-inside
 
-# 键盘高亮段（半透明）
+# key highlight segments (semi-transparent)
 { key-hl-color=#$indicator$alpha_hex }
 { bs-hl-color=#$urgent$alpha_hex }
 
-# 状态文字（半透明）
+# status text (semi-transparent)
 { text-color=#$fg$alpha_hex }
 { text-ver-color=#$warning$alpha_hex }
 { text-wrong-color=#$urgent$alpha_hex }
 { text-clear-color=#$unfocused_fg$alpha_hex }
 
-# 高亮段分隔线（半透明）
+# separator between highlight segments (semi-transparent)
 { separator-color=#$inactive$alpha_hex }
 
 # vim: ft=dosini
