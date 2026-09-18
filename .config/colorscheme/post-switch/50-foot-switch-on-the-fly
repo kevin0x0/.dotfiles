@@ -1,5 +1,4 @@
 theme=$COLORSCHEME_THEME_FILE_A
-script_path="${XDG_CONFIG_HOME:-$HOME/.config}/foot/scripts/switch-colorscheme-on-the-fly"
 
 case $(uname -s) in
   Linux|FreeBSD|OpenBSD|NetBSD)
@@ -19,6 +18,6 @@ if [ "$#" -eq 0 ]; then
 fi
 
 # Maybe need a lock to do atomic writing
-"$script_path" "$theme" | tee -- "$@" >/dev/null
+run-foot-script switch-colorscheme-on-the-fly "$theme" | tee -- "$@" >/dev/null
 
 # vim: ft=sh

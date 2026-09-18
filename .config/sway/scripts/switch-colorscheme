@@ -45,7 +45,7 @@ make_nul_terminated() {
 }
 
 source_sway_config_runtime() {
-  "$SWAY_CONFIG_DIR/scripts/flatten-config-commands" \
+  run-sway-script flatten-config-commands \
     | make_nul_terminated \
     | xargs -r0 -- swaymsg --
 }

@@ -89,8 +89,8 @@ mode "window" bindsym {
   $mod+$up focus up
   $mod+$right focus right
 
-  $mod+w exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/switch-workspace\"; mode "default"
-  $mod+Shift+w exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/move-to-workspace\"; mode "default"
+  $mod+w exec run-sway-script switch-workspace; mode "default"
+  $mod+Shift+w exec run-sway-script move-to-workspace; mode "default"
 }
 bindsym $mod+w mode "window"
 bindsym $mod+Shift+w mode "window"

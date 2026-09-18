@@ -25,9 +25,9 @@ mode "visual" bindsym {
   $mod+s exec colorscheme -- \"$$(colorscheme -l | menu-wrapper dmenu)\"; mode "default"
 
   # Switch wallpaper
-  $mod+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/switch-wallpaper\"; mode "default"
+  $mod+p exec run-sway-script switch-wallpaper; mode "default"
   # Switch wallpaper persistently
-  $mod+Shift+p exec \"${XDG_CONFIG_HOME:-$HOME/.config}/sway/scripts/switch-wallpaper -p\"; mode "default"
+  $mod+Shift+p exec run-sway-script switch-wallpaper -p; mode "default"
 
   # Adjust opacity
   $mod+o opacity plus 0.02

@@ -6,7 +6,7 @@ if ! mode=$(swaymsg -rt get_binding_state | jq -r '.name'); then
   exit 1
 fi
 
-if ! line=$("$SWAY_CONFIG_DIR/scripts/generate-mode-commands" -t "$mode" \
+if ! line=$(run-sway-script generate-mode-commands -t "$mode" \
   | while read -r key command; do
       printf "%-25s %s\n" "$key" "$command"
     done \

@@ -20,4 +20,4 @@ while [ ${#files} -ne 0 ]; do
   set -- "$@" "$f"
 done
 
-"${XDG_CONFIG_HOME:-$HOME/.config}/lf/scripts/open" "$@"
+run-lf-script open "$@"
