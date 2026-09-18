@@ -11,6 +11,9 @@ while getopts "ep:" opt; do
     p)
       paths=$CONFIG_DIR/$OPTARG:$paths
       ;;
+    \?)
+      exit 2
+      ;;
   esac
 done
 shift "$((OPTIND - 1))"
@@ -22,13 +25,13 @@ while [ -n "$paths" ]; do
   path=${paths%%:*}
   if [ -f "$path/$script" ]; then
     scriptpath="$path/$script"
-    [ -x "$path/$script" ] || exit 2
+    [ -x "$path/$script" ] || exit 4
     break
   fi
   paths=${paths#*:}
 done
 
-[ -z "$scriptpath" ] && exit 1
+[ -z "$scriptpath" ] && exit 3
 
 [ -n "$opt_test_existence" ] && exit 0
 
