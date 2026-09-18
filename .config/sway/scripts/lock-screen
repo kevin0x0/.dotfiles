@@ -10,4 +10,6 @@ BEGIN {
   print(int(rand() * max));
 }')
 
-eval 'printf "%s\n" "${'"$index"'}"'
+file=$(eval 'printf "%sx" "${'"$index"'}"')
+file=${file%x}
+exec swaylock -i ":$file" --font sans-serif --font-size 14

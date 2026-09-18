@@ -24,7 +24,7 @@ bindsym {
 }
 
 mode "control" bindsym {
-  $mod+l exec swaylock -i "$(run-sway-script get-random-wallpaper)"; mode "default"
+  $mod+l exec run-sway-script lock-screen; mode "default"
   --locked $mod+q mode "default" 
   --locked $mod+Shift+q mode "default" 
   --locked Escape mode "default" 

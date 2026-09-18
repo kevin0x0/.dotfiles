@@ -1,0 +1,5 @@
+theme=$COLORSCHEME_THEME_FILE_A
+
+ln -sf "colorscheme/$theme" "${XDG_CONFIG_HOME:-$HOME/.config}/swaylock/config"
+
+# vim: ft=sh
