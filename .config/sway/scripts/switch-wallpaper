@@ -1,19 +1,5 @@
 #!/bin/sh
 
-has_display() {
-  [ -n "$DISPLAY$WAYLAND_DISPLAY" ]
-}
-
-error_exit() {
-  if has_display && command -v notify-send >/dev/null 2>&1; then
-    notify-send --urgency=critical -- "$1" "$2" >&2
-  else
-    printf "%s: %s\n" "$1" "$2"
-  fi
-
-  exit 1
-}
-
 opt_persist=false
 while getopts "p" opt; do
   case $opt in
@@ -47,7 +33,8 @@ case $imgfile in
       title="unsupported pathname"
       body="Pathnames containing newlines are not supported"
     fi
-    error_exit "$title" "$body"
+    notify-or-print -en switch-wallpaper -- "$title" "$body"
+    exit 1
     ;;
 esac
 

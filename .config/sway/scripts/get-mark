@@ -16,16 +16,6 @@ while getopts "lp:" opt; do
   esac
 done
 
-error_exit() {
-  if command -v notify-send >/dev/null 2>&1; then
-    notify-send --app-name "get-mark" --urgency critical -- \
-      "$1" "$2"
-  else
-      printf "%s: %s\n" "$1" "$2" >&2
-  fi
-  exit 1
-}
-
 mark=$({ [ -n "$opt_list" ] && swaymsg -rt get_marks || printf "[]"; } \
   | jq -r '.[]' \
   | menu-wrapper dmenu -p "$opt_prompt") || exit 
@@ -38,7 +28,8 @@ case $mark in
       summary="无效的标记"
       body="标记应当具有模式: [-_+=\ a-z0-9]+"
     fi
-    error_exit "$summary" "$body"
+    notify-or-print -en "get-mark" -- "$summary" "$body"
+    exit 1
     ;;
 esac
 
