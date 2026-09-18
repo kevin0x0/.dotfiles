@@ -59,11 +59,7 @@ case $mode in
     selection=$(list_desktops | wmenu -i "$@") || exit
     command -v gtk-launch >/dev/null 2>&1 && exec gtk-launch -- "$selection"
     message="A desktop launcher is required(currently only gtk-launch)" 
-    if [ -n "$DISPLAY$WAYLAND_DISPLAY" ] && command -v notify-send >/dev/null 2>&1; then
-      notify-send --urgency=critical --app-name=menu-wrapper-wmenu "Failure" "$message"
-    else
-      printf "%s\n" "$message" >&2
-    fi
+    notify-or-print -en menu-wrapper-wmenu -- "Failure" "$message"
     exit 1
     ;;
   *)

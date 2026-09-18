@@ -1,0 +1,39 @@
+#!/bin/sh
+
+opt_app_name=
+opt_level=
+while getopts "n:mwe" opt; do
+  case $opt in
+    n)
+      opt_app_name=$OPTARG
+      ;;
+    m)
+      opt_level=message
+      ;;
+    w)
+      opt_level=warning
+      ;;
+    e)
+      opt_level=error
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
+
+if command -v notify-send >/dev/null 2>&1 && [ -n "$DISPLAY$WAYLAND_DISPLAY" ]; then
+  urgency=normal
+  [ "$opt_level" = message ] && urgency=normal
+  [ "$opt_level" = warning ] && urgency=normal
+  [ "$opt_level" = error ] && urgency=critical
+  notify-send --urgency "$urgency" --app-name "$opt_app_name" -- "$1" "$2"
+else
+  color_prefix=
+  [ "$opt_level" = message ] && color_prefix=
+  [ "$opt_level" = warning ] && color_prefix=$'\033[33m'
+  [ "$opt_level" = error ] && color_prefix=$'\033[31m'
+  printf "%s%s%s: %s\033[0m\n" "$color_prefix" "$opt_app_name${opt_app_name:+: }" "$1" "$2" >&2
+fi

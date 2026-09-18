@@ -24,18 +24,10 @@ if [ -z "$theme" ]; then
     | menu-wrapper dmenu)
 fi
 
-error_exit() {
-  if command -v notify-send >/dev/null 2>&1; then
-    notify-send --app-name "switch-colorscheme" --urgency critical -- \
-      "$1" "$2"
-  else
-      printf "%s: %s\n" "$1" "$2" >&2
-  fi
-  exit 1
-}
-
 if [ ! -f "$SWAY_CONFIG_DIR/colorscheme/$theme" ]; then
-  error_exit "failed to change colorscheme" "colorscheme '$theme' doesn't exist"
+  notify-or-print -en switch-colorscheme -- "failed to change colorscheme" \
+    "colorscheme '$theme' doesn't exist"
+  exit 1
 fi
 
 make_nul_terminated() {
