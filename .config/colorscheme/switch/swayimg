@@ -10,6 +10,6 @@ fi
 theme=$COLORSCHEME_THEME_FILE_A
 printf "%s\n" "$theme" > "$COLOR_THEME_FILE"
 
-pkill -u "$(id -u)" -USR1 swayimg || true
+pkill -USR1 -u "$(id -u)" swayimg || true
 
 # vim: ft=sh

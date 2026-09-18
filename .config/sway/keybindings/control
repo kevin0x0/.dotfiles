@@ -7,12 +7,12 @@ bindsym {
   $mod+Print exec GRIM_DEFAULT_DIR="$(xdg-user-dir PICTURES)/screenshots" grim -g "$(slurp)"
 
   # Special keys to adjust volume
-  --locked XF86AudioLowerVolume exec audioctl set pvolume 5%- && pkill -u "$(id -u)" -USR1 i3status
-  --locked XF86AudioRaiseVolume exec audioctl set pvolume 5%+ && pkill -u "$(id -u)" -USR1 i3status
-  --locked XF86AudioMute exec audioctl set pswitch toggle && pkill -u "$(id -u)" -USR1 i3status
-  # bindsym --locked XF86AudioLowerVolume exec audioctl set pvolume 5%- && pkill -u "$(id -u)" -RTMIN+1 i3blocks
-  # bindsym --locked XF86AudioRaiseVolume exec audioctl set pvolume 5%+ && pkill -u "$(id -u)" -RTMIN+1 i3blocks
-  # bindsym --locked XF86AudioMute exec audioctl set pswitch toggle && pkill -u "$(id -u)" -RTMIN+1 i3blocks
+  --locked XF86AudioLowerVolume exec audioctl set pvolume 5%- && pkill -USR1 -u "$(id -u)" i3status
+  --locked XF86AudioRaiseVolume exec audioctl set pvolume 5%+ && pkill -USR1 -u "$(id -u)" i3status
+  --locked XF86AudioMute exec audioctl set pswitch toggle && pkill -USR1 -u "$(id -u)" i3status
+  # bindsym --locked XF86AudioLowerVolume exec audioctl set pvolume 5%- && pkill -RTMIN+1 -u "$(id -u)" i3blocks
+  # bindsym --locked XF86AudioRaiseVolume exec audioctl set pvolume 5%+ && pkill -RTMIN+1 -u "$(id -u)" i3blocks
+  # bindsym --locked XF86AudioMute exec audioctl set pswitch toggle && pkill -RTMIN+1 -u "$(id -u)" i3blocks
 
   # Special keys to adjust brightness via brightnessctl
   --locked XF86MonBrightnessDown exec brightnessctl set 1%-
@@ -35,9 +35,9 @@ mode "control" bindsym {
   --locked $mod+s exec brightnessctl set 50%; mode "default"
 
   # Special keys to adjust volume
-  --locked $mod+v exec audioctl set pvolume 5%- && pkill -u "$(id -u)" -USR1 i3status
-  --locked $mod+Shift+v exec audioctl set pvolume 5%+ && pkill -u "$(id -u)" -USR1 i3status
-  --locked $mod+m exec audioctl set pswitch toggle && pkill -u "$(id -u)" -USR1 i3status; mode "default"
+  --locked $mod+v exec audioctl set pvolume 5%- && pkill -USR1 -u "$(id -u)" i3status
+  --locked $mod+Shift+v exec audioctl set pvolume 5%+ && pkill -USR1 -u "$(id -u)" i3status
+  --locked $mod+m exec audioctl set pswitch toggle && pkill -USR1 -u "$(id -u)" i3status; mode "default"
 }
 bindsym $mod+o mode "control"
 
