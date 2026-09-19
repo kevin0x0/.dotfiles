@@ -4,8 +4,11 @@ lock switch-colorscheme
 trap 'unlock switch-colorscheme' EXIT
 
 # We don't guarantee the behaviour on receipt of signals except those
-# listed the next line
-trap '' TERM INT QUIT HUP
+# listed the following lines
+trap 'unlock switch-colorscheme; trap - TERM; kill -s TERM "$$"' TERM
+trap 'unlock switch-colorscheme; trap - QUIT; kill -s QUIT "$$"' QUIT
+trap 'unlock switch-colorscheme; trap - HUP; kill -s HUP "$$"' HUP
+trap 'unlock switch-colorscheme; trap - INT; kill -s INT "$$"' INT
 
 COLORSCHEME_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme
 
@@ -134,23 +137,17 @@ do_scripts() {
 }
 
 do_scripts_in_parallel() {
+  notify-state -c colorscheme-switch-error
   for script in "$COLORSCHEME_CONFIG_HOME/$1"/*; do
     [ -f "$script" ] || continue
-    sh -- "$script" &
-    set -- "$@" "$!"
+    (sh -- "$script" || notify-state colorscheme-switch-error) &
   done
 
-  # Shift out the first subdir name argument
-  shift 1
-
-  my_exitcode=0
-  for pid; do
-    wait "$pid"
-    exitcode=$?
-    [ "$exitcode" -ne 0 ] && my_exitcode=$exitcode
+  while ! wait; do
+    :
   done
 
-  return "$my_exitcode"
+  ! notify-state -tc colorscheme-switch-error 
 }
 
 do_scripts pre-switch
