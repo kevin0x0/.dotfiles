@@ -1,8 +1,8 @@
 #!/bin/sh
 
-RUNTIME_STATE_DIR=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}
+RUNTIME_STATE_DIR=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/lock-files
 
 for arg; do
-  lockfile=$RUNTIME_STATE_DIR/lock-$arg
+  lockfile=$RUNTIME_STATE_DIR/$arg
   rm -- "$lockfile"
 done

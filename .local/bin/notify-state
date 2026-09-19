@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# This script supports only one receiver and multiple notifiers
+
+opt_clean=
+opt_test=
+while getopts "ct" opt; do
+  case $opt in
+    c)
+      opt_clean=1
+      ;;
+    t)
+      opt_test=1
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
+
+RUNTIME_STATE_DIR=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/state-files
+mkdir -p -- "$RUNTIME_STATE_DIR"
+
+if [ -n "$opt_test" ]; then
+  exitcode=1
+  for arg; do
+    file=$RUNTIME_STATE_DIR/$arg
+    if [ -e "$file" ]; then
+      exitcode=0
+      [ -n "$opt_clean" ] && rm -f -- "$file"
+    fi
+  done
+
+  exit "$exitcode"
+elif [ -n "$opt_clean" ]; then
+  for arg; do
+    file=$RUNTIME_STATE_DIR/$arg
+    [ -e "$file" ] && rm -f -- "$file"
+  done
+else
+  for arg; do
+    : > "$RUNTIME_STATE_DIR/$arg"
+  done
+fi
