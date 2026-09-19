@@ -15,9 +15,7 @@ theme=$COLORSCHEME_COLORSCHEMES_DIR/$COLORSCHEME_THEME
 
 [ -f "$theme" ] || exit 0
 
-# We don't guarantee the behaviour on receipt of signals except those
-# listed the next line
-trap '' TERM INT QUIT HUP
+notify-state -c colorscheme-generation-error
 
 for f in "$COLORSCHEME_SPECS_DIR"/*; do
   [ -f "$f" ] || continue
@@ -43,6 +41,7 @@ for f in "$COLORSCHEME_SPECS_DIR"/*; do
       newer_than_output "$@" "$template" || exit 0
     elif [ -e "$output" ]; then
       printf "%s is not a file" "$output" >&2
+      notify-state colorscheme-generation-error
       exit 1
     fi
 
@@ -54,18 +53,17 @@ for f in "$COLORSCHEME_SPECS_DIR"/*; do
       set -- "$@" -s "$info"
     done
 
-    stpl "$@" -o "$output" -- "$template" || exit 1
+    if ! stpl "$@" -o "$output" -- "$template"; then
+       notify-state colorscheme-generation-error
+       exit 1
+    fi
   ) &
-  set -- "$@" "$!"
 done
 
-my_exitcode=0
-for pid; do
-  wait "$pid"
-  exitcode=$?
-  [ "$exitcode" -ne 0 ] && my_exitcode=$exitcode
+while ! wait; do
+  :
 done
 
-exit "$my_exitcode"
+! notify-state -tc colorscheme-generation-error
 
 # vim: ft=sh
