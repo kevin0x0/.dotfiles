@@ -1,0 +1,41 @@
+#!/bin/sh
+# This script is just used for check i18n translation completeness
+# and doesn't guarantee usability.
+
+if ! command -v shfmt >/dev/null 2>&1; then
+  printf "shfmt not available\n" >&2
+  exit 1
+fi
+
+check_file() {
+  export I18N_CHECK=1
+  for f; do
+    shfmt --to-json <"$f" \
+      | jq '.. | objects | select(.Type? == "CallExpr") | select(.Args[0].Parts[0].Value? == "i18n") | .Pos.Offset, .End.Offset, .Pos.Line' \
+      | while read beginning; read end; read line; do
+          cmd=$(tail -c +"$((beginning + 1))" <"$f" | head -c "$((end - beginning))")
+
+          printf "check command on line %s in %s:\n" "$line" "$f"
+          printf "%s\n" "$cmd" | sed 's/^/> /'
+
+          eval "$cmd" && echo OK || echo FAILED
+        done
+  done
+}
+
+if [ "$#" -ne 0 ]; then
+  check_file "$@"
+  exit
+fi
+
+cd
+
+for repo in dotfiles ldotfiles mdotfiles; do
+  command -v -- "$repo" >/dev/null 2>&1 || continue
+  exclude=$(realpath "${XDG_CONFIG_HOME:-$HOME/.config}/colorscheme/templates")
+  home=$(realpath "$HOME")
+  exclude=${exclude#"$home"}
+  exclude=${exclude#/}
+  "$repo" grep -lz '^#!/bin/sh\|#.*vim:.*ft=sh' -- :^"$exclude" \
+    | xargs -r0 -- i18n-check
+done
