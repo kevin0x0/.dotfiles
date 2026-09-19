@@ -1,11 +1,12 @@
 #!/bin/sh
 
-RUNTIME_STATE_DIR=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}
+RUNTIME_STATE_DIR=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/lock-files
+mkdir -p -- "$RUNTIME_STATE_DIR"
 
 remaining=$#
 while [ "$remaining" -ne 0 ]; do
   remaining=$((remaining - 1))
-  lockfile=$RUNTIME_STATE_DIR/lock-$1
+  lockfile=$RUNTIME_STATE_DIR/$1
   shift
   if ! (umask 0077; set -C; : >"$lockfile") 2>/dev/null; then
     shift "$remaining"
