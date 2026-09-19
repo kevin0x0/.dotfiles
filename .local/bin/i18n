@@ -1,22 +1,48 @@
 #!/bin/sh
 
 expand() {
-  if [ "$fmt" = EOF ]; then
+  expand_fmt=$1
+  shift
+  if [ "$expand_fmt" = EOF ]; then
     printf "EOF\n"
     exit
   fi
 
   expand="cat <<EOF
-$fmt
+$expand_fmt
 EOF
 "
   eval "$expand"
 }
 
+get_translation() {
+  while IFS= read -r key; IFS= read -r val; do
+    if [ "# $1" = "$key" ]; then
+      printf "%s\n" "${val#"> "}"
+      return 0
+    fi
+  done
+
+  printf "%s\n" "$1"
+  return 1
+}
+
+get_file() {
+  file="${XDG_CONFIG_HOME:-$HOME/.config}/i18n/$1/$2"
+
+  if [ ! -f "$file" ] || [ ! -r "$file" ]; then
+    printf "/dev/null\n"
+    return 1
+  else
+    printf "%s\n" "$file"
+  fi
+}
+
 opt_namespace=
 opt_locale=
 opt_silent=
-while getopts "n:l:s" opt; do
+opt_check=
+while getopts "n:l:sc" opt; do
   case $opt in
     n)
       opt_namespace=$OPTARG
@@ -26,6 +52,9 @@ while getopts "n:l:s" opt; do
       ;;
     s)
       opt_silent=1
+      ;;
+    c)
+      opt_check=1
       ;;
     \?)
       exit 2
@@ -38,9 +67,20 @@ fmt=$1
 shift
 
 [ -z "$opt_namespace" ] && opt_namespace=$I18N_NAMESPACE
+[ -z "$opt_locale" ] && opt_locale=${LC_ALL:-$LANG}
+[ -z "$opt_locale" ] && opt_locale=C
+[ -n "$I18N_CHECK" ] && opt_check=1
+
+if [ -n "$opt_check" ]; then
+  [ -z "$opt_namespace" ] && exit 1
+  file=$(get_file "$opt_locale" "$opt_namespace") || exit 1
+  get_translation "$fmt" <"$file" >/dev/null || exit 1
+  exit 0
+fi
+
 if [ -z "$opt_namespace" ]; then
   if [ -n "$opt_silent" ]; then
-    expand "$@"
+    expand "$fmt" "$@"
     exit
   else
     i18n -sn "i18n" "namespace not specified" >&2
@@ -48,32 +88,6 @@ if [ -z "$opt_namespace" ]; then
   fi
 fi
 
-[ -z "$opt_locale" ] && opt_locale=${LC_ALL:-$LANG}
-[ -z "$opt_locale" ] && opt_locale=C
-
-file="${XDG_CONFIG_HOME:-$HOME/.config}/i18n/$opt_locale/$opt_namespace"
-
-if [ ! -f "$file" ]; then
-  expand "$@"
-  exit
-fi
-
-if [ ! -r "$file" ]; then
-  if [ -n "$opt_silent" ]; then
-    expand "$@"
-    exit
-  else
-    i18n -sn "i18n" 'i18n info file $1 is not readable' "$file" >&2
-    exit 1
-  fi
-fi
-
-while IFS= read -r key; do
-  IFS= read -r val
-  if [ "# $fmt" = "$key" ]; then
-    fmt=${val#"> "}
-    break
-  fi
-done <"$file"
-
-expand "$@"
+file=$(get_file "$opt_locale" "$opt_namespace")
+fmt=$(get_translation "$fmt" <"$file")
+expand "$fmt" "$@"
