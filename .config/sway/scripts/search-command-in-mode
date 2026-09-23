@@ -6,6 +6,8 @@ if ! mode=$(swaymsg -rt get_binding_state | jq -r '.name'); then
   exit 1
 fi
 
+swaymsg -- mode default
+
 PROMPT=$(i18n -n sway-scripts 'Search command in $1 mode' "$mode")
 
 if ! line=$(run-sway-script generate-mode-commands -t "$mode" \
