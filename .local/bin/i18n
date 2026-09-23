@@ -67,7 +67,7 @@ fmt=$1
 shift
 
 [ -z "$opt_namespace" ] && opt_namespace=$I18N_NAMESPACE
-[ -z "$opt_locale" ] && opt_locale=${LC_ALL:-$LANG}
+[ -z "$opt_locale" ] && opt_locale=${LC_ALL:-${LC_MESSAGES:-$LANG}}
 [ -z "$opt_locale" ] && opt_locale=C
 [ -n "$I18N_CHECK" ] && opt_check=1
 

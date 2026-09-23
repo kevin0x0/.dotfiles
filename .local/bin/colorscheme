@@ -71,8 +71,9 @@ while getopts "sa:lp" opt; do
       esac
       ;;
     a)
+      xdigits=[0123456789abcdefABCDEF]
       case $OPTARG in
-        [0-9a-fA-F][0-9a-fA-F])
+        $xdigits$xdigits)
           alpha=$OPTARG
           ;;
         '')
@@ -124,22 +125,21 @@ export COLORSCHEME_THEME_FILE="$theme"
 # theme name with alpha encoded
 export COLORSCHEME_THEME_FILE_A="$theme${alpha:+-}$alpha"
 
-do_scripts() {
-  savedLC=$LC_ALL
-  LC_ALL=C
-  set -- "$COLORSCHEME_CONFIG_HOME/$1"/*
-  LC_ALL=$savedLC
-
-  for script; do
-    [ -f "$script" ] || continue
-    sh -- "$script" || exit
-  done
-}
+do_scripts() (
+  cd -- "$COLORSCHEME_CONFIG_HOME/$1"
+  printf "%s\n" * | LC_ALL=C sort \
+    | while IFS= read -r f; do
+        [ -f "$f" ] || continue
+        [ -r "$f" ] || continue
+        sh -- "$f" || exit
+      done
+)
 
 do_scripts_in_parallel() {
   notify-state -c colorscheme-switch-error
   for script in "$COLORSCHEME_CONFIG_HOME/$1"/*; do
     [ -f "$script" ] || continue
+    [ -r "$script" ] || continue
     (sh -- "$script" || notify-state colorscheme-switch-error) &
   done
 
@@ -150,9 +150,9 @@ do_scripts_in_parallel() {
   ! notify-state -tc colorscheme-switch-error 
 }
 
-do_scripts pre-switch
+do_scripts pre-switch || exit
 do_scripts_in_parallel switch || exit
-do_scripts post-switch
+do_scripts post-switch || exit
 
 printf "%s\n" "$theme" >"$CURRENT_THEME_FILE"
 printf "%s\n" "$alpha" >"$CURRENT_ALPHA_FILE"
