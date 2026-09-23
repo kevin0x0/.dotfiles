@@ -4,9 +4,6 @@ mode "mark" bindsym {
   $mod+Shift+q mode "default"
   Escape mode "default"
 
-  $mod+m mode "mark-move"
-  $mod+Shift+m mode "mark-move"
-
   $mod+s mode "mark-swap"
   $mod+Shift+s mode "mark-swap"
 
@@ -27,6 +24,7 @@ mode "mark-move" bindsym {
   $mod+i exec run-sway-script mark-move; mode "default"
   $mod+Shift+i exec run-sway-script mark-move; mode "default"
 }
+bindsym $mod+colon mode "mark-move"
 
 mode "mark-swap" bindsym {
   $mod+q mode "default"
