@@ -13,7 +13,7 @@ ignore_case=
 # If there are uppercase letters in `pattern', we use case-sensitive search
 # otherwise case-insensitive search. This behaviour is to mimic fzf smart-case.
 case "$pattern" in
-  *[A-Z]*)
+  *[[:upper:]]*)
     ignore_case=
     ;;
   *)
