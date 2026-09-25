@@ -1,7 +1,6 @@
 
 set $mod Mod4
 
-include autostart
 include input
 include misc
 include output
@@ -12,3 +11,5 @@ include extra-*
 include keybindings/*
 
 include set-help
+
+include autostart
