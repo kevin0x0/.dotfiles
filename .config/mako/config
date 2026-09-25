@@ -7,6 +7,8 @@ height=150
 
 default-timeout=5000
 
+on-notify=exec ring-bell message
+
 #format=<span weight="bold" size="12pt">%s</span> <small><span font="monospace" style="italic">%a</span></small>\n%b
 format=<span weight="semibold" size="12pt">%s </span> <span alpha="75%%">%a</span>\n%b
 
@@ -20,5 +22,8 @@ height=150
 
 [actionable=true]
 format=<span weight="semibold" size="12pt">%s </span> <span alpha="75%%">%a</span> 🗲\n%b
+
+[category="email.arrived"]
+on-notify=exec ring-bell message-new-email
 
 # vim: ft=dosini

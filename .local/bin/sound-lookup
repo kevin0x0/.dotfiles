@@ -1,0 +1,196 @@
+#!/bin/sh
+
+. desktop-parsing-utils
+
+DSK_ARG_SEPARATOR=,
+: "${XDG_DATA_HOME:=$HOME/.local/share}"
+: "${XDG_DATA_DIRS:=/usr/local/share/:/usr/share/}"
+: "${XDG_CACHE_HOME:=$HOME/.cache}"
+mkdir -p -- "$XDG_CACHE_HOME/sound-lookup"
+
+NPATH=0
+
+addpath() {
+  for path; do
+    [ -d "$path" ] || continue
+    eval "SEARCH_PATH_$NPATH"='$path'
+    NPATH=$((NPATH + 1))
+  done
+}
+
+getpath() {
+  eval " $2"="\$SEARCH_PATH_$1"
+}
+
+addpath "$XDG_DATA_HOME/sounds"
+
+paths=$XDG_DATA_DIRS:
+while [ -n "$paths" ]; do
+  addpath "${paths%%:*}/sounds"
+  paths=${paths#*:}
+done
+
+search_index() {
+  i=0
+  while [ "$i" -lt "$NPATH" ]; do
+    getpath "$i" d
+    if [ -f "$d/$1" ]; then
+      printf "%s" "$d/$1"
+      return 0
+    fi
+    i=$((i + 1))
+  done
+
+  return 1
+}
+
+dir_match_outputprofile() {
+  dsk_parse_group "$1" <&3 || return
+
+  dsk_entry_get OutputProfile dir_sound_outputprofile
+  [ "$dir_sound_outputprofile" = "$2" ]
+}
+
+search_sound() {
+  i=0
+  search_name=$2
+  while [ "$i" -lt "$NPATH" ]; do
+    getpath "$i" d
+    while :; do
+      for search_locale in "$REQUESTED_LOCALE1" "$REQUESTED_LOCALE2" "$REQUESTED_LOCALE3" "C" ""; do
+        [ -d "$d/$1/$search_locale" ] || continue
+
+        for extension in disabled oga ogg wav; do
+          f="$d/$1/$search_locale/$search_name.$extension"
+          if [ -f "$f" ]; then
+            eval " $3"='$f'
+            return 0
+          fi
+        done
+      done
+
+      case $search_name in
+        *-*)
+          search_name=${search_name%-*}
+          ;;
+        *)
+          break
+          ;;
+      esac
+    done
+    i=$((i + 1))
+  done
+
+  return 1
+}
+
+lookup_in_parent() {
+  dsk_set_current_group "Sound Theme"
+  DSK_ARG_TO_BE_SPLIT_KEY=Inherits
+  eval "$dsk_split_list"
+
+  for parent; do
+    sound_file=$(lookup_in_theme "$parent" "$name" "$outputprofile") || continue
+    printf "%s" "$sound_file"
+    return
+  done
+
+  return 1
+}
+
+lookup_in_theme() {
+  theme=$1
+  name=$2
+  outputprofile=$3
+  shift "$#"
+  index_file=$(search_index "$theme/index.theme") || return 1
+
+  exec 3<"$index_file" || return 1
+  dsk_set_current_instance "$theme"
+
+  dsk_encode "$theme/$name/$REQUESTED_LOCALE1/$outputprofile" encoded
+  cache_file=${XDG_CACHE_HOME:-$HOME/.cache}/sound-lookup/$encoded
+  toplevel_dir=${index_file%/*}
+
+  if [ -f "$cache_file" ] && [ -n "$(find "$cache_file" -newer "$toplevel_dir")" ]; then
+    sound_file=$(cat -- "$cache_file"; echo x)
+    sound_file=${sound_file%x}
+    if [ -f "$sound_file" ]; then
+      printf "%s" "$sound_file"
+      return 0
+    elif [ -z "$sound_file" ]; then
+      dsk_parse_group "Sound Theme" <&3 || return
+      lookup_in_parent
+      return
+    fi
+  fi
+
+  dsk_parse_group "Sound Theme" <&3 || return
+
+  DSK_ARG_TO_BE_SPLIT_KEY=Directories
+  eval "$dsk_split_list"
+
+  sound_file=
+  for profile in "$outputprofile" "stereo" ""; do
+    for subdir; do
+      if dir_match_outputprofile "$subdir" "$profile"; then
+        search_sound "$theme/$subdir" "$name" sound_file && break 2
+      fi
+    done
+  done
+  printf "%s" "$sound_file" >"$cache_file"
+  if [ -n "$sound_file" ]; then
+     printf "%s" "$sound_file"
+     return 
+  fi
+
+  # Can not find sound file in this theme, search its parents
+  lookup_in_parent
+}
+
+opt_theme=freedesktop
+opt_profile=stereo
+opt_locale=${LC_ALL:-${LC_MESSAGES:-${LANG:-C}}}
+
+config_file=${XDG_CONFIG_HOME:-$HOME/.config}/sound-lookup/config
+[ -f "$config_file" ] && [ -r "$config_file" ] && . -- "$config_file"
+
+while getopts "t:l:p:" opt; do
+  case $opt in
+    t)
+      opt_theme=$OPTARG
+      ;;
+    l)
+      opt_locale=$OPTARG
+      ;;
+    p)
+      opt_profile=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ "$#" -eq 0 ]; then
+  printf "must specify the sound name\n" >&2
+  exit 1
+fi
+
+modifier=${opt_locale#"${opt_locale%%@*}"}
+opt_locale=${opt_locale%%'.'*}
+
+country=${opt_locale##"${opt_locale%_*}"}
+opt_locale=${opt_locale%_*}
+
+lang=$opt_locale
+REQUESTED_LOCALE1=$lang$country$modifier
+REQUESTED_LOCALE2=$lang$country
+REQUESTED_LOCALE3=$lang
+
+if ! sound_file=$(lookup_in_theme "$opt_theme" "$1" "$opt_profile"); then
+  sound_file="/dev/null"
+fi
+
+printf "%s\n" "$sound_file"

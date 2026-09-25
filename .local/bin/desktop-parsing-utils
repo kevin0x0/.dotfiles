@@ -1,0 +1,605 @@
+#!/bin/sh
+
+dsk_set_current_group() {
+  dsk_encode "$1" DSK_GROUP
+}
+
+dsk_set_current_instance() {
+  dsk_encode "$1", DSK_INSTANCE
+}
+
+dsk_encode() {
+  dsk_out=
+  dsk_alnum=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
+  case $1 in
+    *[!-/:%\&.=\ @_$dsk_alnum]*|0*)
+      dsk_out=0$(printf "%s" "$1" | od -An -t x1 | LC_ALL=C tr -d '[[:space:]]')
+      ;;
+    *[!$dsk_alnum]*)
+      dsk_s=$1
+      dsk_head=${dsk_s%%[-/:%&.=@_ ]*}
+      dsk_out=$dsk_head
+      dsk_s=${dsk_s#"$dsk_head"}
+      while [ -n "$dsk_s" ]; do
+        case "$dsk_s" in
+          '-'*) dsk_out=$dsk_out"_A" ;;
+          '/'*) dsk_out=$dsk_out"_B" ;;
+          ':'*) dsk_out=$dsk_out"_C" ;;
+          '%'*) dsk_out=$dsk_out"_D" ;;
+          '&'*) dsk_out=$dsk_out"_E" ;;
+          '.'*) dsk_out=$dsk_out"_F" ;;
+          '='*) dsk_out=$dsk_out"_G" ;;
+          '@'*) dsk_out=$dsk_out"_H" ;;
+          ' '*) dsk_out=$dsk_out"_I" ;;
+          '_'*) dsk_out=$dsk_out"__" ;;
+        esac
+        dsk_s=${dsk_s#?}
+        dsk_head=${dsk_s%%[-/:%&.=@_ ]*}
+        dsk_out=$dsk_out$dsk_head
+        dsk_s=${dsk_s#"$dsk_head"}
+      done
+      ;;
+    *)
+      dsk_out=$1
+      ;;
+  esac
+  eval "$2"='$dsk_out'
+}
+
+dsk_decode() {
+  dsk_out=
+  dsk_s=$1
+  case $dsk_s in
+    0*)
+      dsk_s=${dsk_s#0}
+      while [ -n "$dsk_s" ]; do
+        dsk_tail=${dsk_s#??}
+        dsk_head=${dsk_s%"$dsk_tail"}
+        dsk_s=$dsk_tail
+        dsk_out=$dsk_out$(printf "\x$dsk_head")
+      done
+      ;;
+    *)
+      dsk_head=${dsk_s%%_*}
+      dsk_out="$dsk_head"
+      dsk_s=${dsk_s#"$dsk_head"}
+      while [ -n "$dsk_s" ]; do
+        dsk_s=${dsk_s#_}
+        case "$dsk_s" in
+          'A'*) dsk_out=$dsk_out"-" ;;
+          'B'*) dsk_out=$dsk_out"/" ;;
+          'C'*) dsk_out=$dsk_out":" ;;
+          'D'*) dsk_out=$dsk_out"%" ;;
+          'E'*) dsk_out=$dsk_out"&" ;;
+          'F'*) dsk_out=$dsk_out"." ;;
+          'G'*) dsk_out=$dsk_out"=" ;;
+          'H'*) dsk_out=$dsk_out"@" ;;
+          'I'*) dsk_out=$dsk_out" " ;;
+          '_'*) dsk_out=$dsk_out"_" ;;
+        esac
+        dsk_s=${dsk_s#?}
+        dsk_head=${dsk_s%%_*}
+        dsk_out=$dsk_out$dsk_head
+        dsk_s=${dsk_s#"$dsk_head"}
+      done
+      ;;
+  esac
+
+  eval " $2"='$dsk_out'
+}
+
+# dsk_split_list() {
+#   dsk_entry_get "$DSK_ARG_TO_BE_SPLIT_KEY" dsk_tmp
+#   dsk_separator_pattern="[\\\\${DSK_ARG_SEPARATOR:-;}]"
+#   dsk_head=${dsk_tmp%%$dsk_separator_pattern*}
+#   dsk_curr_item=$dsk_head
+#   dsk_tmp=${dsk_tmp#"$dsk_head"}
+#   dsk_nitem=0
+#   while [ -n "$dsk_tmp" ]; do
+#     case $dsk_tmp in
+#       \\*)
+#         dsk_tmp=${dsk_tmp#?}
+#         dsk_curr_item=$dsk_curr_item\\${dsk_tmp%"${dsk_tmp#?}"}
+#         dsk_tmp=${dsk_tmp#?}
+#         ;;
+#       "${DSK_ARG_SEPARATOR:-;}"*)
+#         dsk_curr_item=$(dsk_parse_string_value "$dsk_curr_item"; echo x)
+#         set -- "$@" "${dsk_curr_item%x}"
+#         dsk_nitem=$((dsk_nitem + 1))
+#         dsk_tmp=${dsk_tmp#?}
+#         dsk_curr_item=
+#         ;;
+#     esac
+#     dsk_head=${dsk_tmp%%$dsk_separator_pattern*}
+#     dsk_tmp=${dsk_tmp#"$dsk_head"}
+#     dsk_curr_item=$dsk_curr_item$dsk_head
+#   done
+# 
+#   if [ -n "$dsk_curr_item" ]; then
+#     dsk_curr_item=$(dsk_parse_string_value "$dsk_curr_item"; echo x)
+#     set -- "$@" "${dsk_curr_item%x}"
+#   fi
+# 
+#   printf "%s\t" "$@"
+#   echo
+# }
+
+
+dsk_split_list='{
+  dsk_entry_get "$DSK_ARG_TO_BE_SPLIT_KEY" dsk_tmp
+  dsk_separator_pattern="[\\\\${DSK_ARG_SEPARATOR:-;}]"
+  dsk_head=${dsk_tmp%%$dsk_separator_pattern*}
+  dsk_curr_item=$dsk_head
+  dsk_tmp=${dsk_tmp#"$dsk_head"}
+  dsk_nitem=0
+  while [ -n "$dsk_tmp" ]; do
+    case $dsk_tmp in
+      \\*)
+        dsk_tmp=${dsk_tmp#?}
+        dsk_curr_item=$dsk_curr_item\\${dsk_tmp%"${dsk_tmp#?}"}
+        dsk_tmp=${dsk_tmp#?}
+        ;;
+      "${DSK_ARG_SEPARATOR:-;}"*)
+        dsk_curr_item=$(dsk_parse_string_value "$dsk_curr_item"; echo x)
+        set -- "$@" "${dsk_curr_item%x}"
+        dsk_nitem=$((dsk_nitem + 1))
+        dsk_tmp=${dsk_tmp#?}
+        dsk_curr_item=
+        ;;
+    esac
+    dsk_head=${dsk_tmp%%$dsk_separator_pattern*}
+    dsk_tmp=${dsk_tmp#"$dsk_head"}
+    dsk_curr_item=$dsk_curr_item$dsk_head
+  done
+
+  if [ -n "$dsk_curr_item" ]; then
+    dsk_curr_item=$(dsk_parse_string_value "$dsk_curr_item"; echo x)
+    set -- "$@" "${dsk_curr_item%x}"
+  fi
+}'
+
+MESSAGES=${LC_ALL:-"${LANG:-"$LC_MESSAGES"}"}
+
+M_MODIFIER=${MESSAGES#"${MESSAGES%%@*}"}
+MESSAGES=${MESSAGES%%'.'*}
+
+M_COUNTRY=${MESSAGES##"${MESSAGES%_*}"}
+MESSAGES=${MESSAGES%_*}
+
+M_LANG=$MESSAGES
+
+dsk_match_locale() {
+  if [ "$M_LANG$M_COUNTRY$M_MODIFIER" = "$1" ]; then
+    echo 4
+    return
+  fi
+
+  if [ "$M_LANG$M_COUNTRY" = "$1" ]; then
+    echo 3
+    return
+  fi
+
+  if [ "$M_LANG$M_MODIFIER" = "$1" ]; then
+    echo 2
+    return
+  fi
+
+  if [ "$M_LANG" = "$1" ]; then
+    echo 1
+    return
+  fi
+
+  echo 0
+}
+
+dsk_parse_string_value() (
+  s=$1
+  result=${s%%\\*}
+  s=${s#"$result"}
+  while [ "${#s}" -ne 0 ]; do
+    s=${s#\\}
+    case $s in
+      s*) result="$result " ;;
+      n*) result=$result$'\n' ;;
+      t*) result=$result$'\t' ;;
+      r*) result=$result$'\r' ;;
+      \\*) result="$result\\" ;;
+      ?*) result="$result${s%"${s#?}"}" ;;
+    esac
+    s=${s#?}
+    head=${s%%\\*}
+    s=${s#"$head"}
+    result="$result$head"
+  done
+
+  printf "%s" "$result"
+)
+
+dsk_instance_set() {
+  eval " dsk_${DSK_INSTANCE}_$1"='$2'
+}
+
+dsk_instance_get() {
+  eval " $2"="\${dsk_${DSK_INSTANCE}_$1}"
+}
+
+dsk_instance_user_set() {
+  eval " dsk_${DSK_INSTANCE}_user_$1"='$2'
+}
+
+dsk_instance_user_get() {
+  eval " $2"="\${dsk_${DSK_INSTANCE}_user_$1}"
+}
+
+
+dsk_set() {
+  eval " dsk_${DSK_INSTANCE}_group_namespace_${DSK_GROUP}_$1"='$2'
+}
+
+dsk_get() {
+  eval " $2"="\${dsk_${DSK_INSTANCE}_group_namespace_${DSK_GROUP}_$1}"
+}
+
+dsk_prefix_set() {
+  dsk_encode "$2" dsk_encoded_entry_key
+  eval " dsk_${DSK_INSTANCE}_group_namespace_${DSK_GROUP}_$1_$dsk_encoded_entry_key"='$3'
+}
+
+dsk_prefix_get() {
+  dsk_encode "$2" dsk_encoded_entry_key
+  eval " $3"="\${dsk_${DSK_INSTANCE}_group_namespace_${DSK_GROUP}_$1_$dsk_encoded_entry_key}"
+}
+
+dsk_is_set() {
+  dsk_encode "$2" dsk_encoded_entry_key
+  eval " [ -n \"\$dsk_${DSK_INSTANCE}_group_namespace_${DSK_GROUP}_$1_$dsk_encoded_entry_key\" ]"
+}
+
+dsk_entry_set() {
+  dsk_encode "$1" dsk_encoded_entry_key
+  eval " unset dsk_${DSK_INSTANCE}_group_namespace_${DSK_GROUP}_parsed_entry_key_$dsk_encoded_entry_key"
+  eval " dsk_${DSK_INSTANCE}_group_namespace_${DSK_GROUP}_entry_key_$dsk_encoded_entry_key"='$2'
+}
+
+dsk_entry_get() {
+  dsk_encode "$1" dsk_encoded_entry_key
+  eval " $2"="\${dsk_${DSK_INSTANCE}_group_namespace_${DSK_GROUP}_entry_key_$dsk_encoded_entry_key}"
+}
+
+dsk_entry_get_stdout() {
+  eval " printf \"%s\" \"\${dsk_${DSK_INSTANCE}_group_namespace_${DSK_GROUP}_entry_key_$1}\""
+}
+
+dsk_entry_get_string() {
+  if ! dsk_is_set "parsed_entry_key" "$1"; then
+    dsk_entry_get "$1" dsk_tmp
+    dsk_prefix_set parsed_entry_key "$1" 1
+    dsk_tmp=$(dsk_parse_string_value "$dsk_tmp"; echo x)
+    dsk_tmp=${dsk_tmp%x}
+    dsk_prefix_set cache_entry_key "$1" "$dsk_tmp"
+    eval " $2"='$dsk_tmp'
+  else
+    dsk_prefix_get cache_entry_key "$1" "$2"
+  fi
+}
+
+dsk_perform_exec() (
+  OPTIND=1
+  opt_desktop_path=
+  opt_launcher=echo
+  while getopts "d:t:" opt; do
+    case $opt in
+      d)
+        opt_desktop_path=$OPTARG
+        ;;
+      t)
+        opt_launcher=$OPTARG
+        ;;
+      \?)
+        exit 2
+        ;;
+    esac
+  done
+  shift "$((OPTIND - 1))"
+
+  narg=$#
+  dsk_split_exec "$@"
+)
+
+dsk_split_exec() {
+  # Split Exec into executable program and arguments respecting quoting
+
+  dsk_entry_get Exec s
+  s=${s#"${s%%[! ]*}"}
+  while [ "${#s}" -ne 0 ]; do
+    case $s in
+      \"*)
+        s=${s#\"}
+        cmdarg=${s%%[\"\\]*}
+        s=${s#"$cmdarg"}
+        while [ "${#s}" -ne 0 ]; do
+          case $s in
+            \"*)
+              set -- "$@" "$cmdarg"
+              s=${s#\"}
+              break
+              ;;
+            \\*)
+              s=${s#\\}
+              case $s in
+                \"*) cmdarg=$cmdarg\" ;;
+                \`*) cmdarg="$cmdarg\`" ;;
+                \$*) cmdarg="$cmdarg\$" ;;
+                \\*) cmdarg="$cmdarg\\" ;;
+                *)   cmdarg="$cmdarg\\" ;;
+              esac
+              s=${s#?}
+              ;;
+          esac
+          remaining=${s%%[\"\\]*}
+          s=${s#"$remaining"}
+          cmdarg=$cmdarg$remaining
+        done
+        ;;
+      *)
+        head=${s%% *}
+        set -- "$@" "$head"
+        s=${s#"$head"}
+        ;;
+    esac
+    s=${s#"${s%%[! ]*}"}
+  done
+
+  dsk_subst_field_codes "$@"
+}
+
+dsk_subst_field_codes() {
+  # Now the positional arguments like this:
+  # arg1 arg2 arg3 ... cmd cmdarg1 cmdarg2 ...
+
+  # Substitute field codes %i %c %k %F %U and remember where %u %f appear
+  arg_comsumed=
+  uf_arg_index=
+  uf_offset_in_arg=
+  i=0
+  while [ "$i" -lt "$narg" ]; do
+    arg=$1
+    shift
+    set -- "$@" "$arg"
+    i=$((i + 1))
+  done
+  # Now the positional arguments like this:
+  #  cmd cmdarg1 cmdarg2 ... arg1 arg2 arg3 ...
+
+  i=0
+  ncmdarg=$(($# - narg))
+  while [ "$i" -lt "$ncmdarg" ]; do
+    remaining=$1
+    i=$((i + 1))
+    shift
+
+    case $remaining in
+      %F|%U)
+        if [ -n "$arg_comsumed" ]; then
+          printf "multiple %F %U occurred\n" >&2
+          return 1
+        fi
+        # Currently we only support local file arguments, thus %F is
+        # equavalent to %U
+        eval_cmd='set --'
+        j=1
+        while [ "$j" -le "$((ncmdarg - i))" ]; do
+          eval_cmd="$eval_cmd \"\$$((j))\""
+          j=$((j + 1))
+        done
+        while [ "$j" -le "$((ncmdarg - 1))" ]; do
+          eval_cmd="$eval_cmd \"\$$((narg + j))\""
+          j=$((j + 1))
+        done
+        while [ "$j" -le "$#" ]; do
+          eval_cmd="$eval_cmd \"\$$((j - i  + 1))\""
+          j=$((j + 1))
+        done
+        eval " $eval_cmd"
+        arg_comsumed=1
+        continue
+        ;;
+      %f|%u)
+        # %f and %u comprises an argument on its own, remove the whole
+        # argument from command line if no file to be open.
+        [ "$narg" -eq 0 ] && continue
+        ;;
+      %i)
+        dsk_entry_get_string Icon icon_path
+        [ -n "$icon_path" ] && set -- "$@" --icon "$icon_path"
+        continue
+        ;;
+    esac
+
+    head=${remaining%%\%*}
+    remaining=${remaining#"$head"}
+    cmdarg=$head
+    while [ "${#remaining}" -ne 0 ]; do
+      remaining=${remaining#\%}
+      case $remaining in
+        c*)
+          dsk_entry_get_string Name name
+          cmdarg="$cmdarg$name"
+          ;;
+        k*)
+          cmdarg="$cmdarg$opt_desktop_path"
+          ;;
+        u*|f*)
+          if [ -n "$arg_comsumed" ] || [ -n "$uf_arg_index" ]; then
+            printf "multiple %F %U %f %u occurred\n" >&2
+            return 1
+          fi
+          uf_arg_index=$((i))
+          uf_offset_in_arg=$(printf "%s" "$cmdarg" | wc -c)
+          ;;
+        \%*)
+          cmdarg="$cmdarg%"
+          ;;
+        *)
+          ;;
+      esac
+      remaining=${remaining#?}
+      head=${remaining%%\%*}
+      remaining=${remaining#"$head"}
+      cmdarg=$cmdarg$head
+    done
+    set -- "$@" "$cmdarg"
+  done
+
+  dsk_execute_command "$@"
+}
+
+dsk_execute_command() {
+  # Now the positional arguments like this:
+  # arg1 arg2 arg3 ... cmd cmdarg1 cmdarg2 ...
+  # or if there is a %U or %F field code:
+  # cmd cmdarg1 cmdarg2 ...
+  #
+
+  # Now execute command 
+  if [ -z "$arg_comsumed" ] && [ -z "$uf_arg_index" ]; then
+    if [ "$narg" -ne 0 ]; then
+      printf "this app doesn't accept arguments\n" >&2
+      return 1
+    fi
+    : # Execute directly
+    "$opt_launcher" "$@"
+    return 0
+  fi
+
+  if [ -n "$arg_comsumed" ]; then
+    : # Execute directly
+    exec "$opt_launcher" "$@"
+  fi
+
+  if [ "$narg" -eq 0 ]; then
+    : # Execute directly
+    exec "$opt_launcher" "$@"
+  fi
+
+  i=0
+  while [ "$i" -lt "$narg" ]; do
+    arg=$1
+    shift
+    i=$((i + 1))
+    (
+      shift "$((narg - i))"
+      eval 'cmdarg=$'"$uf_arg_index"
+      if [ "$uf_offset_in_arg" -eq 0 ]; then
+        cmdarg=$(printf "%s%sx" "$arg" "$cmdarg")
+      else
+        cmdarg=$(printf "%s" "$cmdarg" | \
+          { head -c "$((uf_offset_in_arg))"; printf "%s" "$arg"; cat; echo x; })
+      fi
+      cmdarg=${cmdarg%x}
+      eval_cmd='set --'
+      j=0
+      while [ "$j" -lt "$#" ]; do
+        j=$((j + 1))
+        if [ "$j" -eq "$uf_arg_index" ]; then
+          eval_cmd="$eval_cmd \"\$cmdarg\""
+        else
+          eval_cmd="$eval_cmd \"\$$j\""
+        fi
+      done
+      eval " $eval_cmd"
+      exec "$opt_launcher" "$@"
+    )
+  done
+}
+
+dsk_parse_key_value() {
+  dsk_key=$1
+  dsk_value=$2
+  case $dsk_key in
+    *'['*']') # localestring
+      dsk_locale=${dsk_key#*"["}
+      dsk_locale=${dsk_locale%"]"}
+      dsk_key=${dsk_key%%"["*}
+      dsk_this_match_level=$(dsk_match_locale "$dsk_locale")
+      if ! dsk_is_set match_level "$dsk_key"; then
+        dsk_prefix_set match_level "$dsk_key" "$dsk_this_match_level"
+        dsk_entry_set "$dsk_key" "$dsk_value"
+      else
+        dsk_prefix_get match_level "$dsk_key" dsk_last_match_level
+        if [ "$dsk_last_match_level" -lt "$dsk_this_match_level" ]; then
+          dsk_prefix_set match_level "$dsk_key" "$dsk_this_match_level"
+          dsk_entry_set "$dsk_key" "$dsk_value"
+        fi
+      fi
+      ;;
+    *)
+      if dsk_is_set "match_level" "$dsk_key"; then
+        # This has type localestring and there is already one match
+        return
+      fi
+      dsk_entry_set "$dsk_key" "$dsk_value"
+      ;;
+  esac
+}
+
+dsk_drain() {
+  dsk_instance_get lookahead dsk_line
+  while :; do
+    case $dsk_line in
+      '#'*|'')
+        ;;
+      \[*\])
+        dsk_set group_parsed 1
+        dsk_group_name=${dsk_line#'['}
+        dsk_group_name=${dsk_group_name%']'}
+        dsk_set_current_group "$dsk_group_name"
+        ;;
+      *=*)
+        dsk_key=${dsk_line%%=*}
+        dsk_value=${dsk_line#"$dsk_key"=}
+        dsk_key=${dsk_key%"${dsk_key##*[![:space:]]}"}
+        dsk_value=${dsk_value#"${dsk_value%%[![:space:]]*}"}
+        dsk_parse_key_value "$dsk_key" "$dsk_value"
+        ;;
+    esac
+    read -r dsk_line || break
+  done
+  dsk_instance_set lookahead "$dsk_line"
+}
+
+dsk_parse_group() {
+  dsk_set_current_group "$1"
+  dsk_get group_parsed dsk_tmp
+  [ -n "$dsk_tmp" ] && return
+
+  dsk_instance_get lookahead dsk_line
+  dsk_match_group_name=$1
+  dsk_group_found=
+  while :; do
+    case $dsk_line in
+      '#'*|'')
+        ;;
+      \[*\])
+        dsk_set group_parsed 1
+        [ -n "$dsk_group_found" ] && break
+
+        dsk_group_name=${dsk_line#'['}
+        dsk_group_name=${dsk_group_name%']'}
+        [ "$dsk_match_group_name" = "$dsk_group_name" ] && dsk_group_found=1
+        dsk_set_current_group "$dsk_group_name"
+        ;;
+      *=*)
+        dsk_key=${dsk_line%%=*}
+        dsk_value=${dsk_line#"$dsk_key"=}
+        dsk_key=${dsk_key%"${dsk_key##*[![:space:]]}"}
+        dsk_value=${dsk_value#"${dsk_value%%[![:space:]]*}"}
+        dsk_parse_key_value "$dsk_key" "$dsk_value"
+        ;;
+    esac
+    read -r dsk_line || break
+  done
+  dsk_instance_set lookahead "$dsk_line"
+
+  [ -n "$dsk_group_found" ]
+}

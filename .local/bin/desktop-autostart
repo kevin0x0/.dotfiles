@@ -1,14 +1,42 @@
 #!/bin/sh
 
-dirs=$(printf "%s" "${XDG_CONFIG_DIRS:-/etc/xdg}:${XDG_CONFIG_HOME:-$HOME/.config}" \
-        | tr : '\000' \
-        | xargs -r0 -- printf "%s/autostart:")
-dirs=${dirs%:}
+find_autostart_file() {
+  set -- "${XDG_CONFIG_HOME:-$HOME/.config}/autostart" 
+
+  paths=${XDG_CONFIG_DIRS:-/etc/xdg}:
+  while [ -n "$paths" ]; do
+    path=${paths%%:*}
+    set -- "$@" "$path/autostart"
+    paths=${paths#*:}
+  done
+
+  while IFS= read -r f; do
+    for d; do
+      [ -f "$d/$f" ] && printf "%s\0" "$d/$f"
+    done
+  done
+}
+
+list_autostart_filename() {
+  set -- ${XDG_CONFIG_HOME:-$HOME/.config}/autostart
+
+  paths=${XDG_DATA_DIRS:-/etc/xdg}:
+  while [ -n "$paths" ]; do
+    path=${paths%%:*}
+    set -- "$@" "$path/autostart"
+    paths=${paths#*:}
+  done
+
+  find "$@" -type f -name "*.desktop" -print0 \
+    | xargs -r0 -- sh -c 'for arg; do printf "%s\n" "${arg##*/}"; done' -- \
+    | sort -u
+}
 
 if command -v dex >/dev/null 2>&1; then
-  dex -as "$dirs" --term "run-in-terminal"
+  dex -a --term "run-in-terminal"
   exit
 fi
 
-i18n -n misc "Can not find autostart launcher" >&2
-exit 1
+list_autostart_filename \
+  | find_autostart_file \
+  | xargs -r0 -- desktop-launch -a --

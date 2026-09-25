@@ -1,0 +1,254 @@
+#!/bin/sh
+
+. desktop-parsing-utils
+
+escape() {
+  s=$1
+  head=${s%%[\\\"]*}
+  s=${s#"$head"}
+  printf "%s" "$head"
+  while [ -n "$s" ]; do
+    case $s in
+      \\*)
+        printf '\\\\'
+        ;;
+      \"*)
+        printf '\\"'
+        ;;
+      $'\n'*)
+        printf '\\\\n'
+        ;;
+    esac
+    s=${s#?}
+    head=${s%%[\\\"]*}
+    s=${s#"$head"}
+    printf "%s" "$head"
+  done
+}
+
+start_via_dbus() {
+  [ -n "$desktop_file_name" ] || return
+  command -v gdbus >/dev/null 2>&1 || return
+
+  action=$1
+  shift
+  # Assume that DESKTOP_STARTUP_ID and XDG_ACTIVATION_TOKEN need not be escaped.
+  platform_data='@a{sv} {'
+  if [ -n "$DESKTOP_STARTUP_ID" ]; then
+    platform_data="$platform_data'desktop-startup-id': <'$(escape "$DESKTOP_STARTUP_ID")'>"
+  fi
+  if [ -n "$XDG_ACTIVATION_TOKEN" ]; then
+    platform_data="$platform_data${DESKTOP_STARTUP_ID:+,} 'activation-token': <'$(escape "$XDG_ACTIVATION_TOKEN")'>"
+  fi
+  platform_data="$platform_data}"
+
+  wellknown_name=${desktop_file_name%.desktop}
+  objpath=/$(printf "%s" "$wellknown_name" | LC_ALL=C tr '.-' '/_')
+  if [ -z "$action" ]; then
+    uris=
+    for arg; do
+      uris=${uris:-"@as ["}${uris:+,}"'$(escape "file://$arg")'"
+    done
+    uris=$uris"]"
+
+    if [ "$#" -eq 0 ]; then
+      gdbus call --session --dest "$wellknown_name" --object-path "$objpath" \
+        --method "org.freedesktop.Application.Activate" -- "$platform_data"
+    else
+      gdbus call --session --dest "$wellknown_name" --object-path "$objpath" \
+        --method "org.freedesktop.Application.Open" -- "$uris" "$platform_data"
+    fi
+    return
+  else
+    args=
+    for arg; do
+      args=${args:-"@av ["}${args:+,}"<'$(escape "$arg")'>"
+    done
+    args=$args"]"
+    gdbus call --session --dest "$wellknown_name" --object-path "$objpath" \
+      --method "org.freedesktop.Application.$action" -- \
+      "@s '$(escape "$action")'" "$args" "$platform_data"
+  fi
+}
+
+executable() {
+  f=$1
+  case $f in
+    /*)
+      [ -f "$f" ] && [ -x "$f" ] || return
+      ;;
+    *)
+      paths=$PATH:
+      while [ -n "$paths" ]; do
+        path=${paths%%:*}
+        if [ -f "$path/$f" ]; then
+          [ -x "$path/$f" ]
+          return
+        fi
+        paths=${paths#*:}
+      done
+      return 1
+      ;;
+  esac
+}
+
+launcher() {
+  [ -n "$APP_NEED_TERMINAL" ] && set -- run-in-terminal -- "$@"
+  swaymsg -- exec "$@" && return
+
+  "$@" >/dev/null 2>&1 &
+}
+
+start() {
+  dsk_set_current_group "Desktop Entry"
+  dsk_entry_get_string TryExec try_exec
+  if [ -n "$try_exec" ] && ! executable "$try_exec"; then
+    return
+  fi
+
+  action=$1
+  if [ -n "$action" ]; then
+    is_valid_action() (
+      set --
+      DSK_ARG_TO_BE_SPLIT_KEY=Actions
+      DSK_ARG_SEPARATOR=;
+      eval "$dsk_split_list"
+      for a; do
+        [ "$action" = "$a" ] && return 0
+      done
+      return 1
+    )
+    is_valid_action || return
+  fi
+
+  if [ "$(dsk_entry_get_stdout DBusActivatable)" = true ] && start_via_dbus "$@"; then
+    return
+  fi
+
+  shift
+  if [ -n "$action" ]; then
+    dsk_parse_group "Desktop Action $action" <&3 || return
+  fi
+
+  dsk_perform_exec -t launcher -d "$desktop_file" -- "$@"
+}
+
+find_desktop_file() {
+  f=${XDG_DATA_HOME:-$HOME/.local/share}/applications/$1
+  [ -f "$f" ] && { printf "%s" "$f"; return; }
+
+  paths=${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}:
+  while [ -n "$paths" ]; do
+    path=${paths%%:*}
+    f=$path/applications/$1
+    [ -f "$f" ] && { printf "%s" "$f"; return; }
+    paths=${paths#*:}
+  done
+}
+
+should_autostart() {
+  if [ "$(dsk_entry_get_stdout Hidden)" = true ]; then
+    return 1
+  fi
+
+  set --
+  DSK_ARG_TO_BE_SPLIT_KEY=OnlyShowIn
+  DSK_ARG_SEPARATOR=;
+  eval "$dsk_split_list"
+  if [ "$#" -ne 0 ]; then
+    for deskenv; do
+      currenvs=$XDG_CURRENT_DESKTOP:
+      while [ -n "$currenvs" ]; do
+        currenv=${currenvs%%:*}
+        if [ "$deskenv" = "$currenv" ]; then
+          return 0
+        fi
+      done
+    done
+    return 1
+  fi
+
+  set --
+  DSK_ARG_TO_BE_SPLIT_KEY=NotShowIn
+  eval "$dsk_split_list"
+  if [ "$#" -ne 0 ]; then
+    for deskenv; do
+      currenvs=$XDG_CURRENT_DESKTOP:
+      while [ -n "$currenvs" ]; do
+        currenv=${currenvs%%:*}
+        if [ "$deskenv" = "$currenv" ]; then
+          return 1
+        fi
+      done
+    done
+    return 0
+  fi
+
+  return 0
+}
+
+launch() {
+  desktop_file=$1
+  desktop_file_name=${desktop_file##*/}
+  shift
+
+  case $desktop_file in
+    /*)
+      ;;
+    */*)
+      desktop_file=$PWD/$desktop_file
+      ;;
+    *)
+      desktop_file=$(find_desktop_file "$desktop_file")
+      ;;
+  esac
+
+  if ! exec 3<"$desktop_file"; then
+    printf "can not open desktop file: %s\n" "$desktop_file" >&2
+    exit 1
+  fi
+
+  dsk_set_current_instance "$desktop_file_name"
+  if ! dsk_parse_group "Desktop Entry" <&3; then
+    printf "can parse group: Desktop Entry for %s\n" "$desktop_file" >&2
+    exit 1
+  fi
+
+  if [ -n "$opt_autostart" ]; then
+    should_autostart || return 0
+  fi
+
+  if [ "$(dsk_entry_get_stdout Terminal)" = true ]; then
+    APP_NEED_TERMINAL=1
+  fi
+
+  if ! start "$opt_action" "$@"; then
+    printf "failed to launch %s\n" "$desktop_file" >&2
+    exit 1
+  fi
+}
+
+opt_autostart=
+opt_action=
+while getopts "aA:" opt; do
+  case $opt in
+    a)
+      opt_autostart=1
+      ;;
+    A)
+      opt_action=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ -n "$opt_autostart" ]; then
+  for f; do
+    launch "$f"
+  done
+else
+  launch "$@"
+fi
