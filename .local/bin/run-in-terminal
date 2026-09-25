@@ -1,0 +1,31 @@
+#!/bin/sh
+
+while getopts "e" opt; do
+  case $opt in
+    e)
+      # ignore for compatibility
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
+
+for term in "xdg-terminal-exec" "foot" "konsole" "nxterm" "color-xterm" \
+  "rxvt" "dtterm" "xterm"; do
+  command -v "$term" >/dev/null 2>&1 && break
+done
+
+case $term in
+  xdg-terminal-exec|foot)
+    exec "$term" -- "$@"
+    ;;
+  nxterm|color-xterm|rxvt|dtterm|xterm|konsole)
+    exec "$term" -e "$@"
+    ;;
+esac
+
+printf "no recognized terminal available\n" >&2
+exit 1
