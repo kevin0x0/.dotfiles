@@ -1,0 +1,268 @@
+#!/bin/sh
+
+. desktop-parsing-utils
+
+DSK_ARG_SEPARATOR=,
+: "${XDG_DATA_HOME:=$HOME/.local/share}"
+: "${XDG_DATA_DIRS:=/usr/local/share/:/usr/share/}"
+: "${XDG_CACHE_HOME:=$HOME/.cache}"
+mkdir -p -- "$XDG_CACHE_HOME/icon-lookup"
+
+NPATH=0
+
+addpath() {
+  for path; do
+    [ -d "$path" ] || continue
+    eval "SEARCH_PATH_$NPATH"='$path'
+    NPATH=$((NPATH + 1))
+  done
+}
+
+getpath() {
+  eval " $2"="\$SEARCH_PATH_$1"
+}
+
+addpath "$XDG_DATA_HOME/icons" "$HOME/.icons"
+
+paths=$XDG_DATA_DIRS:
+while [ -n "$paths" ]; do
+  addpath "${paths%%:*}/icons"
+  paths=${paths#*:}
+done
+
+addpath "/usr/share/pixmaps"
+
+search_index() {
+  i=0
+  while [ "$i" -lt "$NPATH" ]; do
+    getpath "$i" d
+    if [ -f "$d/$1" ]; then
+      printf "%s" "$d/$1"
+      return 0
+    fi
+    i=$((i + 1))
+  done
+
+  return 1
+}
+
+dir_match_size() {
+  dsk_parse_group "$1" <&3 || return
+
+  dsk_entry_get Scale dir_icon_scale
+  dir_icon_scale=${dir_icon_scale:-1}
+  [ "$dir_icon_scale" -ne "$3" ] && return 1
+
+  dsk_entry_get_string Type dir_icon_type
+  dir_icon_type=${dir_icon_type:-Threshold}
+
+  dsk_entry_get Size dir_icon_size
+  [ -z "$dir_icon_size" ] && return 1
+
+  if [ "$dir_icon_type" = Fixed ]; then
+    [ "$dir_icon_size" -eq "$2" ]
+  elif [ "$dir_icon_type" = Scalable ]; then
+    # According to the pseudocode provided by XDG specification:
+    # https://specifications.freedesktop.org/icon-theme/latest/#icon_lookup
+    # The 'Scalable' should be 'Scaled', but there is no standard type called
+    # 'Scaled', which maybe a mistake. Here we use 'Scalable'.
+    dsk_entry_get MinSize dir_icon_minsize
+    dsk_entry_get MaxSize dir_icon_maxsize
+    dir_icon_minsize=${dir_icon_minsize:-"$dir_icon_size"}
+    dir_icon_maxsize=${dir_icon_maxsize:-"$dir_icon_size"}
+
+    [ "$dir_icon_minsize" -le "$2" ] && [ "$dir_icon_maxsize" -ge "$2" ]
+  elif [ "$dir_icon_type" = Threshold ]; then
+    dsk_entry_get Threshold dir_icon_size_threshold
+    dir_icon_size_threshold=${dir_icon_size_threshold:-2}
+
+    size_diff=$(($2 - dir_icon_size)) 
+    size_diff=$((size_diff < 0 ? -size_diff : size_diff)) 
+    [ "$size_diff" -le "$dir_icon_size_threshold" ]
+  else
+    return 1
+  fi
+}
+
+dir_size_distance() {
+  dsk_parse_group "$1" <&3 || return
+
+  dsk_entry_get Scale dir_icon_scale
+  dir_icon_scale=${dir_icon_scale:-1}
+
+  dsk_entry_get_string Type dir_icon_type
+  dir_icon_type=${dir_icon_type:-Threshold}
+
+  dsk_entry_get Size dir_icon_size
+  [ -z "$dir_icon_size" ] && return 1
+
+  distance=
+
+  icon_scaled_size=$(($2 * $3))
+  dir_icon_scaled_size=$((dir_icon_size * dir_icon_scale))
+  if [ "$dir_icon_type" = Fixed ]; then
+    distance=$((dir_icon_scaled_size - icon_scaled_size))
+    distance=$((distance > 0 ? distance : -distance))
+  else
+    if [ "$dir_icon_type" = Scalable ]; then
+      # See dir_match_size()
+      dsk_entry_get MinSize dir_icon_minsize
+      dsk_entry_get MaxSize dir_icon_maxsize
+      dir_icon_minsize=${dir_icon_minsize:-"$dir_icon_size"}
+      dir_icon_maxsize=${dir_icon_maxsize:-"$dir_icon_size"}
+    elif [ "$dir_icon_type" = Threshold ]; then
+      dsk_entry_get Threshold dir_icon_size_threshold
+      dir_icon_size_threshold=${dir_icon_size_threshold:-2}
+      dir_icon_minsize=$((dir_icon_size - dir_icon_size_threshold))
+      dir_icon_maxsize=$((dir_icon_size + dir_icon_size_threshold))
+    else
+      return 1
+    fi
+
+    dir_icon_scaled_minsize=$((dir_icon_minsize * dir_icon_scale))
+    dir_icon_scaled_maxsize=$((dir_icon_maxsize * dir_icon_scale))
+    if [ "$icon_scaled_size" -lt "$dir_icon_scaled_minsize" ]; then
+      distance=$((dir_icon_scaled_minsize - dir_icon_scaled_size))
+    elif [ "$icon_scaled_size" -gt "$dir_icon_scaled_maxsize" ]; then
+      distance=$((dir_icon_scaled_size - dir_icon_scaled_maxsize))
+    else
+      distance=0
+    fi
+  fi
+
+  eval " $4"'=$distance'
+}
+
+search_icon() {
+  i=0
+  while [ "$i" -lt "$NPATH" ]; do
+    getpath "$i" d
+    for extension in png svg xpm; do
+      if [ -f "$d/$1.$extension" ]; then
+        eval " $2"='$d/$1.$extension'
+        return 0
+      fi
+    done
+    i=$((i + 1))
+  done
+
+  return 1
+}
+
+lookup_in_parent() {
+  dsk_set_current_group "Icon Theme"
+  DSK_ARG_TO_BE_SPLIT_KEY=Inherits
+  eval "$dsk_split_list"
+
+  for parent; do
+    icon_file=$(lookup_in_theme "$parent" "$name" "$size" "$scale") || continue
+    printf "%s" "$icon_file"
+    return
+  done
+
+  return 1
+}
+
+lookup_in_theme() {
+  theme=$1
+  name=$2
+  size=$3
+  scale=${4:-1}
+  shift "$#"
+  index_file=$(search_index "$theme/index.theme") || return 1
+
+  exec 3<"$index_file" || return 1
+  dsk_set_current_instance "$theme"
+
+  dsk_encode "$theme/$name/$size/$scale" encoded
+  cache_file=${XDG_CACHE_HOME:-$HOME/.cache}/icon-lookup/$encoded
+  toplevel_dir=${index_file%/*}
+
+  if [ -f "$cache_file" ] && [ -n "$(find "$cache_file" -newer "$toplevel_dir")" ]; then
+    icon_file=$(cat -- "$cache_file"; echo x)
+    icon_file=${icon_file%x}
+    if [ -f "$icon_file" ]; then
+      printf "%s" "$icon_file"
+      return 0
+    elif [ -z "$icon_file" ]; then
+      dsk_parse_group "Icon Theme" <&3 || return
+      lookup_in_parent
+      return
+    fi
+  fi
+
+  dsk_parse_group "Icon Theme" <&3 || return
+
+  DSK_ARG_TO_BE_SPLIT_KEY=Directories
+  eval "$dsk_split_list"
+  DSK_ARG_TO_BE_SPLIT_KEY=ScaledDirectories
+  eval "$dsk_split_list"
+
+  icon_file=
+  for subdir; do
+    if dir_match_size "$subdir" "$size" "$scale"; then
+      search_icon "$theme/$subdir/$name" icon_file && break
+    fi
+  done
+  if [ -n "$icon_file" ]; then
+     printf "%s" "$icon_file" >"$cache_file"
+     printf "%s" "$icon_file"
+     return 
+  fi
+
+  best_distance=
+  best_icon_file=
+  for subdir; do
+    dir_size_distance "$subdir" "$size" "$scale" this_distance || continue
+    if [ -z "$best_distance" ] || [ "$this_distance" -lt "$best_distance" ]; then
+      if search_icon "$theme/$subdir/$name" icon_file; then
+        best_distance=$this_distance
+        best_icon_file=$icon_file
+      fi
+    fi
+  done
+  printf "%s" "$best_icon_file" >"$cache_file"
+  if [ -n "$best_icon_file" ]; then
+     printf "%s" "$best_icon_file"
+     return 
+  fi
+
+  # Can not find icon file in this theme, search its parents
+  lookup_in_parent
+}
+
+opt_theme=hicolor
+opt_scale=1
+
+config_file=${XDG_CONFIG_HOME:-$HOME/.config}/icon-lookup/config
+[ -f "$config_file" ] && [ -r "$config_file" ] && . -- "$config_file"
+
+while getopts "t:s:" opt; do
+  case $opt in
+    t)
+      opt_theme=$OPTARG
+      ;;
+    s)
+      opt_scale=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ "$#" -ne 2 ]; then
+  printf "must specify the icon name and size\n" >&2
+  exit 1
+fi
+
+if ! icon_file=$(lookup_in_theme "$opt_theme" "$@" "$opt_scale"); then
+  if ! icon_file=$(lookup_in_theme  "hicolor" "$@" "$opt_scale"); then
+    if ! search_icon "$1" icon_file; then
+      icon_file="/dev/null"
+    fi
+  fi
+fi
+
+printf "%s\n" "$icon_file"
