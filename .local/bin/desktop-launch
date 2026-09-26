@@ -97,9 +97,12 @@ executable() {
   esac
 }
 
-launcher() {
-  [ -n "$APP_NEED_TERMINAL" ] && set -- run-in-terminal -- "$@"
+launch_without_terminal() {
   desktop-exec -- "$@"
+}
+
+launch_in_terminal() {
+  desktop-exec -- run-in-terminal -- "$@"
 }
 
 start() {
@@ -109,7 +112,9 @@ start() {
     return
   fi
 
-  action=$1
+  lancher=$1
+  action=$2
+  shift 2
   if [ -n "$action" ]; then
     is_valid_action() (
       set --
@@ -124,16 +129,15 @@ start() {
     is_valid_action || return
   fi
 
-  if [ "$(dsk_entry_get_stdout DBusActivatable)" = true ] && start_via_dbus "$@"; then
+  if [ "$(dsk_entry_get_stdout DBusActivatable)" = true ] && start_via_dbus "$action" "$@"; then
     return
   fi
 
-  shift
   if [ -n "$action" ]; then
     dsk_parse_group "Desktop Action $action" <&3 || return
   fi
 
-  dsk_perform_exec -t launcher -d "$desktop_file" -- "$@"
+  dsk_perform_exec -t "$launcher" -d "$desktop_file" -- "$@"
 }
 
 find_desktop_file() {
@@ -223,8 +227,9 @@ launch() {
     should_autostart || return 0
   fi
 
+  launcher=launch_without_terminal
   if [ "$(dsk_entry_get_stdout Terminal)" = true ]; then
-    APP_NEED_TERMINAL=1
+    launcher=launch_in_terminal
   fi
 
   count=$#
@@ -243,7 +248,7 @@ launch() {
     esac
   done
 
-  if ! start "$opt_action" "$@"; then
+  if ! start "$launcher" "$opt_action" "$@"; then
     printf "failed to launch %s\n" "$desktop_file" >&2
     exit 1
   fi
