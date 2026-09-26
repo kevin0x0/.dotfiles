@@ -424,11 +424,12 @@ dsk_perform_exec() (
         fi
         # %f and %u comprises an argument on its own, remove the whole
         # argument from command line if no file to be open.
-        [ "$narg" -eq 0 ] && break
-        dsk_array_len substcmd uf_arg_index
-        dsk_array_add substcmd ""
-        uf_offset_in_arg=0
-        arg_comsumed=1
+        if [ "$narg" -ne 0 ]; then
+          dsk_array_len substcmd uf_arg_index
+          dsk_array_add substcmd ""
+          uf_offset_in_arg=0
+          arg_comsumed=1
+        fi
         ;;
       %i)
         dsk_entry_get_string Icon icon_path
