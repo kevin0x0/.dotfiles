@@ -26,7 +26,8 @@ addpath "$XDG_DATA_HOME/icons" "$HOME/.icons"
 
 paths=$XDG_DATA_DIRS:
 while [ -n "$paths" ]; do
-  addpath "${paths%%:*}/icons"
+  path=${paths%%:*}
+  addpath "${path:-.}/icons"
   paths=${paths#*:}
 done
 
