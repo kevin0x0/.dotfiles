@@ -1,23 +1,21 @@
 _comp_ec() {
-  local savedIFS=$IFS
-  IFS=:
-  local paths=(${PATH:+$PATH:})
-
+  local paths=${PATH:+$PATH:}
   local cur="${COMP_WORDS[COMP_CWORD]}"
 
-  IFS=$'\n'
-
-  local path
+  local item
   COMPREPLY=()
-  for path in "${paths[@]}"; do
-    path=${path:-.}
-    if [ -d "$path" ] && [ -x "$path" ] && [ -r "$path" ]; then
-      COMPREPLY+=($(cd -- "$path"; \
-        find -type f -print | grep -F "./$cur" | sed 's/^\.\///g'))
-    fi
-  done
-
-  IFS=$savedIFS
+  while IFS= read -r item; do
+    COMPREPLY+=("$item")
+  done < <(
+      while [ -n "$paths" ]; do
+        local path=${paths%%:*}
+        path=${path:-.}
+        if [ -d "$path" ] && [ -x "$path" ] && [ -r "$path" ]; then
+          (cd -- "$path" && find -type f -print | grep -F "./$cur" | sed 's/^\.\///g')
+        fi
+        paths=${paths#*:}
+      done
+    )
 }
 
 complete -o nosort -o bashdefault -o default -F _comp_ec ec
