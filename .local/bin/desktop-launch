@@ -82,9 +82,10 @@ executable() {
       [ -f "$f" ] && [ -x "$f" ] || return
       ;;
     *)
-      paths=$PATH:
+      paths=${PATH:+$PATH:}
       while [ -n "$paths" ]; do
         path=${paths%%:*}
+        path=${path:-.}
         if [ -f "$path/$f" ]; then
           [ -x "$path/$f" ]
           return
