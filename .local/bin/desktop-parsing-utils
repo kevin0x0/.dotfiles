@@ -585,13 +585,13 @@ dsk_parse_group() {
       '#'*|'')
         ;;
       \[*\])
-        dsk_set group_parsed 1
         [ -n "$dsk_group_found" ] && break
 
         dsk_group_name=${dsk_line#'['}
         dsk_group_name=${dsk_group_name%']'}
         [ "$dsk_match_group_name" = "$dsk_group_name" ] && dsk_group_found=1
         dsk_set_current_group "$dsk_group_name"
+        dsk_set group_parsed 1
         ;;
       *=*)
         dsk_key=${dsk_line%%=*}
