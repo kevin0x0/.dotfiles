@@ -173,6 +173,9 @@ lookup_in_theme() {
 
   exec 3<"$index_file" || return 1
   dsk_set_current_instance "$theme"
+  dsk_instance_user_get searched searched
+  [ -z "$searched" ] || return
+  dsk_instance_user_set searched 1
 
   dsk_encode "$theme/$name/$size/$scale" encoded
   cache_file=${XDG_CACHE_HOME:-$HOME/.cache}/icon-lookup/$encoded
