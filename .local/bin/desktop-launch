@@ -111,7 +111,7 @@ start() {
     return
   fi
 
-  lancher=$1
+  launcher=$1
   action=$2
   shift 2
   if [ -n "$action" ]; then
