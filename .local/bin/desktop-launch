@@ -215,7 +215,7 @@ launch() {
 
   dsk_set_current_instance "$desktop_file_name"
   if ! dsk_parse_group "Desktop Entry" <&3; then
-    printf "can parse group: Desktop Entry for %s\n" "$desktop_file" >&2
+    printf "can not parse group: Desktop Entry for %s\n" "$desktop_file" >&2
     exit 1
   fi
 
