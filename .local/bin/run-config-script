@@ -29,6 +29,7 @@ else
   paths=${PATH:+$PATH:}
   while [ -n "$paths" ]; do
     path=${paths%%:*}
+    path=${path:-.}
     if [ -f "$path/$script" ]; then
       scriptpath="$path/$script"
       [ -x "$path/$script" ] || exit 4

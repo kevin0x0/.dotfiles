@@ -10,6 +10,7 @@ _comp_ec() {
   local path
   COMPREPLY=()
   for path in "${paths[@]}"; do
+    path=${path:-.}
     if [ -d "$path" ] && [ -x "$path" ] && [ -r "$path" ]; then
       COMPREPLY+=($(cd -- "$path"; \
         find -type f -print | grep -F "./$cur" | sed 's/^\.\///g'))
