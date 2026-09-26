@@ -51,6 +51,35 @@ dir_match_outputprofile() {
   [ "$dir_sound_outputprofile" = "$2" ]
 }
 
+search_unthemed_sound() {
+  i=0
+  while [ "$i" -lt "$NPATH" ]; do
+    getpath "$i" d
+    search_name=$1
+    while :; do
+      for extension in disabled oga ogg wav; do
+        f="$d/$search_name.$extension"
+        if [ -f "$f" ]; then
+          eval " $2"='$f'
+          return 0
+        fi
+      done
+
+      case $search_name in
+        *-*)
+          search_name=${search_name%-*}
+          ;;
+        *)
+          break
+          ;;
+      esac
+    done
+    i=$((i + 1))
+  done
+
+  return 1
+}
+
 search_sound() {
   i=0
   while [ "$i" -lt "$NPATH" ]; do
@@ -147,7 +176,10 @@ lookup_in_theme() {
      return 
   fi
 
-  # Can not find sound file in this theme, search its parents
+  # Can not find sound file in this theme, search its parents.
+  # The XDG specification's prose description of the traversal order between
+  # parent themes and fallback themes conflicts with the provided pseudocode;
+  # the prose description is followed here.
   lookup_in_parent
 }
 
@@ -193,7 +225,11 @@ REQUESTED_LOCALE2=$lang$country
 REQUESTED_LOCALE3=$lang
 
 if ! sound_file=$(lookup_in_theme "$opt_theme" "$1" "$opt_profile"); then
-  sound_file="/dev/null"
+  if ! sound_file=$(lookup_in_theme "freedesktop" "$1" "$opt_profile"); then
+    if ! search_unthemed_sound "$1" sound_file; then
+      sound_file="/dev/null"
+    fi
+  fi
 fi
 
 printf "%s\n" "$sound_file"
