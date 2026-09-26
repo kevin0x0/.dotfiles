@@ -4,7 +4,7 @@
 
 escape() {
   s=$1
-  head=${s%%[\\\"$'\n']*}
+  head=${s%%[\\\"\'$'\n']*}
   s=${s#"$head"}
   printf "%s" "$head"
   while [ -n "$s" ]; do
@@ -15,12 +15,15 @@ escape() {
       \"*)
         printf '\\"'
         ;;
+      \'*)
+        printf "\\\\'"
+        ;;
       $'\n'*)
         printf '\\\\n'
         ;;
     esac
     s=${s#?}
-    head=${s%%[\\\"$'\n']*}
+    head=${s%%[\\\"\'$'\n']*}
     s=${s#"$head"}
     printf "%s" "$head"
   done
@@ -32,7 +35,7 @@ start_via_dbus() {
 
   action=$1
   shift
-  # Assume that DESKTOP_STARTUP_ID and XDG_ACTIVATION_TOKEN need not be escaped.
+
   platform_data='@a{sv} {'
   if [ -n "$DESKTOP_STARTUP_ID" ]; then
     platform_data="$platform_data'desktop-startup-id': <'$(escape "$DESKTOP_STARTUP_ID")'>"
