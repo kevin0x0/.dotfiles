@@ -163,7 +163,7 @@ should_autostart() {
 
   set --
   DSK_ARG_TO_BE_SPLIT_KEY=OnlyShowIn
-  DSK_ARG_SEPARATOR=;
+  DSK_ARG_SEPARATOR=';'
   eval "$dsk_split_list"
   if [ "$#" -ne 0 ]; then
     for deskenv; do
