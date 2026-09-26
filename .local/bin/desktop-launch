@@ -148,6 +148,7 @@ find_desktop_file() {
   paths=${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}:
   while [ -n "$paths" ]; do
     path=${paths%%:*}
+    path=${path:-.}
     f=$path/applications/$1
     [ -f "$f" ] && { printf "%s" "$f"; return; }
     paths=${paths#*:}
