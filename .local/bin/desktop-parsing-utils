@@ -400,20 +400,42 @@ dsk_perform_exec() (
   arg_comsumed=
   uf_arg_index=
   uf_offset_in_arg=
+  uf_kind=
   i=0
   dsk_array_len cmd cmdlen
   dsk_array_clear substcmd
   while [ "$i" -lt "$cmdlen" ]; do
     dsk_array_get cmd "$i" cmdarg
     case $cmdarg in
-      %[UF])
+      %F)
         if [ -n "$arg_comsumed" ]; then
           printf "%s\n" "multiple %F %U %f %u occurred" >&2
           return 1
         fi
-        # Currently we only support local file arguments, thus %F is
-        # equavalent to %U
-        dsk_array_add substcmd "$@"
+
+        # Here we just take all arguments as pathname
+        for arg; do
+          case $arg in
+            /*)
+              ;;
+            *)
+              arg=$PWD/$arg
+              ;;
+          esac
+          dsk_array_add substcmd "$arg"
+        done
+        set --
+        arg_comsumed=1
+        ;;
+      %U)
+        if [ -n "$arg_comsumed" ]; then
+          printf "%s\n" "multiple %F %U %f %u occurred" >&2
+          return 1
+        fi
+
+        for arg; do
+          dsk_array_add substcmd "$(path2uri -- "$arg")"
+        done
         set --
         arg_comsumed=1
         ;;
@@ -425,6 +447,7 @@ dsk_perform_exec() (
         # %f and %u comprises an argument on its own, remove the whole
         # argument from command line if no file to be open.
         if [ "$narg" -ne 0 ]; then
+          uf_kind=${cmdarg#%}
           dsk_array_len substcmd uf_arg_index
           dsk_array_add substcmd ""
           uf_offset_in_arg=0
@@ -453,6 +476,8 @@ dsk_perform_exec() (
                 printf "%s\n" "multiple %F %U %f %u occurred" >&2
                 return 1
               fi
+
+              uf_kind=${cmdarg%"${cmdarg#?}"}
               arg_comsumed=1
               dsk_array_len substcmd uf_arg_index
               uf_offset_in_arg=$(printf "%s" "$substcmdarg" | wc -c)
@@ -495,12 +520,27 @@ dsk_perform_exec() (
   for arg; do
     (
       if [ -n "$uf_arg_index" ]; then
+        case $uf_kind in
+          u)
+            arg=$(path2uri -- "$arg")
+            ;;
+          f)
+            case $arg in
+              /*)
+                ;;
+              *)
+                arg=$PWD/$arg
+                ;;
+            esac
+            ;;
+        esac
+
         dsk_array_get substcmd "$uf_arg_index" cmdarg
         if [ "$uf_offset_in_arg" -eq 0 ]; then
           cmdarg=$(printf "%s%sx" "$arg" "$cmdarg")
         else
           cmdarg=$(printf "%s" "$cmdarg" | \
-            { head -c "$((uf_offset_in_arg))"; printf "%s" "$arg"; cat; echo x; })
+            { head -c "$uf_offset_in_arg"; printf "%s" "$arg"; cat; echo x; })
         fi
         dsk_array_set substcmd "$uf_arg_index" "${cmdarg%x}"
       fi
