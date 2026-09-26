@@ -18,7 +18,7 @@ find_autostart_file() {
 }
 
 list_autostart_filename() {
-  set -- ${XDG_CONFIG_HOME:-$HOME/.config}/autostart
+  set -- "${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
 
   paths=${XDG_CONFIG_DIRS:-/etc/xdg}:
   while [ -n "$paths" ]; do
