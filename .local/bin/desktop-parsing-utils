@@ -540,7 +540,7 @@ dsk_perform_exec() (
           cmdarg=$(printf "%s%sx" "$arg" "$cmdarg")
         else
           cmdarg=$(printf "%s" "$cmdarg" | \
-            { head -c "$uf_offset_in_arg"; printf "%s" "$arg"; cat; echo x; })
+            { dd bs="$uf_offset_in_arg" count=1 iflag=fullblock 2>/dev/null; printf "%s" "$arg"; cat; echo x; })
         fi
         dsk_array_set substcmd "$uf_arg_index" "${cmdarg%x}"
       fi
