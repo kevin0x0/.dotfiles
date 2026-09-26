@@ -97,10 +97,12 @@ executable() {
 }
 
 launch_without_terminal() {
+  exec 3<&-
   desktop-exec -- "$@"
 }
 
 launch_in_terminal() {
+  exec 3<&-
   desktop-exec -- run-in-terminal -- "$@"
 }
 
