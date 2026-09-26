@@ -13,9 +13,10 @@ done
 
 shift "$((OPTIND - 1))"
 
-for term in "xdg-terminal-exec" "foot" "konsole" "nxterm" "color-xterm" \
+term=
+for candidate in "xdg-terminal-exec" "foot" "konsole" "nxterm" "color-xterm" \
   "rxvt" "dtterm" "xterm"; do
-  command -v "$term" >/dev/null 2>&1 && break
+  command -v "$candidate" >/dev/null 2>&1 && { term=$candidate; break; }
 done
 
 case $term in
