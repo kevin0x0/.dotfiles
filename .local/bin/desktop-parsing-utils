@@ -109,7 +109,6 @@ dsk_decode() {
 #   dsk_head=${dsk_tmp%%$dsk_separator_pattern*}
 #   dsk_curr_item=$dsk_head
 #   dsk_tmp=${dsk_tmp#"$dsk_head"}
-#   dsk_nitem=0
 #   while [ -n "$dsk_tmp" ]; do
 #     case $dsk_tmp in
 #       \\*)
@@ -120,7 +119,6 @@ dsk_decode() {
 #       "${DSK_ARG_SEPARATOR:-;}"*)
 #         dsk_curr_item=$(dsk_parse_string_value "$dsk_curr_item"; echo x)
 #         set -- "$@" "${dsk_curr_item%x}"
-#         dsk_nitem=$((dsk_nitem + 1))
 #         dsk_tmp=${dsk_tmp#?}
 #         dsk_curr_item=
 #         ;;
@@ -146,7 +144,6 @@ dsk_split_list='{
   dsk_head=${dsk_tmp%%$dsk_separator_pattern*}
   dsk_curr_item=$dsk_head
   dsk_tmp=${dsk_tmp#"$dsk_head"}
-  dsk_nitem=0
   while [ -n "$dsk_tmp" ]; do
     case $dsk_tmp in
       \\*)
@@ -157,7 +154,6 @@ dsk_split_list='{
       "${DSK_ARG_SEPARATOR:-;}"*)
         dsk_curr_item=$(dsk_parse_string_value "$dsk_curr_item"; echo x)
         set -- "$@" "${dsk_curr_item%x}"
-        dsk_nitem=$((dsk_nitem + 1))
         dsk_tmp=${dsk_tmp#?}
         dsk_curr_item=
         ;;
