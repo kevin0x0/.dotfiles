@@ -53,9 +53,9 @@ dir_match_outputprofile() {
 
 search_sound() {
   i=0
-  search_name=$2
   while [ "$i" -lt "$NPATH" ]; do
     getpath "$i" d
+    search_name=$2
     while :; do
       for search_locale in "$REQUESTED_LOCALE1" "$REQUESTED_LOCALE2" "$REQUESTED_LOCALE3" "C" ""; do
         [ -d "$d/$1/$search_locale" ] || continue

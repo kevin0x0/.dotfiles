@@ -4,7 +4,7 @@
 
 escape() {
   s=$1
-  head=${s%%[\\\"]*}
+  head=${s%%[\\\"$'\n']*}
   s=${s#"$head"}
   printf "%s" "$head"
   while [ -n "$s" ]; do
@@ -20,7 +20,7 @@ escape() {
         ;;
     esac
     s=${s#?}
-    head=${s%%[\\\"]*}
+    head=${s%%[\\\"$'\n']*}
     s=${s#"$head"}
     printf "%s" "$head"
   done
@@ -43,13 +43,13 @@ start_via_dbus() {
   platform_data="$platform_data}"
 
   wellknown_name=${desktop_file_name%.desktop}
-  objpath=/$(printf "%s" "$wellknown_name" | LC_ALL=C tr '.-' '/_')
+  objpath=/$(printf "%s" "$wellknown_name" | tr '.-' '/_')
   if [ -z "$action" ]; then
     uris=
     for arg; do
       uris=${uris:-"@as ["}${uris:+,}"'$(escape "file://$arg")'"
     done
-    uris=$uris"]"
+    uris=${uris:-"@as ["}"]"
 
     if [ "$#" -eq 0 ]; then
       gdbus call --session --dest "$wellknown_name" --object-path "$objpath" \
@@ -64,9 +64,10 @@ start_via_dbus() {
     for arg; do
       args=${args:-"@av ["}${args:+,}"<'$(escape "$arg")'>"
     done
-    args=$args"]"
+    args=${args:-"@av ["}"]"
+
     gdbus call --session --dest "$wellknown_name" --object-path "$objpath" \
-      --method "org.freedesktop.Application.$action" -- \
+      --method "org.freedesktop.Application.ActivateAction" -- \
       "@s '$(escape "$action")'" "$args" "$platform_data"
   fi
 }
@@ -94,9 +95,7 @@ executable() {
 
 launcher() {
   [ -n "$APP_NEED_TERMINAL" ] && set -- run-in-terminal -- "$@"
-  swaymsg -- exec "$@" && return
-
-  "$@" >/dev/null 2>&1 &
+  desktop-exec -- "$@"
 }
 
 start() {
@@ -163,6 +162,7 @@ should_autostart() {
         if [ "$deskenv" = "$currenv" ]; then
           return 0
         fi
+        currenvs=${currenvs#*:}
       done
     done
     return 1
@@ -179,6 +179,7 @@ should_autostart() {
         if [ "$deskenv" = "$currenv" ]; then
           return 1
         fi
+        currenvs=${currenvs#*:}
       done
     done
     return 0
@@ -222,6 +223,22 @@ launch() {
     APP_NEED_TERMINAL=1
   fi
 
+  count=$#
+  while [ "$count" -ne 0 ]; do
+    count=$((count - 1))
+    arg=$1
+    shift
+
+    case $arg in
+      /*)
+        set -- "$@" "$arg"
+        ;;
+      *)
+        set -- "$@" "$PWD/$arg"
+        ;;
+    esac
+  done
+
   if ! start "$opt_action" "$@"; then
     printf "failed to launch %s\n" "$desktop_file" >&2
     exit 1
@@ -250,5 +267,9 @@ if [ -n "$opt_autostart" ]; then
     launch "$f"
   done
 else
+  if [ "$#" -eq 0 ]; then
+    printf "please provide the to be launched desktop file\n" >&2
+    exit 1
+  fi
   launch "$@"
 fi
