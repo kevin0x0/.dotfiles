@@ -114,7 +114,7 @@ start() {
     is_valid_action() (
       set --
       DSK_ARG_TO_BE_SPLIT_KEY=Actions
-      DSK_ARG_SEPARATOR=;
+      DSK_ARG_SEPARATOR=';'
       eval "$dsk_split_list"
       for a; do
         [ "$action" = "$a" ] && return 0
