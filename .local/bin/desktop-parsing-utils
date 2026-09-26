@@ -480,7 +480,7 @@ dsk_perform_exec() (
               uf_kind=${cmdarg%"${cmdarg#?}"}
               arg_comsumed=1
               dsk_array_len substcmd uf_arg_index
-              uf_offset_in_arg=$(printf "%s" "$substcmdarg" | wc -c)
+              uf_offset_in_arg=$(printf "%s" "$substcmdarg" | wc -c | tr -d '[:space:]')
               ;;
             *)
               ;;
