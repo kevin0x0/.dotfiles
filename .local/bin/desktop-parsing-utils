@@ -173,7 +173,7 @@ dsk_split_list='{
   fi
 }'
 
-MESSAGES=${LC_ALL:-"${LANG:-"$LC_MESSAGES"}"}
+MESSAGES=${LC_ALL:-"${LC_MESSAGES:-"$LANG"}"}
 
 M_MODIFIER=${MESSAGES#"${MESSAGES%%@*}"}
 MESSAGES=${MESSAGES%%'.'*}
