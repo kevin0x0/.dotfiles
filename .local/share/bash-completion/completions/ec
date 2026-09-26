@@ -11,7 +11,7 @@ _comp_ec() {
         local path=${paths%%:*}
         path=${path:-.}
         if [ -d "$path" ] && [ -x "$path" ] && [ -r "$path" ]; then
-          (cd -- "$path" && find -type f -print | grep -F "./$cur" | sed 's/^\.\///g')
+          (cd -- "$path" && find . -type f -print | grep -F "./$cur" | sed 's/^\.\///g')
         fi
         paths=${paths#*:}
       done

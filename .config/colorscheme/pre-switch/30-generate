@@ -1,6 +1,6 @@
 
 newer_than_output() {
-  [ -n "$(find "$@" -newer "$output")" ] && return 0
+  [ "$#" -ne 0 ] && [ -n "$(find "$@" -newer "$output")" ] && return 0
   count=$#
   while [ "$count" -ne 0 ]; do
     count=$((count - 1))
