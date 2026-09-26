@@ -50,7 +50,7 @@ start_via_dbus() {
   if [ -z "$action" ]; then
     uris=
     for arg; do
-      uris=${uris:-"@as ["}${uris:+,}"'$(escape "file://$arg")'"
+      uris=${uris:-"@as ["}${uris:+,}"'$(escape "$(path2uri -- "$arg")")'"
     done
     uris=${uris:-"@as ["}"]"
 
@@ -63,6 +63,8 @@ start_via_dbus() {
     fi
     return
   else
+    # The XDG specification says no more about what the second parameter is,
+    # we just pass arguments as they are.
     args=
     for arg; do
       args=${args:-"@av ["}${args:+,}"<'$(escape "$arg")'>"
@@ -231,22 +233,6 @@ launch() {
   if [ "$(dsk_entry_get_stdout Terminal)" = true ]; then
     launcher=launch_in_terminal
   fi
-
-  count=$#
-  while [ "$count" -ne 0 ]; do
-    count=$((count - 1))
-    arg=$1
-    shift
-
-    case $arg in
-      /*)
-        set -- "$@" "$arg"
-        ;;
-      *)
-        set -- "$@" "$PWD/$arg"
-        ;;
-    esac
-  done
 
   if ! start "$launcher" "$opt_action" "$@"; then
     printf "failed to launch %s\n" "$desktop_file" >&2

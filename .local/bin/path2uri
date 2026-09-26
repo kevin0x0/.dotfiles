@@ -1,0 +1,100 @@
+#!/bin/sh
+
+opt_terminator=$'\n'
+
+while getopts "t:" opt; do
+  case $opt in
+    t)
+      opt_terminator=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+letters=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+digits=0123456789
+chars_allowed_in_uri=$(printf "%s" "-._~!\$&'()*+,;=:@/$letters$digits" | tr -d "$opt_terminator")
+
+for arg; do
+  # Is it already a URI?
+  # Here we don’t follow the RFC3986 strictly; instead, we check
+  # heuristically.
+  is_uri=
+  case $arg in
+    *:*)
+      scheme=${arg%%:*}
+      case $scheme in
+        [$letters]*)
+          case $scheme in
+            *[!-+.$letters$digits]*)
+              ;;
+            *)
+              # It is a URI
+              case $arg in
+                *"$opt_terminator"*)
+                  # But it contains a terminator, need do percent encoding
+                  is_uri=1
+                  ;;
+                *)
+                  # It doesn't contain a terminator, skip it
+                  printf "%s%s" "$arg" "$opt_terminator"
+                  continue
+                  ;;
+              esac
+              ;;
+          esac
+          ;;
+      esac
+      ;;
+  esac
+
+  # Ff it is not a URI, make it a URI with file scheme
+  if [ -z "$is_uri" ]; then
+    case $arg in
+      /*)
+        ;;
+      *)
+        arg=$PWD/$arg
+        ;;
+    esac
+    case $arg in
+      *//*)
+        arg=$(printf "%sx" "$arg" | tr -s '/')
+        arg=${arg%x}
+        ;;
+    esac
+    arg=file://$arg
+  fi
+
+  # Percent encoding
+  while [ -n "$arg" ]; do
+    head=${arg%%[$chars_allowed_in_uri]*}
+    if [ -n "$head" ]; then
+      printf "%s" "$head" \
+        | od -vA n -t x1 \
+        | sed -E 's/[[:space:]]+/ /g' \
+        | tr '[:lower:]' '[:upper:]' \
+        | {
+            out=
+            while read line; do
+              for hex in $line; do
+                hex=00$hex
+                out=$out%${hex#"${hex%??}"}
+              done
+            done
+            printf "%s" "$out"
+          }
+
+      arg=${arg#"$head"}
+    fi
+
+    head=${arg%%[!$chars_allowed_in_uri]*}
+    arg=${arg#"$head"}
+    printf "%s" "$head"
+  done
+
+  printf "%s" "$opt_terminator"
+done
