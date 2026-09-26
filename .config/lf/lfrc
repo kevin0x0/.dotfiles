@@ -52,11 +52,8 @@ cmd on-init &{{
       256)
         filename=256-$filename
         ;;
-      2|none)
-        filename=none
-        ;;
       *)
-        filename=8
+        filename=none
         ;;
     esac
   else
