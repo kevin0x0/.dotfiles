@@ -398,8 +398,12 @@ dsk_perform_exec() (
   uf_offset_in_arg=
   uf_kind=
   i=0
-  dsk_array_len cmd cmdlen
   dsk_array_clear substcmd
+  dsk_array_len cmd cmdlen
+  if [ "$cmdlen" -eq 0 ]; then
+    printf "the command to be executed is empty\n" >&2
+    return 1
+  fi
   while [ "$i" -lt "$cmdlen" ]; do
     dsk_array_get cmd "$i" cmdarg
     case $cmdarg in
