@@ -13,7 +13,7 @@ check_file() {
     shfmt --to-json <"$f" \
       | jq '.. | objects | select(.Type? == "CallExpr") | select(.Args[0].Parts[0].Value? == "i18n") | .Pos.Offset, .End.Offset, .Pos.Line' \
       | while read beginning; read end; read line; do
-          cmd=$(tail -c +"$((beginning + 1))" <"$f" | head -c "$((end - beginning))")
+          cmd=$(dd bs=1 skip="$beginning" count="$((end - beginning))" iflag=fullblock <"$f" 2>/dev/null)
 
           printf "check command on line %s in %s:\n" "$line" "$f"
           printf "%s\n" "$cmd" | sed 's/^/> /'
