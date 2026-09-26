@@ -1,0 +1,40 @@
+#!/bin/sh
+# This script is for shells conforming POSIX Issue 8
+
+opt_terminator=' '
+while getopts "t:" opt; do
+  case $opt in
+    t)
+      opt_terminator=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+for s; do
+  head=${s%%[\\\'$'\n']*}
+  out="\$'"$head
+  s=${s#"$head"}
+  while [ -n "$s" ]; do
+    case $s in
+      \\*)
+        out=$out"\\\\"
+        ;;
+      \'*)
+        out=$out"\\'"
+        ;;
+      $'\n'*)
+        out=$out"\\n"
+        ;;
+    esac
+    s=${s#?}
+    head=${s%%[\\\'$'\n']*}
+    out=$out$head
+    s=${s#"$head"}
+  done
+  out=$out"'"
+  printf "%s%s" "$out" "$opt_terminator"
+done

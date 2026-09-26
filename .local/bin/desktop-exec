@@ -1,0 +1,28 @@
+#!/bin/sh
+# Fuck sway's character escaping
+
+opt_exit_if_failed=
+while getopts "e:" opt; do
+  case $opt in
+    e)
+      opt_exit_if_failed=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ -n "$SWAYSOCK" ]; then
+  # Sway, fuck it
+  swaymsg -- exec "exec $(shell-escape -- "$@")" && exit
+fi
+
+if command -v systemd-run >/dev/null 2>&1; then
+  systemd-run --user --slice=app.slice -- "$@" && exit
+fi
+
+[ -n "$opt_exit_if_failed" ] && exit "$opt_exit_if_failed"
+
+"$@" >/dev/null 2>&1 &
