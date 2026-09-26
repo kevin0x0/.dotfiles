@@ -1,7 +1,7 @@
 _comp_ec() {
   local savedIFS=$IFS
   IFS=:
-  local paths=($PATH)
+  local paths=(${PATH:+$PATH:})
 
   local cur="${COMP_WORDS[COMP_CWORD]}"
 
