@@ -150,6 +150,8 @@ find_desktop_file() {
     [ -f "$f" ] && { printf "%s" "$f"; return; }
     paths=${paths#*:}
   done
+
+  return 1
 }
 
 should_autostart() {
@@ -207,19 +209,22 @@ launch() {
       desktop_file=$PWD/$desktop_file
       ;;
     *)
-      desktop_file=$(find_desktop_file "$desktop_file")
+      if ! desktop_file=$(find_desktop_file "$desktop_file"); then
+        printf "can not find %s in any directory\n" "$desktop_file_name" >&2
+        return 1
+      fi
       ;;
   esac
 
   if ! exec 3<"$desktop_file"; then
     printf "can not open desktop file: %s\n" "$desktop_file" >&2
-    exit 1
+    return 1
   fi
 
   dsk_set_current_instance "$desktop_file_name"
   if ! dsk_parse_group "Desktop Entry" <&3; then
     printf "can not parse group: Desktop Entry for %s\n" "$desktop_file" >&2
-    exit 1
+    return 1
   fi
 
   if [ -n "$opt_autostart" ]; then
@@ -233,7 +238,7 @@ launch() {
 
   if ! start "$launcher" "$opt_action" "$@"; then
     printf "failed to launch %s\n" "$desktop_file" >&2
-    exit 1
+    return 1
   fi
 }
 
@@ -256,7 +261,7 @@ shift "$((OPTIND - 1))"
 
 if [ -n "$opt_autostart" ]; then
   for f; do
-    launch "$f"
+    launch "$f" || exit 1
   done
 else
   if [ "$#" -eq 0 ]; then
