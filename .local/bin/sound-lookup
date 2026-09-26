@@ -179,7 +179,7 @@ if [ "$#" -eq 0 ]; then
 fi
 
 modifier=${opt_locale#"${opt_locale%%@*}"}
-opt_locale=${opt_locale%%'.'*}
+opt_locale=${opt_locale%%[.@]*}
 
 country=${opt_locale##"${opt_locale%_*}"}
 opt_locale=${opt_locale%_*}
