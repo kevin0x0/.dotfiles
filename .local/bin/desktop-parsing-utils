@@ -231,11 +231,11 @@ dsk_parse_string_value() (
 )
 
 dsk_instance_set() {
-  eval " dsk_instance_${DSK_INSTANCE}_$1"='$2'
+  eval " dsk_instance_${DSK_INSTANCE}_private_$1"='$2'
 }
 
 dsk_instance_get() {
-  eval " $2"="\${dsk_instance_${DSK_INSTANCE}_$1}"
+  eval " $2"="\${dsk_instance_${DSK_INSTANCE}_private_$1}"
 }
 
 dsk_instance_user_set() {
