@@ -353,7 +353,7 @@ dsk_perform_exec() (
 
   # Split Exec into executable program and arguments respecting quoting
 
-  dsk_entry_get Exec s
+  dsk_entry_get_string Exec s
   dsk_array_clear cmd
   s=${s#"${s%%[! ]*}"}
   while [ "${#s}" -ne 0 ]; do
