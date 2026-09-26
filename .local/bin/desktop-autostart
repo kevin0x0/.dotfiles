@@ -1,12 +1,13 @@
 #!/bin/sh
 
 find_autostart_file() {
-  set -- "${XDG_CONFIG_HOME:-$HOME/.config}/autostart" 
+  path=${XDG_CONFIG_HOME:-$HOME/.config}/autostart
+  [ -d "$path" ] && [ -r "$path" ] && set -- "$path"
 
   paths=${XDG_CONFIG_DIRS:-/etc/xdg}:
   while [ -n "$paths" ]; do
-    path=${paths%%:*}
-    set -- "$@" "$path/autostart"
+    path=${paths%%:*}/autostart
+    [ -d "$path" ] && [ -r "$path" ] && set -- "$@" "$path"
     paths=${paths#*:}
   done
 
@@ -18,14 +19,17 @@ find_autostart_file() {
 }
 
 list_autostart_filename() {
-  set -- "${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+  path=${XDG_CONFIG_HOME:-$HOME/.config}/autostart
+  [ -d "$path" ] && [ -r "$path" ] && set -- "$path"
 
   paths=${XDG_CONFIG_DIRS:-/etc/xdg}:
   while [ -n "$paths" ]; do
-    path=${paths%%:*}
-    set -- "$@" "$path/autostart"
+    path=${paths%%:*}/autostart
+    [ -d "$path" ] && [ -r "$path" ] && set -- "$@" "$path"
     paths=${paths#*:}
   done
+
+  [ "$#" -eq 0 ] && return
 
   find "$@" -type f -name "*.desktop" -print0 \
     | xargs -r0 -- sh -c 'for arg; do printf "%s\n" "${arg##*/}"; done' -- \
