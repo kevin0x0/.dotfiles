@@ -19,7 +19,7 @@ escape() {
         printf "\\\\'"
         ;;
       $'\n'*)
-        printf '\\\\n'
+        printf '\\n'
         ;;
     esac
     s=${s#?}
