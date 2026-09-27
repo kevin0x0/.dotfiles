@@ -1,10 +1,10 @@
 #!/bin/sh
 
-opt_persist=false
+opt_persist=
 while getopts "p" opt; do
   case $opt in
     p)
-      opt_persist=true
+      opt_persist=1
       ;;
     \?)
       exit 2
@@ -14,8 +14,7 @@ done
 
 shift "$((OPTIND - 1))"
 
-picdir=$(xdg-user-dir PICTURES)
-wallpaper_dir=$picdir/wallpaper
+wallpaper_dir=$(xdg-user-dir PICTURES)/wallpaper
 
 if [ "$#" -eq 0 ]; then
   imgfile=$(swayimg -g -e "swayimg.overlay = false" -- "$wallpaper_dir"; echo x)
@@ -33,17 +32,8 @@ case $imgfile in
     ;;
 esac
 
-escaped=$(printf "%sx\n" "$imgfile" | sed 's/./\\&/g')
-escaped=${escaped%\\x}
+[ -z "$imgfile" ] && exit 0
 
-if [ -z "$imgfile" ]; then
-  exit 0
-fi
-
-if swaymsg -q >/dev/null 2>&1; then
-  swaymsg -- output '*' bg "$escaped" stretch
-fi
-
-if [ "$opt_persist" = true ]; then
-  ln -sf -- "$imgfile" "$picdir/sway-current-wallpaper"
-fi
+set -- -- "$imgfile"
+[ -n "$opt_persist" ] && set -- -p "$@"
+run-sway-script set-wallpaper "$@"

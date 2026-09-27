@@ -1,8 +1,4 @@
 
-set $wallpaper "$(xdg-user-dir PICTURES)/sway-current-wallpaper"
-
-output * {
-  bg $wallpaper stretch #ffe4c7
-}
+output * bg "\"${XDG_CONFIG_HOME:-$HOME/.config}/sway/state/current-wallpaper\"" stretch #808080
 
 # vim: ft=swayconfig
