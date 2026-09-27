@@ -14,7 +14,6 @@ if ! swaymsg >/dev/null 2>/dev/null; then
 fi
 
 SWAY_CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/sway
-SWAY_THEME_DIR=$SWAY_CONFIG_DIR/colorscheme
 
 
 theme=$1
