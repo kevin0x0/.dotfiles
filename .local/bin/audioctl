@@ -17,4 +17,6 @@ case $(uname) in
     ;;
 esac
 
-i18n -n audioctl "No controller found" >&2
+notify-or-print -en audioctl -- \
+  "$(i18n -n audioctl "Failure")" "$(i18n -n audioctl "No controller found")"
+exit 1
