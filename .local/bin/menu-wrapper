@@ -9,7 +9,8 @@ if [ -z "$backend" ]; then
 fi
 
 if [ -z "$backend" ]; then
-  i18n -n menu "No backend available" >&2
+  notify-or-print -en menu-wrapper -- \
+    "$(i18n -n menu "Failure")" "$(i18n -n menu "No backend available")"
   exit 1
 fi
 
