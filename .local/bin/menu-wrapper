@@ -4,8 +4,11 @@ config=${XDG_CONFIG_HOME:-$HOME/.config}/menu-wrapper
 [ -f "$config" ] && [ -r "$config" ] && . -- "$config"
 
 if [ -z "$backend" ]; then
-  command -v wmenu >/dev/null 2>&1 && backend=wmenu
-  command -v fuzzel >/dev/null 2>&1 && backend=fuzzel
+  if command -v fuzzel >/dev/null 2>&1; then
+    backend=fuzzel
+  elif command -v wmenu >/dev/null 2>&1; then
+    backend=wmenu
+  fi
 fi
 
 if [ -z "$backend" ]; then
