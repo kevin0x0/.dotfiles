@@ -127,7 +127,10 @@ start() {
       done
       return 1
     )
-    is_valid_action || return
+    if ! is_valid_action; then
+      printf "invalid action: %s\n" "$action" >&2
+      return 1
+    fi
   fi
 
   if [ "$(dsk_entry_get_stdout DBusActivatable)" = true ] && start_via_dbus "$action" "$@"; then
