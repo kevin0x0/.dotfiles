@@ -26,6 +26,20 @@ esac
 if [ -z "$pattern" ]; then
   pattern='.*'
 else
-  pattern=$(printf "%s\n" "$1" | sed 's/./&.*/g')
+  processed=
+  while [ -n "$pattern" ]; do
+    ch=${pattern%"${pattern#?}"}
+    pattern=${pattern#?}
+    case $ch in
+      [.[\\*^\$])
+        processed=$processed"\\$ch.*"
+        ;;
+      *)
+        processed=$processed"$ch.*"
+        ;;
+    esac
+  done
+  pattern=$processed
 fi
+
 exec grep $ignore_case -e "$pattern"
