@@ -9,10 +9,7 @@ trap 'unlock switch-colorscheme' EXIT
 
 # We don't guarantee the behaviour on receipt of signals except those
 # listed the following lines
-trap 'unlock switch-colorscheme; trap - TERM; kill -s TERM "$$"' TERM
-trap 'unlock switch-colorscheme; trap - QUIT; kill -s QUIT "$$"' QUIT
-trap 'unlock switch-colorscheme; trap - HUP; kill -s HUP "$$"' HUP
-trap 'unlock switch-colorscheme; trap - INT; kill -s INT "$$"' INT
+trap '' TERM QUIT HUP INT
 
 COLORSCHEME_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme
 
