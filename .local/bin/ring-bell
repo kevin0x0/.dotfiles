@@ -13,6 +13,7 @@ for arg; do
   sound_file=$(sound-lookup -- "$arg")
   case "$sound_file" in
     /dev/null|*.disabled)
+      sound_file=
       continue
       ;;
     *)
@@ -20,8 +21,9 @@ for arg; do
       break
       ;;
   esac
-
 done
+
+[ -n "$sound_file" ] || exit 1
 
 if command -v paplay >/dev/null 2>/dev/null && \
   pactl info 2>/dev/null >/dev/null; then
