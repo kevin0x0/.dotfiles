@@ -8,3 +8,5 @@
 > $1 不存在或不是可读文件
 # $1 not exist
 > $1 不存在
+# Can not acquire lock
+> 无法获取锁
