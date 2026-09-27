@@ -69,9 +69,9 @@ dsk_decode() {
         dsk_tail=${dsk_s#???}
         dsk_head=${dsk_s%"$dsk_tail"}
         dsk_s=$dsk_tail
-        dsk_out=$dsk_out"\\$dsk_head"
+        dsk_out=$dsk_out"\\0$dsk_head"
       done
-      dsk_out=$(printf "${dsk_out}x")
+      dsk_out=$(printf "%bx" "$dsk_out")
       dsk_out=${dsk_out%x}
       ;;
     *)
