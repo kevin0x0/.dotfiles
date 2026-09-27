@@ -25,11 +25,10 @@ done
 
 [ -n "$sound_file" ] || exit 1
 
-if command -v paplay >/dev/null 2>/dev/null && \
-  pactl info 2>/dev/null >/dev/null; then
+if command -v paplay && pactl info; then
   paplay -- "$sound_file"
-elif command -v mpv >/dev/null 2>/dev/null; then
+elif command -v mpv; then
   mpv -- "$sound_file"
-elif command -v aplay >/dev/null 2>/dev/null; then
+elif command -v aplay; then
   aplay -q -- "$sound_file"
-fi >/dev/null
+fi >/dev/null 2>&1
