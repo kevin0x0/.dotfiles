@@ -1,0 +1,37 @@
+#!/bin/sh
+
+opt_persist=
+while getopts "p" opt; do
+  case $opt in
+    p)
+      opt_persist=1
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
+
+[ "$#" -eq 0 ] && return 0
+
+imgfile=$1
+escaped=$(printf "%sx\n" "$imgfile" | sed 's/./\\&/g')
+escaped=${escaped%\\x}
+
+case $imgfile in
+  *$'\n'*)
+    printf "image pathname can not contain newline\n" >&2
+    exit 1
+    ;;
+esac
+
+swaymsg -q -- output '*' bg "$escaped" stretch >/dev/null 2>&1 || true
+
+if [ -n "$opt_persist" ]; then
+  state_dir=${XDG_CONFIG_HOME:-$HOME/.config}/sway/state
+  [ -d "$state_dir" ] || mkdir -p -- "$state_dir" \
+    || { printf "failed to create %s\n" "$state_dir" >&2; exit 1; }
+  ln -sf -- "$imgfile" "$state_dir/current-wallpaper"
+fi
