@@ -7,7 +7,7 @@ set -- "$wallpaper_dir"/*
 index=$(awk -v seed="$(date +%Y%m%d%H%M%S)" -v max="$#" '
 BEGIN {
   srand(seed);
-  print(int(rand() * max));
+  print(int(rand() * max) + 1);
 }')
 
 file=$(eval 'printf "%sx" "${'"$index"'}"')
