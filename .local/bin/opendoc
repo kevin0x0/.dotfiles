@@ -3,7 +3,7 @@
 docdir=$(xdg-user-dir DOCUMENTS; echo x)
 docdir=${docdir%$'\n'x}
 if ! doc=$(find -L "$docdir" -type f -name '*.pdf' | menu-wrapper dmenu -v); then
-  return 0
+  exit 0
 fi
 
 xdg-open "$doc"
