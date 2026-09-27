@@ -1,16 +1,23 @@
 #!/bin/sh
 
-picdir=$(xdg-user-dir PICTURES)
-wallpaper_dir=$picdir/wallpaper
+bgfile=${XDG_CONFIG_HOME:-$HOME/.config}/sway/state/lock-background
+if [ ! -f "$bgfile" ]; then
+  picdir=$(xdg-user-dir PICTURES)
+  wallpaper_dir=$picdir/wallpaper
 
-set -- "$wallpaper_dir"/*
-index=$(awk -v seed="$(date +%Y%m%d%H%M%S)" -v max="$#" '
-BEGIN {
-  srand(seed);
-  print(int(rand() * max) + 1);
-}')
+  set -- "$wallpaper_dir"/*
+  index=$(awk -v seed="$(date +%Y%m%d%H%M%S)" -v max="$#" '
+  BEGIN {
+    srand(seed);
+    print(int(rand() * max) + 1);
+  }')
 
-file=$(eval 'printf "%sx" "${'"$index"'}"')
-file=${file%x}
-exec swaylock -i ":$file" --font sans-serif --font-size 32 \
+  eval 'bgfile=$'"{$index}"
+fi
+
+set -- --font sans-serif --font-size 32 \
   --indicator-radius 200 --indicator-thickness 50
+
+[ -f "$bgfile" ] && set -- -i ":$bgfile" "$@"
+
+exec swaylock "$@"
