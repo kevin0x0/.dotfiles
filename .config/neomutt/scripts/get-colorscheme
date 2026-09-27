@@ -4,7 +4,7 @@ case $(termcolors) in
   16777216|256)
     ;;
   *)
-    echo none
+    printf "none\n"
     exit
     ;;
 esac
