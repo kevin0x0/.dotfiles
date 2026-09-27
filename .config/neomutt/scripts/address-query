@@ -4,7 +4,7 @@
 make_result() {
   IFS= read -r line
   if [ -z "$line" ]; then
-    printf "%s\n" "No matchs found"
+    printf "%s\n" "No matches found"
     exit 1
   else
     printf "%s\n" "Found"
