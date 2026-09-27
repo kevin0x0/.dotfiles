@@ -400,10 +400,6 @@ dsk_perform_exec() (
   i=0
   dsk_array_clear substcmd
   dsk_array_len cmd cmdlen
-  if [ "$cmdlen" -eq 0 ]; then
-    printf "the command to be executed is empty\n" >&2
-    return 1
-  fi
   while [ "$i" -lt "$cmdlen" ]; do
     dsk_array_get cmd "$i" cmdarg
     case $cmdarg in
@@ -504,6 +500,10 @@ dsk_perform_exec() (
   fi
 
   dsk_array_len substcmd cmdlen
+  if [ "$cmdlen" -eq 0 ]; then
+    printf "the command to be executed is empty\n" >&2
+    return 1
+  fi
 
   if [ "$#" -eq 0 ]; then
     # Either no argument or arguments were consumed by %[UF] 
@@ -646,5 +646,8 @@ dsk_parse_group() {
   done
   dsk_instance_set lookahead "$dsk_line"
 
-  [ -n "$dsk_group_found" ]
+  if [ -z "$dsk_group_found" ]; then
+    printf "dsk_parse_group: group name not found: %s\n" >&2
+    return 1
+  fi
 }
