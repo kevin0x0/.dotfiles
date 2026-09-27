@@ -15,7 +15,8 @@ done
 shift "$((OPTIND - 1))"
 
 request_url="https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&nc=1614319565639&pid=hp&FORM=BEHPTB&uhd=1"
-if ! url_title=$(curl -s -- "$request_url" | jq -r '.images[0] | .url,.title'); then
+url_title=$(curl -s -- "$request_url" | jq -r '.images[0] | .url,.title')
+if [ -z "$url_title" ]; then
   i18n -n wallpaper 'Failed to request: $1' "$request_url" >&2
   exit 1
 fi
