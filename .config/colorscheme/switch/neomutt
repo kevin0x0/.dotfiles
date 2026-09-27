@@ -1,7 +1,7 @@
 COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/neomutt/colorscheme
 if [ ! -e  "$(dirname -- "$COLOR_THEME_FILE")" ]; then
   if ! mkdir -p "$(dirname -- "$COLOR_THEME_FILE")"; then
-    echo "can not create state file for neumutt" >&2
+    echo "can not create state file for neomutt" >&2
     exit 1
   fi
 fi
