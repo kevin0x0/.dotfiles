@@ -21,7 +21,15 @@ if [ -z "$url_title" ]; then
   exit 1
 fi
 
-url="https://cn.bing.com${url_title%%$'\n'*}"
+url=${url_title%%$'\n'*}
+case $url in
+  null)
+    i18n -n wallpaper 'Failed to extract image URL' >&2
+    exit 1
+    ;;
+esac
+
+url=https://cn.bing.com$url
 title=$(printf "%s" "${url_title#*$'\n'}" | tr -d '/')
 dir=$(xdg-user-dir PICTURES)/wallpaper
 
