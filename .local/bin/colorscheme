@@ -1,6 +1,10 @@
 #!/bin/sh
 
-lock switch-colorscheme
+if ! lock switch-colorscheme; then
+    echo "can not acquire lock" >&2
+    exit 1
+fi
+
 trap 'unlock switch-colorscheme' EXIT
 
 # We don't guarantee the behaviour on receipt of signals except those

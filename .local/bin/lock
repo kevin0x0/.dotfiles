@@ -1,15 +1,25 @@
 #!/bin/sh
 
 RUNTIME_STATE_DIR=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/lock-files
-mkdir -p -- "$RUNTIME_STATE_DIR"
+mkdir -p -- "$RUNTIME_STATE_DIR" || exit 1
 
 remaining=$#
 while [ "$remaining" -ne 0 ]; do
   remaining=$((remaining - 1))
   lockfile=$RUNTIME_STATE_DIR/$1
   shift
+  count=0
   while ! (umask 0077; set -C; : >"$lockfile") 2>/dev/null; do
+    if [ "$count" -ge 30 ]; then
+      shift "$remaining"
+      for lockfile; do
+        rm -f -- "$lockfile"
+      done
+      exit 1
+    fi
+
     sleep 1
+    count=$((count + 1))
   done
   set -- "$@" "$lockfile"
 done

@@ -3,6 +3,7 @@
 RUNTIME_STATE_DIR=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/lock-files
 
 for arg; do
+  [ -n "$arg" ] || continue
   lockfile=$RUNTIME_STATE_DIR/$arg
-  rm -- "$lockfile"
+  rm -f -- "$lockfile"
 done
