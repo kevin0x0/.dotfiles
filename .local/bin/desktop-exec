@@ -16,7 +16,7 @@ shift "$((OPTIND - 1))"
 
 if [ -n "$SWAYSOCK" ]; then
   # Sway, fuck it
-  swaymsg -- exec "exec $(shell-escape -- "$@")" && exit
+  swaymsg -- exec "exec $(shell-escape -- "$@" | sed 's/\$/$$/g')" && exit
 fi
 
 if command -v systemd-run >/dev/null 2>&1; then
