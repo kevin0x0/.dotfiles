@@ -38,7 +38,7 @@ if [ "$#" -eq 1 ]; then
 fi
 
 if [ ! -e "$dir" ]; then
-  mkdir -- "$dir"
+  mkdir -p -- "$dir"
 fi
 
 if [ ! -d "$dir" ]; then
