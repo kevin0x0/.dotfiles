@@ -11,7 +11,6 @@ mkdir -p -- "$DIR"
 printf "initial-color-theme=dark\n" > "$colorconfig"
 
 : "${XDG_CONFIG_HOME:=$HOME/.config}"
-COLORSCHEME_DIR="$XDG_CONFIG_HOME/foot/colorscheme"
 ln -sf -- "/dev/null" "$dark_slot"
 ln -sf -- "/dev/null" "$light_slot"
 
