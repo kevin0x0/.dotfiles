@@ -18,4 +18,5 @@ if ! line=$(run-sway-script generate-mode-commands -t "$mode" \
   exit 1
 fi
 
-swaymsg -- "${line#*[[:space:]]}"
+line=${line#*[[:space:]]}
+swaymsg -- "${line#"${line%%[![:space:]]*}"}"
