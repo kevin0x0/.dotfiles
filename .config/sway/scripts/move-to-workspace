@@ -4,6 +4,7 @@ PROMPT=$(i18n -n sway-scripts "Move to workspace: ")
 
 workspace=$(swaymsg -rt get_workspaces \
   | jq -r '.[].name' \
-  | menu-wrapper dmenu -p "$PROMPT")
+  | menu-wrapper dmenu -p "$PROMPT") \
+  || exit 0
 
 swaymsg -- move container to workspace "$workspace"
