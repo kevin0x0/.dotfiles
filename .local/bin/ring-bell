@@ -23,7 +23,7 @@ for arg; do
   esac
 done
 
-[ -n "$sound_file" ] || exit 1
+[ -n "$sound_file" ] || exit 0
 
 if command -v paplay && pactl info; then
   paplay -- "$sound_file"
