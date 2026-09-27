@@ -5,6 +5,6 @@ PROMPT=$(i18n -n sway-scripts "Switch to workspace: ")
 workspace=$(swaymsg -rt get_workspaces \
   | jq -r '.[].name' \
   | menu-wrapper dmenu -p "$PROMPT") \
-  && exit 0
+  || exit 0
 
 swaymsg -- workspace "$workspace"
