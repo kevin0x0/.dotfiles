@@ -17,6 +17,7 @@ fi
 for d in "$XDG_DESKTOP_DIR" "$XDG_MUSIC_DIR" "$XDG_TEMPLATES_DIR" \
   "$XDG_PUBLICSHARE_DIR" "$XDG_DOCUMENTS_DIR" "$XDG_PICTURES_DIR" \
   "$XDG_VIDEOS_DIR" "$XDG_DOWNLOAD_DIR"; do
+  [ -n "$d" ] || continue
   if ! mkdir -p -- "$d"; then
     error_exit "failed to create XDG directory $d"
   fi
