@@ -2,12 +2,14 @@
 
 stpl_line_count=0
 stpl_line=
+stpl_error_count=0
 
 stpl_error() {
   printf "in line %u: " "$stpl_line_count"
   printf "$@"
   echo
   printf "%5u | %s\n" "$stpl_line_count" "$stpl_line"
+  stpl_error_count=$((stpl_error_count + 1))
 } >&2
 
 stpl_expand_line() {
@@ -33,7 +35,7 @@ stpl_expand_line() {
 
         if [ -z "$stpl_tail" ]; then
           stpl_error "expect '%s' to match '%s'" "$stpl_terminator" "$stpl_opt_expansion_open$stpl_mark"
-          exit 1
+          return
         fi
 
         if [ "$stpl_expr" = EOF ]; then
@@ -58,6 +60,7 @@ stpl_expand_file() {
     stpl_line_count=$((stpl_line_count + 1))
     stpl_expand_line
   done
+  [ "$stpl_error_count" -eq 0 ]
 }
 
 stpl_opt_expansion_open='{'
