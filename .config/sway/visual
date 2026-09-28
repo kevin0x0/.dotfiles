@@ -14,6 +14,7 @@ bar default {
   position top
   tray_padding 4
   status_padding 0
+  strip_workspace_numbers yes
 
   status_command sway-i3status-wrapper
 }
