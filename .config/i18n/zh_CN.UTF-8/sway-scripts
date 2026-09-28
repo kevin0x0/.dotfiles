@@ -6,6 +6,8 @@
 > 无效的工作区
 # The workspace name should be non-empty and contain no <newline> and <quotation mark> characters
 > 工作区名应当非空且不包含换行符和双引号
+# The workspace name must either be a single digit from 0 to 9, or it must not begin with a digit.
+> 工作区名要么是0-9的单个数字，要么不能以数字开头
 # Jump to mark: 
 > 跳转到标记
 # Move marked window to this workspace: 

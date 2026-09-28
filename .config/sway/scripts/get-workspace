@@ -14,6 +14,7 @@ done
 
 workspace=$(swaymsg -rt get_workspaces \
   | jq -r '.[].name' \
+  | sed 's/^[[:digit:]][[:digit:]]*://' \
   | menu-wrapper dmenu -p "$PROMPT") \
   || exit
 
@@ -25,6 +26,28 @@ case $workspace in
     notify-or-print -en "get-workspace" -- "$summary" "$body"
     exit 1
     ;;
+  [[:digit:]]?*)
+    summary=$(i18n -n sway-scripts "Invalid workspace")
+    body=$(i18n -n sway-scripts "The workspace name must either be a single digit from 0 to 9, or it must not begin with a digit.")
+    notify-or-print -en "get-workspace" -- "$summary" "$body"
+    exit 1
+    ;;
 esac
+
+# Work around for using a sway keyword as workspace name
+prefix_num=
+case $workspace in
+  number)         prefix_num=11;;
+  prev)           prefix_num=12;;
+  next)           prefix_num=13;;
+  prev_on_output) prefix_num=14;;
+  next_on_output) prefix_num=15;;
+  back_and_forth) prefix_num=16;;
+  gaps)           prefix_num=17;;
+  output)         prefix_num=18;;
+  current)        prefix_num=19;;
+esac
+
+workspace=${prefix_num:+$prefix_num:}$workspace
 
 printf "%s\n" "$workspace"
