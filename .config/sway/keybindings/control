@@ -1,10 +1,13 @@
 # Fast start
 bindsym {
   # Screen shot
-  Print exec GRIM_DEFAULT_DIR="$(xdg-user-dir PICTURES)/screenshots" grim
+  Print exec screenshot
 
   # Screen shot with specified region
-  $mod+Print exec GRIM_DEFAULT_DIR="$(xdg-user-dir PICTURES)/screenshots" grim -g "$(slurp)"
+  $mod+Print exec screenshot -s
+
+  # Screen shot on selected window
+  $mod+Shift+Print exec run-sway-script screenshot; mode "default"
 
   # Special keys to adjust volume
   --locked XF86AudioLowerVolume exec audioctl set pvolume 5%- && pkill -USR1 -u "$(id -u)" i3status
@@ -24,15 +27,21 @@ bindsym {
 }
 
 mode "control" bindsym {
-  $mod+l exec run-sway-script lock-screen; mode "default"
   --locked $mod+q mode "default" 
   --locked $mod+Shift+q mode "default" 
   --locked Escape mode "default" 
 
+  $mod+l exec run-sway-script lock-screen; mode "default"
+
+  # Screen shot
+  $mod+s exec screenshot; mode "default"
+  $mod+Shift+s exec screenshot -s; mode "default"
+  $mod+w exec run-sway-script screenshot; mode "default"
+
   # Special keys to adjust brightness via brightnessctl
   --locked $mod+b exec brightnessctl set 1%-
   --locked $mod+Shift+b exec brightnessctl set 1%+
-  --locked $mod+s exec brightnessctl set 50%; mode "default"
+  --locked $mod+r exec brightnessctl set 50%; mode "default"
 
   # Special keys to adjust volume
   --locked $mod+v exec audioctl set pvolume 5%- && pkill -USR1 -u "$(id -u)" i3status
