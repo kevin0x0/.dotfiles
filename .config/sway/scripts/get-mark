@@ -21,7 +21,7 @@ mark=$({ [ -n "$opt_list" ] && swaymsg -rt get_marks || printf "[]"; } \
   | menu-wrapper dmenu -p "$opt_prompt") || exit 
 
 case $mark in
-  *[!-_+=\ a-z0-9]*)
+  *[!-_+=\ a-z0-9]*|'')
     summary=$(i18n -n sway-scripts "Invalid mark")
     body=$(i18n -n sway-scripts "Mark should have pattern: [-_+=\ a-z0-9]+")
     notify-or-print -en "get-mark" -- "$summary" "$body"

@@ -1,0 +1,30 @@
+#!/bin/sh
+
+opt_prompt=
+while getopts "p:" opt; do
+  case $opt in
+    p)
+      opt_prompt=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+workspace=$(swaymsg -rt get_workspaces \
+  | jq -r '.[].name' \
+  | menu-wrapper dmenu -p "$PROMPT") \
+  || exit
+
+
+case $workspace in
+  *[$'\n'\"]*|'')
+    summary=$(i18n -n sway-scripts "Invalid workspace")
+    body=$(i18n -n sway-scripts "The workspace name should be non-empty and contain no <newline> and <quotation mark> characters")
+    notify-or-print -en "get-workspace" -- "$summary" "$body"
+    exit 1
+    ;;
+esac
+
+printf "%s\n" "$workspace"
