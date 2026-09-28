@@ -1,5 +1,5 @@
 #!/bin/sh
 
-f=${TMPDIR:-/tmp}/firefox-mailcap-wrapper.tmp
+f=${TMPDIR:-/tmp}/firefox-mailcap-wrapper.tmp.html
 cp -- "$1" "$f"
 firefox --new-window -- "$f"
