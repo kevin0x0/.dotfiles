@@ -1,0 +1,61 @@
+#!/bin/sh
+
+opt_selection=
+opt_geometry=
+opt_toplevel_id=
+while getopts "sg:T:" opt; do
+  case $opt in
+    s)
+      opt_selection=1
+      ;;
+    g)
+      opt_geometry=$OPTARG
+      ;;
+    T)
+      opt_toplevel_id=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
+
+if [ "$#" -eq 0 ]; then
+  output=$(xdg-user-dir PICTURES)/screenshots
+  mkdir -p -- "$output" || exit 1
+else
+  output=$1
+fi
+
+if [ -d "$output" ]; then
+  output=$output/$(date +%Y%m%d_%Hh%Mm%Ss)_screenshot.png
+fi
+
+case $output in
+  *.png|*.jpeg|*.jpg|*.ppm)
+    format=${output##*.}
+    ;;
+  *)
+    format=png
+    ;;
+esac
+
+set --
+if [ "$opt_selection" ]; then
+  region=$(slurp) || exit 0
+  set -- "$@" -g "$region"
+elif [ "$opt_geometry" ]; then
+  set -- "$@" -g "$opt_geometry"
+fi
+
+if [ "$opt_toplevel_id" ]; then
+  set -- "$@" -T "$opt_toplevel_id"
+fi
+
+set -- "$@" -t "$format" -- "$output"
+
+if grim "$@"; then
+  ring-bell screen-capture &
+fi

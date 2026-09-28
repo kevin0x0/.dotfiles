@@ -1,0 +1,18 @@
+#!/bin/sh
+
+foreign_toplevel_id=$(swaymsg -rt get_tree \
+  | jq '.. | objects | select(.focused == true) | .foreign_toplevel_identifier')
+
+case $foreign_toplevel_id in
+  \"*\")
+    id=$(printf "%s\n" "$foreign_toplevel_id" | jq --raw-output0 '.'; echo x)
+    id=${id%x}
+    exec screenshot -T "$id"
+    ;;
+esac
+
+swaymsg -rt get_tree \
+  | jq '.. | objects | select(.focused == true) | .rect | .x, .y, .width, .height' \
+  | if read x && read y && read width && read height; then
+      screenshot -g "$x,$y ${width}x$height"
+    fi
