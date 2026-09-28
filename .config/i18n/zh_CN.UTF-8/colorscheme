@@ -4,6 +4,8 @@
 > $1 不存在或不是目录
 # $1 exists but not a file
 > $1 存在但不是文件
+# The "$1" color scheme does not exist
+> “$1”配色方案不存在
 # alpha value must be empty or two hexadecimal digits
 > alpha 值必须为空或两个十六进制数字
 # $1 does not exist
