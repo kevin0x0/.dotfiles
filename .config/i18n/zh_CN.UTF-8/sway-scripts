@@ -2,6 +2,10 @@
 > 无效的标记
 # Mark should have pattern: [-_+=\ a-z0-9]+
 > 标记应当具有模式: [-_+=\ a-z0-9]+
+# Invalid workspace
+> 无效的工作区
+# The workspace name should be non-empty and contain no <newline> and <quotation mark> characters
+> 工作区名应当非空且不包含换行符和双引号
 # Jump to mark: 
 > 跳转到标记
 # Move marked window to this workspace: 
