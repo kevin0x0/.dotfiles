@@ -74,7 +74,7 @@ shift
 if [ -n "$opt_check" ]; then
   [ -z "$opt_namespace" ] && exit 1
   file=$(get_file "$opt_locale" "$opt_namespace") || exit 1
-  get_translation "$fmt" <"$file" >/dev/null || exit 1
+  get_translation "$fmt" <"$file" || exit 1
   exit 0
 fi
 

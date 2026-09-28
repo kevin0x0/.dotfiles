@@ -11,16 +11,24 @@ check_file() {
   export I18N_CHECK=1
   for f; do
     shfmt --to-json <"$f" \
-      | jq '.. | objects | select(.Type? == "CallExpr") | select(.Args[0].Parts[0].Value? == "i18n") | .Pos.Offset, .End.Offset, .Pos.Line' \
-      | while read beginning; read end; read line; do
-          cmd=$(dd bs=1 skip="$beginning" count="$((end - beginning))" iflag=fullblock <"$f" 2>/dev/null)
+      | jq --arg file "$f" '.. | objects | select(.Type? == "CallExpr")
+          | select(.Args[0].Parts[0].Value? == "i18n")
+          | $file, .Pos.Offset, .End.Offset, .Pos.Line'
+  done \
+    | while read -r filejson; read beginning; read end; read line; do
+        file=$(printf "%s\n" "$filejson" | jq -r '.'; echo x)
+        file=${file%$'\n'x}
+        cmd=$(dd bs=1 skip="$beginning" count="$((end - beginning))" iflag=fullblock <"$file" 2>/dev/null)
 
-          printf "check command on line %s in %s:\n" "$line" "$f"
-          printf "%s\n" "$cmd" | sed 's/^/> /'
+        printf "check command on line %s in %s:\n" "$line" "$file" | sed 's/^/# /'
+        printf "%s\n" "$cmd" | sed 's/^/> /'
 
-          eval "$cmd" && echo OK || echo FAILED
-        done
-  done
+        if trans=$(command eval "$cmd"); then
+          printf "%s\n" "$trans" | sed 's/^/: /'
+        else
+          printf "! not found"
+        fi
+      done
 }
 
 if [ "$#" -ne 0 ]; then
