@@ -37,7 +37,7 @@ if [ -n "$theme" ]; then
 
   if [ ! -e "$config" ] || [ -n "$(find "$base" "$colorscheme" -newer "$config")" ]; then
     if ! lock sway-i3status; then
-      i18n -n misc 'Can not acquire lock' >&2
+      i18n -n common 'Can not acquire lock' >&2
       exit 1
     fi
     cat -- "$base" "$colorscheme" >"$config"

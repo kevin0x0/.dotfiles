@@ -18,5 +18,5 @@ case $(uname) in
 esac
 
 notify-or-print -en audioctl -- \
-  "$(i18n -n audioctl "Failure")" "$(i18n -n audioctl "No controller found")"
+  "$(i18n -n common "Failure")" "$(i18n -n audioctl "No controller found")"
 exit 1
