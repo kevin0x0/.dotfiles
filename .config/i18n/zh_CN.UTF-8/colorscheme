@@ -1,0 +1,16 @@
+# $1 exists but not a directory
+> $1 存在但不是目录
+# $1 does not exist or not a directory
+> $1 不存在或不是目录
+# $1 exists but not a file
+> $1 存在但不是文件
+# alpha value must be empty or two hexadecimal digits
+> alpha 值必须为空或两个十六进制数字
+# $1 does not exist
+> $1 不存在
+# unknown section: $1
+> 未知分区：$1
+# can not create state file for $1
+> 无法为 $1 创建状态文件
+# $1 is not a file
+> $1 不是文件

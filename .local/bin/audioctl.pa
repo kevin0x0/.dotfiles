@@ -19,7 +19,8 @@ command_set() {
       pactl set-source-mute @DEFAULT_SOURCE@ "$@"
       ;;
     *)
-      i18n -n audioctl 'Unknown command: $1' "$1"
+      notify-or-print -en audioctl -- \
+        "$(i18n -n common "Failure")" "$(i18n -n audioctl 'Unknown command: $1' "$1")"
       exit 1
       ;;
   esac
@@ -44,7 +45,8 @@ command_get() {
       pactl get-source-mute @DEFAULT_SOURCE@
       ;;
     *)
-      i18n -n audioctl 'Unknown command: $1' "$1"
+      notify-or-print -en audioctl -- \
+        "$(i18n -n common "Failure")" "$(i18n -n audioctl 'Unknown command: $1' "$1")"
       exit 1
       ;;
   esac
@@ -60,7 +62,8 @@ case "$1" in
     command_get "$@"
     ;;
   *)
-    i18n -n audioctl 'Unknown command: $1' "$1"
+    notify-or-print -en audioctl -- \
+      "$(i18n -n common "Failure")" "$(i18n -n audioctl 'Unknown command: $1' "$1")"
     exit 1
     ;;
 esac
