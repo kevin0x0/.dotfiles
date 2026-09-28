@@ -1,7 +1,8 @@
 COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/foot/colortheme.ini
 
 if [ ! -r "$COLOR_THEME_FILE" ]; then
-  echo "$COLOR_THEME_FILE doesn't exist" >&2
+  notify-or-print -en colorscheme -- \
+    "$(i18n -n common "Failure")" "$(i18n -n colorscheme '$1 does not exist' "$COLOR_THEME_FILE")"
   exit 1
 fi
 
@@ -18,7 +19,8 @@ case "$section_spec" in
     category=dark
     ;;
   *)
-    echo "unknown section: $section_spec" >&2
+    notify-or-print -en colorscheme -- \
+      "$(i18n -n common "Failure")" "$(i18n -n colorscheme 'unknown section: $1' "$section_spec")"
     exit 1
     ;;
 esac

@@ -1,7 +1,8 @@
 #!/bin/sh
 
 if ! lock switch-colorscheme; then
-    echo "can not acquire lock" >&2
+    notify-or-print -en colorscheme -- \
+      "$(i18n -n common "Failure")" "$(i18n -n common "Can not acquire lock")"
     exit 1
 fi
 
@@ -15,7 +16,9 @@ COLORSCHEME_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme
 
 if [ ! -d "$COLORSCHEME_STATE_HOME" ]; then
   if [ -e "$COLORSCHEME_STATE_HOME" ]; then
-    echo "'$COLORSCHEME_STATE_HOME' exists but not a directory" >&2
+    notify-or-print -en colorscheme -- \
+      "$(i18n -n common "Failure")" \
+      "$(i18n -n colorscheme '$1 exists but not a directory' "$COLORSCHEME_STATE_HOME")"
     exit 1
   fi
 
@@ -25,7 +28,9 @@ fi
 COLORSCHEME_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}/colorscheme
 
 if [ ! -d "$COLORSCHEME_CONFIG_HOME" ]; then
-  echo "'$COLORSCHEME_CONFIG_HOME' doesn't exist or not a directory" >&2
+  notify-or-print -en colorscheme -- \
+    "$(i18n -n common "Failure")" \
+    "$(i18n -n colorscheme '$1 does not exist or not a directory' "$COLORSCHEME_CONFIG_HOME")"
   exit 1
 fi
 
@@ -35,7 +40,9 @@ CURRENT_ALPHA_FILE=$COLORSCHEME_STATE_HOME/current_alpha
 
 if [ ! -f "$CURRENT_THEME_FILE" ]; then
   if [ -e "$CURRENT_THEME_FILE" ]; then
-    echo "'$CURRENT_THEME_FILE' exists but not a file" >&2
+    notify-or-print -en colorscheme -- \
+      "$(i18n -n common "Failure")" \
+      "$(i18n -n colorscheme '$1 exists but not a file' "$CURRENT_THEME_FILE")"
     exit 1
   fi
   
@@ -44,7 +51,9 @@ fi
 
 if [ ! -f "$CURRENT_ALPHA_FILE" ]; then
   if [ -e "$CURRENT_ALPHA_FILE" ]; then
-    echo "'$CURRENT_ALPHA_FILE' exists but not a file" >&2
+    notify-or-print -en colorscheme -- \
+      "$(i18n -n common "Failure")" \
+      "$(i18n -n colorscheme '$1 exists but not a file' "$CURRENT_ALPHA_FILE")"
     exit 1
   fi
   
@@ -81,7 +90,9 @@ while getopts "sa:lp" opt; do
           alpha=
           ;;
         *)
-          printf "alpha value must be empty or two hexadecimal digits\n" >&2
+          notify-or-print -en colorscheme -- \
+            "$(i18n -n common "Failure")" \
+            "$(i18n -n colorscheme 'alpha value must be empty or two hexadecimal digits')"
           exit 2
           ;;
       esac
