@@ -59,7 +59,7 @@ case $mode in
     selection=$(list_desktops | wmenu -i "$@") || exit
     command -v gtk-launch >/dev/null 2>&1 && exec gtk-launch -- "$selection"
     notify-or-print -en menu-wrapper-wmenu -- \
-      "$(i18n -n menu "Failure")" \
+      "$(i18n -n common "Failure")" \
       "$(i18n -n menu "A desktop launcher is required (currently only gtk-launch)")"
     exit 1
     ;;
