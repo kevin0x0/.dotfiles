@@ -1,5 +1,14 @@
 #!/bin/sh
 
+# When this command returned, the original file may be deleted by the caller
+# immediately, so we copy it to a temporary file and open it by firefox.
+# There is no simple way to get notified when firefox has finished reading the
+# file, so we can't determine when to delete the temporary file.
+# As a mitigation measure, we don't delete the temporary file. And to avoid
+# creating too many files, we always use the same temporary file.
+# This may raise a race condition when this script is runned multiple time in
+# an instant. Unfortunally, we have no idea how to handle this problem
+# gracefully. But fortunally, such a situation almost never occurrs.
 f=${TMPDIR:-/tmp}/firefox-mailcap-wrapper.tmp.html
 cp -- "$1" "$f"
 firefox --new-window -- "$f"
