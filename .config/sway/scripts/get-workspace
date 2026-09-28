@@ -15,7 +15,7 @@ done
 workspace=$(swaymsg -rt get_workspaces \
   | jq -r '.[].name' \
   | sed 's/^[[:digit:]][[:digit:]]*://' \
-  | menu-wrapper dmenu -p "$PROMPT") \
+  | menu-wrapper dmenu -p "$opt_prompt") \
   || exit
 
 
