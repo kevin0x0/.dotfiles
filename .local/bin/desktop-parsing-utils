@@ -647,7 +647,7 @@ dsk_parse_group() {
   dsk_instance_set lookahead "$dsk_line"
 
   if [ -z "$dsk_group_found" ]; then
-    printf "dsk_parse_group: group name not found: %s\n" >&2
+    printf "dsk_parse_group: group name not found: %s\n" "$dsk_match_group_name" >&2
     return 1
   fi
 }
