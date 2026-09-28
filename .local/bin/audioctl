@@ -1,22 +1,29 @@
 #!/bin/sh
 
+controller=
 if { pactl info && command -v audioctl.pa; } >/dev/null 2>&1; then
-  exec audioctl.pa "$@"
+  controller=audioctl.pa
+else
+  case $(uname) in
+    Linux)
+      if command -v amixer >/dev/null 2>&1; then
+        controller=audioctl.alsa
+      fi
+      ;;
+    FreeBSD)
+      if command -v audioctl.oss >/dev/null 2>&1; then
+        controller=audioctl.oss
+      fi
+      ;;
+  esac
 fi
 
-case $(uname) in
-  Linux)
-    if command -v amixer >/dev/null 2>&1; then
-      exec audioctl.alsa "$@"
-    fi
-    ;;
-  FreeBSD)
-    if command -v audioctl.oss >/dev/null 2>&1; then
-      exec audioctl.oss "$@"
-    fi
-    ;;
-esac
+if [ -z "$controller" ]; then
+  notify-or-print -en audioctl -- \
+    "$(i18n -n common "Failure")" "$(i18n -n audioctl "No controller found")"
+  exit 1
+fi
 
-notify-or-print -en audioctl -- \
-  "$(i18n -n common "Failure")" "$(i18n -n audioctl "No controller found")"
-exit 1
+if "$controller" "$@"; then
+  ring-bell audio-volume-change
+fi
