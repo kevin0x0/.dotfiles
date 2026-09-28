@@ -25,5 +25,5 @@ if [ -z "$controller" ]; then
 fi
 
 if "$controller" "$@"; then
-  ring-bell audio-volume-change
+  [ "$1" = set ] && ring-bell audio-volume-change
 fi
