@@ -12,8 +12,9 @@ bar default {
   font monospace, 10
   gaps 4
   position top
-  tray_padding 4
-  status_padding 0
+  tray_padding 6
+  status_padding 4
+  status_edge_padding 10
   strip_workspace_numbers yes
 
   status_command sway-i3status-wrapper

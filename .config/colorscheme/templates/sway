@@ -18,14 +18,14 @@ client.urgent           { #$urgent$alpha_hex #$urgent$alpha_hex #$urgent_fg #$ur
 
 # bar ------------------------------------------------------------------------
 bar default {
-  separator_symbol " ▌"
+  separator_symbol " ▏"
 
   colors {
-    separator { #$bg }
+    separator { #$unfocused_fg }
     statusline { #$statusline }
     background { #$bg$alpha_hex }
 
-    focused_separator { #$inactive }
+    focused_separator { #$accent }
     focused_statusline { #$statusline }
     focused_background { #$bg$alpha_hex }
 
