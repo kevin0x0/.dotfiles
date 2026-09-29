@@ -10,33 +10,33 @@ order += "time"
 order += "tztime local"
 
 ethernet _first_ {
-  format_up = "🌐 %speed"
-  format_down = "🌐 DOWN"
+  format_up = "◇ %speed"
+  format_down = "◇ DOWN"
 }
 
 wireless _first_ {
-  format_up = "📶 %essid %bitrate"
-  format_down = "📶 DOWN"
+  format_up = "◉ %essid %bitrate"
+  format_down = "◉ DOWN"
 }
 
 battery all {
   format = "%status %percentage"
-  status_chr = "⚡ CHR"
-  status_bat = "🔋 BAT"
-  status_full = "🔋 FUL"
+  status_chr = "▲ CHR"
+  status_bat = "▮ BAT"
+  status_full = "▮ FUL"
   threshold_type = "percentage"
   low_threshold =  "15"
 }
 
 volume master {
-  format = "🔊 %volume"
-  format_muted = "🔇 %volume muted"
+  format = "♪ %volume"
+  format_muted = "○ %volume muted"
 }
 
 time {
-  format = "📅 %Y-%m-%d %A"
+  format = "◱ %Y-%m-%d %A"
 }
 
 tztime local {
-  format = "🕜 %H:%M"
+  format = "◷ %H:%M"
 }
