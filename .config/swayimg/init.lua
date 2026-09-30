@@ -373,7 +373,7 @@ local CONFIG_DIR = (function()
     end
     return home .. state_dir
   end
-  return nil
+  return '.'
 end)()
 
 local function merge_conf(to, from)
@@ -418,27 +418,14 @@ local function set_format_conf(extra)
 end
 
 local function reload_colorscheme()
-  local colorscheme = ""
-  if CONFIG_DIR then
-    local handle = io.popen(CONFIG_DIR .. "/swayimg/get-colorscheme", "r")
-    if handle then
-      local read_colorscheme = handle:read("*l")
-      if read_colorscheme then
-        colorscheme = read_colorscheme
-      end
-    end
-  end
-
-  if colorscheme == "" then
+  local chunk = loadfile(CONFIG_DIR .. "/swayimg/state/current-colorscheme", "t");
+  if chunk == nil then
     return
   end
 
-  local success, callback = pcall(require, "colorscheme." .. colorscheme)
-  if success then
-    local extra_colors = callback()
-    if extra_colors then
-      set_format_conf(extra_colors.format_conf)
-    end
+  local extra_colors = chunk()
+  if extra_colors then
+    set_format_conf(extra_colors.format_conf)
   end
 end
 

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+colorscheme_state=$(get-config-state -cp sway-i3status/state current-colorscheme)
+printf "%s\n" "$1" >"$colorscheme_state"
+
+if !  swaymsg -- "bar default status_command -; bar default status_command sway-i3status-wrapper" >/dev/null 2>&1; then
+  exit 0
+fi
+
+

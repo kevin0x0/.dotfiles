@@ -1,14 +1,3 @@
-COLORSCHEME_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/menu-wrapper-wmenu/colorscheme
-COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/menu-wrapper-wmenu/colorscheme
-if [ ! -e  "$(dirname -- "$COLOR_THEME_FILE")" ]; then
-  if ! mkdir -p "$(dirname -- "$COLOR_THEME_FILE")"; then
-    notify-or-print -en colorscheme -- \
-      "$(i18n -n common "Failure")" "$(i18n -n colorscheme 'can not create state file for $1' menu-wrapper-wmenu)"
-    exit 1
-  fi
-fi
-
-theme=$COLORSCHEME_THEME_FILE_A
-ln -sf -- "$COLORSCHEME_DIR/$theme" "$COLOR_THEME_FILE"
+run-config-script -p menu-wrapper-wmenu/scripts/ switch-colorscheme "$COLORSCHEME_THEME_FILE_A"
 
 # vim: ft=sh

@@ -10,13 +10,13 @@ for c in "$DIR"/*; do
   fi
 done
 
-if [ ! -e "$DIR/dark" ]; then
+if [ ! -e "$DIR/dark" ] && [ -n "$dark" ]; then
   ln -sf -- "$dark" "$DIR/dark"
   info "colorscheme alias 'dark'(symbolic link at '$DIR/dark') set to '$dark'" \
     "you can set it to your preferred colorscheme via 'ln' utility later"
 fi
 
-if [ ! -e "$DIR/light" ]; then
+if [ ! -e "$DIR/light" ] && [ -n "$light" ]; then
   ln -sf -- "$light" "$DIR/light"
   info "colorscheme alias 'light'(symbolic link at '$DIR/light') set to '$light'" \
     "you can set it to your preferred colorscheme via 'ln' utility later"

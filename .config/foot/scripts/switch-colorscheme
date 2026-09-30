@@ -1,0 +1,40 @@
+#!/bin/sh
+
+colorscheme_state=$(get-config-state -cp foot/state current-colorscheme)
+colorscheme_file=${XDG_CONFIG_HOME:-$HOME/.config}/foot/colorscheme/$1
+
+if [ ! -r "$colorscheme_file" ]; then
+  notify-or-print -en colorscheme -- \
+    "$(i18n -n common "Failure")" "$(i18n -n colorscheme 'The "$1" color scheme does not exist' "$1")"
+  exit 1
+fi
+
+IFS= read -r section_spec <"$colorscheme_file"
+
+case "$section_spec" in
+  *'[colors-light]'*)
+    category=light
+    ;;
+  *'[colors-dark]'*)
+    category=dark
+    ;;
+  *)
+    notify-or-print -en colorscheme -- \
+      "$(i18n -n common "Failure")" "$(i18n -n colorscheme 'unknown section: $1' "$section_spec")"
+    exit 1
+    ;;
+esac
+
+slot=$(get-config-state -cp foot/state "${category}-slot")
+ln -sf -- "$colorscheme_file" "$slot"
+
+case $category in
+  dark)
+    pkill -USR1 -u "$(id -u)" foot || true
+    ;;
+  light)
+    pkill -USR2 -u "$(id -u)" foot || true
+    ;;
+esac
+
+printf "initial-color-theme=%s\n" "$category" > "$colorscheme_state"

@@ -1,0 +1,6 @@
+#!/bin/sh
+
+colorscheme_file=${XDG_CONFIG_HOME:-$HOME/.config}/fuzzel/colorscheme/$1
+colorscheme_state=$(get-config-state -cp fuzzel/state current-colorscheme)
+
+ln -sf -- "$colorscheme_file" "$colorscheme_state"

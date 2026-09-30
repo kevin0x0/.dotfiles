@@ -1,0 +1,5 @@
+#!/bin/sh
+
+colorscheme_state=$(get-config-state -cp menu-wrapper-wmenu/state current-colorscheme)
+colorscheme_file=${XDG_CONFIG_HOME:-$HOME/.config}/menu-wrapper-wmenu/colorscheme/$1
+ln -sf -- "$colorscheme_file" "$colorscheme_state"

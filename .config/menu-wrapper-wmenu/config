@@ -1,9 +1,9 @@
 
 FONTFAMILY='monospace'
-# Font by fontconfig format
+# Font by pango format
 FONT="$FONTFAMILY, 14"
 
-colorfile="${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/menu-wrapper-wmenu/colorscheme"
+colorfile="${XDG_CONFIG_HOME:-$HOME/.config}/menu-wrapper-wmenu/state/current-colorscheme"
 
 COLORS=
 if [ -f "$colorfile" ] && [ -r "$colorfile" ]; then

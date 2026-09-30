@@ -23,7 +23,8 @@ if [ -z "$theme" ]; then
     | menu-wrapper dmenu)
 fi
 
-if [ ! -f "$SWAY_CONFIG_DIR/colorscheme/$theme" ]; then
+colorschemefile=$SWAY_CONFIG_DIR/colorscheme/$theme
+if [ ! -f "$colorschemefile" ]; then
   notify-or-print -en switch-colorscheme -- \
     "$(i18n -n sway-scripts "Failed to switch colorscheme")" \
     "$(i18n -n sway-scripts "Color scheme '\$1' doesn't exist" "$theme")"
@@ -42,4 +43,5 @@ source_sway_config_runtime() {
     | xargs -r0 -- swaymsg --
 }
 
-source_sway_config_runtime <"$SWAY_CONFIG_DIR/colorscheme/$theme"
+ln -sf "$colorschemefile" "$(get-sway-state -c current-colorscheme)"
+source_sway_config_runtime <"$colorschemefile"

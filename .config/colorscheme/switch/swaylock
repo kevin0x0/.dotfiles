@@ -1,5 +1,3 @@
-theme=$COLORSCHEME_THEME_FILE_A
-
-ln -sf "colorscheme/$theme" "${XDG_CONFIG_HOME:-$HOME/.config}/swaylock/config"
+run-config-script -p swaylock/scripts/ switch-colorscheme "$COLORSCHEME_THEME_FILE_A"
 
 # vim: ft=sh

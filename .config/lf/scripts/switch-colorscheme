@@ -1,0 +1,7 @@
+#!/bin/sh
+
+colorscheme_state=$(get-config-state -cp lf/state current-colorscheme)
+printf "%s\n" "$1" >"$colorscheme_state"
+
+lf -remote 'send on-init' >/dev/null 2>&1 || true
+# vim: ft=sh

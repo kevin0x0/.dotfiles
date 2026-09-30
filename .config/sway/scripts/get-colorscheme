@@ -1,10 +1,9 @@
 #!/bin/sh
 
-: "${XDG_STATE_HOME:=$HOME/.local/state}"
-COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/sway/colorscheme
+statefile=$(get-sway-script -c current-colorscheme)
 
-if [ -f "$COLOR_THEME_FILE" ] && [ -r "$COLOR_THEME_FILE" ]; then
-  printf "%s\n" "${XDG_CONFIG_HOME:-$HOME/.config}/sway/colorscheme/$(cat -- "$COLOR_THEME_FILE")"
-else
-  printf "/dev/null"
+if [ ! -e "$statefile" ]; then
+  ln -sf /dev/null "$statefile"
 fi
+
+printf "%s\n" "$statefile"

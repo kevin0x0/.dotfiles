@@ -19,9 +19,9 @@ fi
 
 theme=$1
 if [ -z "$theme" ]; then
-  color_theme_file=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/sway-i3status/colorscheme
-  if readable_file "$color_theme_file"; then
-    theme=$(cat -- "$color_theme_file")
+  colorscheme_state=$(get-config-state -cp sway-i3status/state current-colorscheme)
+  if readable_file "$colorscheme_state"; then
+    theme=$(cat -- "$colorscheme_state")
   fi
 fi
 
