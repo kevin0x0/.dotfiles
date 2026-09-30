@@ -9,12 +9,11 @@ case $(termcolors) in
     ;;
 esac
 
-: "${XDG_STATE_HOME:=$HOME/.local/state}"
-COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/neomutt/colorscheme
+colorscheme_state=$(get-config-state -cp neomutt/state current-colorscheme)
 
-if [ ! -r "$COLOR_THEME_FILE" ]; then
+if [ ! -r "$colorscheme_state" ]; then
   printf "none\n"
   exit
 fi
 
-printf "256-%s\n" "$(cat -- "$COLOR_THEME_FILE")"
+printf "256-%s\n" "$(cat -- "$colorscheme_state")"

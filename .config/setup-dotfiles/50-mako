@@ -1,9 +1,11 @@
-if [ "${XDG_STATE_HOME:-$HOME/.local/state}" != ~/.local/state ]; then
-  error_exit "XDG_STATE_HOME must be set to ~/.local/state"
+: "${XDG_CONFIG_HOME:=$HOME/.config}"
+if [ "$(printf "%s" "$XDG_CONFIG_HOME/" | tr -s '/')" \
+  != "$(printf "%s" ~/.config/ | tr -s '/')"  ]; then
+  error_exit "XDG_CONFIG_HOME must be set to ~/.config"
 fi
 
-STATE_FILE=${XDG_STATE_HOME:-$HOME/.local/state}/colorscheme/mako/colorscheme
+STATE_FILE=$XDG_CONFIG_HOME/mako/state/current-colorscheme
 mkdir -p "$(dirname -- "$STATE_FILE")"
-ln -sf -- "/dev/null" "$STATE_FILE"
+ln -sf -- /dev/null "$STATE_FILE"
 
 # vim: ft=sh

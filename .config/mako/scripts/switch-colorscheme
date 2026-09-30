@@ -1,0 +1,7 @@
+#!/bin/sh
+
+colorscheme_state=$(get-config-state -cp mako/state current-colorscheme)
+colorscheme_file=${XDG_CONFIG_HOME:-$HOME/.config}/mako/colorscheme/$1
+ln -sf -- "$colorscheme_file" "$colorscheme_state"
+
+makoctl reload >/dev/null 2>/dev/null || true

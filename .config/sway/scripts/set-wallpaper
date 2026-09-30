@@ -30,8 +30,5 @@ esac
 swaymsg -q -- output '*' bg "$escaped" stretch >/dev/null 2>&1 || true
 
 if [ -n "$opt_persist" ]; then
-  state_dir=${XDG_CONFIG_HOME:-$HOME/.config}/sway/state
-  [ -d "$state_dir" ] || mkdir -p -- "$state_dir" \
-    || { printf "failed to create %s\n" "$state_dir" >&2; exit 1; }
-  ln -sf -- "$imgfile" "$state_dir/current-wallpaper"
+  ln -sf -- "$imgfile" "$(get-sway-state -c current-wallpaper)"
 fi

@@ -1,15 +1,3 @@
-COLOR_THEME_FILE=$COLORSCHEME_STATE_HOME/neomutt/colorscheme
-if [ ! -e  "$(dirname -- "$COLOR_THEME_FILE")" ]; then
-  if ! mkdir -p "$(dirname -- "$COLOR_THEME_FILE")"; then
-    notify-or-print -en colorscheme -- \
-      "$(i18n -n common "Failure")" "$(i18n -n colorscheme 'can not create state file for $1' neomutt)"
-    exit 1
-  fi
-fi
+run-neomutt-script switch-colorscheme "$COLORSCHEME_THEME_FILE"
 
-theme=$COLORSCHEME_THEME_FILE
-printf "%s\n" "$theme" > "$COLOR_THEME_FILE"
-
-# Unfortunately, it seems there is no simple solution to notify running neomutt
-# process to reload color config.
 # vim: ft=sh

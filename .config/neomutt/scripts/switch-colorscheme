@@ -1,0 +1,7 @@
+#!/bin/sh
+
+colorscheme_state=$(get-config-state -cp neomutt/state current-colorscheme)
+printf "%s\n" "$1" >"$colorscheme_state"
+
+# Unfortunately, it seems there is no simple solution to notify running neomutt
+# process to reload color config.

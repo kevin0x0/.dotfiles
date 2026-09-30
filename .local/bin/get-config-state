@@ -1,0 +1,24 @@
+#!/bin/sh
+
+opt_createdir=
+opt_path=
+while getopts "cp:" opt; do
+  case $opt in
+    c)
+      opt_createdir=1
+      ;;
+    p)
+      opt_path=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+statefile=${XDG_CONFIG_HOME:-$HOME/.config}/$opt_path/$1
+if [ ! -d "${statefile%/*}" ] && [ -n "$opt_createdir" ]; then
+  mkdir -p -- "${statefile%/*}" || exit 1 
+fi
+printf "%s\n" "$statefile"

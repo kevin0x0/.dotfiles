@@ -38,10 +38,10 @@ set user_filterfmt ""
 cmd on-init &{{
   : "${XDG_CONFIG_HOME:=$HOME/.config}"
   : "${XDG_STATE_HOME:=$HOME/.local/state}"
-  COLOR_THEME_FILE=$XDG_STATE_HOME/colorscheme/lf/colorscheme
+  colorscheme_state=$(get-config-state -cp lf/state current-colorscheme)
   filename=
-  if [ -f "$COLOR_THEME_FILE" ] && [ -r "$COLOR_THEME_FILE" ]; then
-    filename=$(cat -- "$COLOR_THEME_FILE")
+  if [ -f "$colorscheme_state" ] && [ -r "$colorscheme_state" ]; then
+    filename=$(cat -- "$colorscheme_state")
   fi
   if [ -n "$filename" ]; then
     filename=$(printf "%s" "$filename" | sed 's/\\/\\\\/g; s/"/\\"/g')
