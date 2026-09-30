@@ -4,4 +4,4 @@ colorscheme_state=$(get-config-state -cp swayimg/state current-colorscheme)
 colorscheme_file=${XDG_CONFIG_HOME:-$HOME/.config}/swayimg/colorscheme/${1}.lua
 ln -sf -- "$colorscheme_file" "$colorscheme_state"
 
-pkill -USR1 -u "$(id -u)" swayimg || true
+pkill -USR1 -xu "$(id -u)" swayimg || true
