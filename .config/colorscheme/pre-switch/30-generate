@@ -46,7 +46,7 @@ for f in "$COLORSCHEME_SPECS_DIR"/*; do
       newer_than_output "$@" "$template" || exit 0
     elif [ -e "$output" ]; then
       notify-or-print -en colorscheme -- \
-        "$(i18n -n common "Failure")" "$(i18n -n colorscheme '$1 is not a file' "$output")"
+        "$(i18n -n common "Failure")" "$(i18n -n common '$1 is not a file' "$output")"
       notify-state colorscheme-generation-error
       exit 1
     fi

@@ -42,7 +42,7 @@ if [ ! -e "$dir" ]; then
 fi
 
 if [ ! -d "$dir" ]; then
-  i18n -n wallpaper '$1 is not a directory' "$dir" >&2
+  i18n -n common '$1 is not a directory' "$dir" >&2
   exit 1
 fi
 

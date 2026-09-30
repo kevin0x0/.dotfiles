@@ -18,7 +18,7 @@ if [ ! -d "$COLORSCHEME_STATE_HOME" ]; then
   if [ -e "$COLORSCHEME_STATE_HOME" ]; then
     notify-or-print -en colorscheme -- \
       "$(i18n -n common "Failure")" \
-      "$(i18n -n colorscheme '$1 exists but not a directory' "$COLORSCHEME_STATE_HOME")"
+      "$(i18n -n common '$1 is not a directory' "$COLORSCHEME_STATE_HOME")"
     exit 1
   fi
 
@@ -30,7 +30,7 @@ COLORSCHEME_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}/colorscheme
 if [ ! -d "$COLORSCHEME_CONFIG_HOME" ]; then
   notify-or-print -en colorscheme -- \
     "$(i18n -n common "Failure")" \
-    "$(i18n -n colorscheme '$1 does not exist or not a directory' "$COLORSCHEME_CONFIG_HOME")"
+    "$(i18n -n common '$1 is not a directory' "$COLORSCHEME_CONFIG_HOME")"
   exit 1
 fi
 
@@ -42,7 +42,7 @@ if [ ! -f "$CURRENT_THEME_FILE" ]; then
   if [ -e "$CURRENT_THEME_FILE" ]; then
     notify-or-print -en colorscheme -- \
       "$(i18n -n common "Failure")" \
-      "$(i18n -n colorscheme '$1 exists but not a file' "$CURRENT_THEME_FILE")"
+      "$(i18n -n common '$1 is not a file' "$CURRENT_THEME_FILE")"
     exit 1
   fi
   
@@ -53,7 +53,7 @@ if [ ! -f "$CURRENT_ALPHA_FILE" ]; then
   if [ -e "$CURRENT_ALPHA_FILE" ]; then
     notify-or-print -en colorscheme -- \
       "$(i18n -n common "Failure")" \
-      "$(i18n -n colorscheme '$1 exists but not a file' "$CURRENT_ALPHA_FILE")"
+      "$(i18n -n common '$1 is not a file' "$CURRENT_ALPHA_FILE")"
     exit 1
   fi
   

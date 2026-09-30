@@ -7,7 +7,7 @@ while [ "$count" -ne 0 ]; do
   shift
 
   if ! f=$(command -v -- "$arg"); then
-    i18n -n misc '$1 not found' "$arg" >&2
+    i18n -n common '$1 does not exist' "$arg" >&2
     continue
   fi
 
@@ -16,13 +16,13 @@ while [ "$count" -ne 0 ]; do
       set -- "$@" "$f"
       ;;
     *)
-      i18n -n misc '$1 not found' "$arg" >&2
+      i18n -n common '$1 does not exist' "$arg" >&2
       ;;
   esac
 done
 
 if [ "$#" -eq 0 ]; then
-  i18n -n misc "None of provided files exists" >&2
+  i18n -n common "None of provided files exists" >&2
   exit 1
 fi
 
