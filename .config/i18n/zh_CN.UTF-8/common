@@ -8,3 +8,13 @@
 > 异常行为
 # Can not acquire lock
 > 无法获取锁
+# $1 does not exist
+> $1 不存在
+# $1 is not a directory
+> $1 不是目录
+# $1 is not a file
+> $1 不是文件
+# $1 is not a readable file
+> $1 不是可读文件
+# None of provided files exists
+> 提供的文件均不存在

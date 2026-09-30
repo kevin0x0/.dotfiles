@@ -1,6 +1,4 @@
 # Failed to request: $1
 > 请求失败：$1
-# $1 is not a directory
-> $1 不是目录
 # Failed to extract image URL
 > 提取图像URL失败
