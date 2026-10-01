@@ -1,13 +1,29 @@
 #!/bin/sh
 
 if command -v mktemp >/dev/null 2>&1; then
-  exec mktemp
+  exec mktemp "$@"
 fi
 
+opt_dir=
+while getopts "d" opt; do
+  case $opt in
+    d)
+      opt_dir=1
+      ;;
+  esac
+done
+
+create() {
+  if [ -n "$opt_dir" ]; then
+    mkdir -- "$1"
+  else
+    (set -C; : >"$tmpfile")
+  fi 2>/dev/null
+}
 tmpfile_base=${TMPDIR:-/tmp}/tmp.$$
 i=0
 tmpfile=$tmpfile_base.$i
-while ! (set -C; : >"$tmpfile") 2>/dev/null; do
+while ! create "$tmpfile"; do
   i=$((i + 1))
   tmpfile=$tmpfile_base.$i
 done
