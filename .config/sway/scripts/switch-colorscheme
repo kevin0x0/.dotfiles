@@ -21,6 +21,7 @@ if [ -z "$theme" ]; then
   theme=$(cd "$SWAY_CONFIG_DIR"; find colorscheme -type f \
     | cut -d '/' -f 2 \
     | menu-wrapper dmenu)
+  [ -z "$theme" ] && exit
 fi
 
 colorschemefile=$SWAY_CONFIG_DIR/colorscheme/$theme
