@@ -418,7 +418,7 @@ local function set_format_conf(extra)
 end
 
 local function reload_colorscheme()
-  local chunk = loadfile(CONFIG_DIR .. "/swayimg/state/current-colorscheme", "t");
+  local chunk = loadfile(CONFIG_DIR .. "/swayimg/state/current-colorscheme", "t")
   if chunk == nil then
     return
   end
