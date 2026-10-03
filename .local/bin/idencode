@@ -1,0 +1,39 @@
+#!/bin/sh
+
+opt_decode=
+while getopts "d" opt; do
+  case $opt in
+    d)
+      opt_decode=1
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ -n "$opt_decode" ]; then
+  out=
+  s=${1#i}
+  while [ -n "$s" ]; do
+    tail=${s#???}
+    head=${s%"$tail"}
+    s=$tail
+    out=$out"\\0$head"
+  done
+  printf "%b" "$out"
+else
+  printf "%s" "$1" | od -vA n -t o1 | sed -E 's/[[:space:]]+/ /g' \
+    | \
+    {
+      out=i
+      while read line; do
+        for oct in $line; do
+          oct=000$oct
+          out=$out${oct#"${oct%???}"}
+        done
+      done
+      printf "%s" "$out"
+    }
+fi
