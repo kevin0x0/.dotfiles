@@ -51,22 +51,10 @@ for arg; do
       ;;
   esac
 
-  # Ff it is not a URI, make it a URI with file schema
+  # If it is not a URI, make it a URI with file schema
   if [ -z "$is_uri" ]; then
-    case $arg in
-      /*)
-        ;;
-      *)
-        arg=$PWD/$arg
-        ;;
-    esac
-    case $arg in
-      *//*)
-        arg=$(printf "%sx" "$arg" | tr -s '/')
-        arg=${arg%x}
-        ;;
-    esac
-    arg=file://$arg
+    arg=$(normpath -t x -- "$arg")
+    arg=file://${arg%x}
   fi
 
   # Percent encoding
