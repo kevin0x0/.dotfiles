@@ -12,12 +12,13 @@ while getopts "d" opt; do
       ;;
   esac
 done
+shift "$((OPTIND - 1))"
 
 create() {
   if [ -n "$opt_dir" ]; then
     mkdir -- "$1"
   else
-    (set -C; : >"$tmpfile")
+    (set -C; : >"$1")
   fi 2>/dev/null
 }
 tmpfile_base=${TMPDIR:-/tmp}/tmp.$$
