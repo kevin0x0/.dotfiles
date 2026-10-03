@@ -1,0 +1,52 @@
+#!/bin/sh
+
+opt_terminator='\n'
+
+while getopts "t:n" opt; do
+  case $opt in
+    t)
+      opt_terminator=$OPTARG
+      ;;
+    n)
+      opt_terminator='\0000'
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+for path; do
+  case $path in
+    [!/]*)
+      components=$PWD/$path
+      ;;
+    *)
+      components=$path
+      ;;
+  esac
+  components=${components#/}/
+  norm=
+  while [ -n "$components" ]; do
+    component=${components%%/*}
+    components=${components#*/}
+    case $component in
+      ..)
+        if [ -z "$norm" ]; then
+          printf "bad pathname: %s\n" "$path" >&2
+          exit 1
+        fi
+        norm=${norm%/*}
+        ;;
+      .|'')
+        continue
+        ;;
+      *)
+        norm=$norm/$component
+        ;;
+    esac
+  done
+
+  printf "%s%b" "${norm:-/}" "$opt_terminator"
+done
