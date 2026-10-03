@@ -13,19 +13,7 @@ dsk_encode() {
   dsk_alnum=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
   case $1 in
     *[!-/:%\&.=\ @_$dsk_alnum]*|0*)
-      dsk_out=0$(
-        printf "%s" "$1" | od -vA n -t o1 | sed -E 's/[[:space:]]+/ /g' \
-          | (
-              out=
-              while read dsk_oct_line; do
-                for dsk_oct in $dsk_oct_line; do
-                  dsk_oct=000$dsk_oct
-                  out=$out${dsk_oct#"${dsk_oct%???}"}
-                done
-              done
-              printf "%s" "$out"
-            )
-        )
+      dsk_out=0$(idencode -- "$1")
       ;;
     *[!$dsk_alnum]*)
       dsk_s=$1
@@ -63,15 +51,7 @@ dsk_decode() {
   dsk_s=$1
   case $dsk_s in
     0*)
-      dsk_out=
-      dsk_s=${dsk_s#0}
-      while [ -n "$dsk_s" ]; do
-        dsk_tail=${dsk_s#???}
-        dsk_head=${dsk_s%"$dsk_tail"}
-        dsk_s=$dsk_tail
-        dsk_out=$dsk_out"\\0$dsk_head"
-      done
-      dsk_out=$(printf "%bx" "$dsk_out")
+      dsk_out=$(idencode -d -- "${dsk_s#0}"; echo x)
       dsk_out=${dsk_out%x}
       ;;
     *)
