@@ -1,9 +1,13 @@
 #!/bin/sh
 
+opt_test_uri=
 opt_terminator=$'\n'
 
-while getopts "t:" opt; do
+while getopts "ut:" opt; do
   case $opt in
+    u)
+      opt_test_uri=1
+      ;;
     t)
       opt_terminator=$OPTARG
       ;;
@@ -18,38 +22,52 @@ letters=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
 digits=0123456789
 chars_allowed_in_uri=$(printf "%s" "-._~!\$&'()*+,;=:@/$letters$digits" | tr -d "$opt_terminator")
 
-for arg; do
-  # Is it already a URI?
-  # Here we don’t follow the RFC3986 strictly; instead, we check
-  # heuristically.
-  is_uri=
-  case $arg in
+# Is it already a URI?
+# Here we don’t follow the RFC3986 strictly; instead, we check
+# heuristically.
+is_uri() {
+  case $1 in
     *:*)
-      scheme=${arg%%:*}
-      case $scheme in
+      schema=${1%%:*}
+      case $schema in
         [$letters]*)
-          case $scheme in
+          case $schema in
             *[!-+.$letters$digits]*)
               ;;
             *)
-              # It is a URI
-              case $arg in
-                *"$opt_terminator"*)
-                  # But it contains a terminator, need do percent encoding
-                  is_uri=1
-                  ;;
-                *)
-                  # It doesn't contain a terminator, skip it
-                  printf "%s%s" "$arg" "$opt_terminator"
-                  continue
-                  ;;
-              esac
+              return 0
               ;;
           esac
           ;;
       esac
       ;;
   esac
+  return 1
+}
+
+if [ -n "$opt_test_uri" ]; then
+  for arg; do
+    is_uri "$arg" || exit 1
+  done
+  exit 0
+fi
+
+for arg; do
+  is_uri=
+  if is_uri "$arg"; then
+    # It is a URI
+    is_uri=1
+    case $arg in
+      *"$opt_terminator"*)
+        # But it contains a terminator, need do percent encoding
+        ;;
+      *)
+        # It doesn't contain a terminator, skip it
+        printf "%s%s" "$arg" "$opt_terminator"
+        continue
+        ;;
+    esac
+  fi
 
   # If it is not a URI, make it a URI with file schema
   if [ -z "$is_uri" ]; then
