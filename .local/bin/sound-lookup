@@ -146,7 +146,9 @@ lookup_in_theme() {
   toplevel_dir=${index_file%/*}
 
   if [ -f "$cache_file" ] && [ -n "$(find "$cache_file" -newer "$toplevel_dir")" ]; then
+    lock "sound-lookup-$encoded"
     sound_file=$(cat -- "$cache_file"; echo x)
+    unlock "sound-lookup-$encoded"
     sound_file=${sound_file%x}
     if [ -f "$sound_file" ]; then
       printf "%s" "$sound_file"
@@ -171,7 +173,9 @@ lookup_in_theme() {
       fi
     done
   done
+  lock "sound-lookup-$encoded"
   printf "%s" "$sound_file" >"$cache_file"
+  unlock "sound-lookup-$encoded"
   if [ -n "$sound_file" ]; then
      printf "%s" "$sound_file"
      return 

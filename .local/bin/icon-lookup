@@ -183,7 +183,9 @@ lookup_in_theme() {
   toplevel_dir=${index_file%/*}
 
   if [ -f "$cache_file" ] && [ -n "$(find "$cache_file" -newer "$toplevel_dir")" ]; then
+    lock "icon-lookup-$encoded"
     icon_file=$(cat -- "$cache_file"; echo x)
+    unlock "icon-lookup-$encoded"
     icon_file=${icon_file%x}
     if [ -f "$icon_file" ]; then
       printf "%s" "$icon_file"
@@ -209,9 +211,11 @@ lookup_in_theme() {
     fi
   done
   if [ -n "$icon_file" ]; then
-     printf "%s" "$icon_file" >"$cache_file"
-     printf "%s" "$icon_file"
-     return 
+    lock "icon-lookup-$encoded"
+    printf "%s" "$icon_file" >"$cache_file"
+    unlock "icon-lookup-$encoded"
+    printf "%s" "$icon_file"
+    return 
   fi
 
   best_distance=
@@ -225,7 +229,9 @@ lookup_in_theme() {
       fi
     fi
   done
+  lock "icon-lookup-$encoded"
   printf "%s" "$best_icon_file" >"$cache_file"
+  unlock "icon-lookup-$encoded"
   if [ -n "$best_icon_file" ]; then
      printf "%s" "$best_icon_file"
      return 
