@@ -1,6 +1,6 @@
 #!/bin/sh
 
-statefile=$(get-sway-script -c current-colorscheme)
+statefile=$(get-sway-state -c current-colorscheme)
 
 if [ ! -e "$statefile" ]; then
   ln -sf /dev/null "$statefile"
