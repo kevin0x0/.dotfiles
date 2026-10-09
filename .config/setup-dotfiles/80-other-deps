@@ -9,7 +9,7 @@ jq command-line json processor
 curl transfer a URL
 EOF
 
-if ! jq -n --raw-output0 --args '.' a b >/dev/null 2>&1; then
+if command -v jq >/dev/null 2>&1 && ! jq -n --raw-output0 --args '$ARGS.positional[]' a b >/dev/null 2>&1; then
   warning "jq in this machine doesn't support --raw-output0 and --args options"
 fi
 

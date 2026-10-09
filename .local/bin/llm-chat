@@ -53,7 +53,7 @@ llm_scriptname=llm-chat
 llm_configdir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts
 [ -f "$llm_configdir/chat-config" ] && . -- "$llm_configdir/chat-config"
 
-while getopts "fnswSh:H:o:r:k:K:m:F:u:t:c:" opt; do
+while getopts "fnswSh:H:o:r:E:k:K:m:F:u:t:c:" opt; do
   case $opt in
     o)
       option_name=${OPTARG%%=*}
@@ -95,6 +95,10 @@ while getopts "fnswSh:H:o:r:k:K:m:F:u:t:c:" opt; do
     r)
       getarg opt_reasoning "$OPTARG"
       ;;
+    E)
+      getarg opt_api_key_cmd "$OPTARG"
+      opt_api_key=
+      ;;
     k)
       getarg opt_api_key "$OPTARG"
       opt_api_key_cmd=
@@ -130,8 +134,8 @@ done
 
 [ -f "$llm_configdir/post-chat-config" ] && . -- "$llm_configdir/post-chat-config"
 
-if [ -n "$opt_api_key_cmd" ]; then
-  opt_api_key=$(eval " $opt_api_key_cmd" && echo x)
+if [ -z "$opt_api_key" ] && [ -n "$opt_api_key_cmd" ]; then
+  opt_api_key=$(eval " $opt_api_key_cmd" && echo x) || exit
   opt_api_key=${opt_api_key%$'\nx'}
 fi
 
