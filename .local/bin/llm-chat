@@ -842,17 +842,19 @@ while :; do
         echo
         if incomplete_reason=$(jq -jn 'limit(1; inputs) | .reason' "$output" 2>/dev/null); then
           case $incomplete_reason in
-            max_output_tokens)
-              # Handle normally
-              ;;
-            steered)
-              # Handle normally
+            max_output_tokens|steered)
+              jq -c -- 'inputs' "$output" >"$tmp"
+              cp -- "$tmp" "$output"
+              # Then handle normally
               ;;
             *)
               printf "response incomplete: %s\n" "$incomplete_reason" >&2
               continue 2
               ;;
           esac
+        else
+          printf "response incomplete but no reason given\n" >&2
+          continue 2
         fi
         ;;
       *)
