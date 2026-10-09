@@ -684,11 +684,11 @@ state_init() {
   : >"$text_input"
   : >"$tmp"
 
-  if [ "$opt_prompt" ]; then
+  if [ -n "$opt_prompt" ]; then
     llm-make-message -r system -tE "$opt_prompt" >"$conversation"
   fi
 
-  if [ "$opt_prompt_file" ]; then
+  if [ -n "$opt_prompt_file" ]; then
     llm-make-message -r system -ftE "$opt_prompt_file" >"$conversation"
   fi
 }
