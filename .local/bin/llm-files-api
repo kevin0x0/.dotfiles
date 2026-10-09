@@ -1,0 +1,157 @@
+#!/bin/sh
+
+opt_files_base_url=
+opt_api_key=
+
+opt_purpose=user_data
+opt_getcontent=
+opt_upload=
+opt_delete=
+opt_list=
+opt_retrieve=
+
+opt_expire=
+
+while getopts "u:k:p:ecUdlr" opt; do
+  case $opt in
+    u)
+      opt_files_base_url=$OPTARG
+      ;;
+    k)
+      opt_api_key=$OPTARG
+      ;;
+    p)
+      opt_purpose=$OPTARG
+      ;;
+    e)
+      opt_expire=$OPTARG
+      ;;
+    c)
+      opt_getcontent=1
+      ;;
+    U)
+      opt_upload=1
+      ;;
+    d)
+      opt_delete=1
+      ;;
+    l)
+      opt_list=1
+      ;;
+    r)
+      opt_retrieve=1
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ -z "$opt_files_base_url" ]; then
+  printf "base url not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_api_key" ]; then
+  printf "api key not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_getcontent$opt_upload$opt_delete$opt_list$opt_retrieve" ]; then
+  opt_list=1
+fi
+
+curl_file_escape() {
+  tmp=$(printf "%sx\n" "$2" | sed 's/"\\/\\&/g')
+  eval " $1"='${tmp%x}'
+}
+
+set -o pipefail
+
+if [ -n "$opt_getcontent" ]; then
+  if [ "$#" -eq 0 ]; then
+    printf "provide a file id\n" >&2
+    exit 1
+  fi
+  curl -sS -X GET -H "Authorization: Bearer $opt_api_key" \
+    -- "$opt_files_base_url/$1/content" \
+    | jq 'if has("error") then halt_error else . end'
+elif [ -n "$opt_upload" ]; then
+  [ "$#" -eq 0 ] && exit 0
+  count=$#
+  multiple_files=
+  while [ "$count" -ne 0 ]; do
+    count=$((count - 1))
+    f=$1
+    shift
+
+    [ -f "$f" ] || continue
+    [ -r "$f" ] || continue
+
+    [ -n "$multiple_files" ] && set -- "$@" --next
+    multiple_files=1
+    curl_file_escape escaped "$f"
+    set -- "$@" -s -X POST -H "Authorization: Bearer $opt_api_key" \
+      -F "purpose=$opt_purpose" -F "file=@\"$escaped\";filename=\"$escaped\""
+    if [ -n "$opt_expire" ]; then
+      set -- "$@" -F "expires_after[anchor]=created_at" \
+        -F "expires_after[seconds]=$opt_expire" 
+    fi
+    set -- "$@" "$opt_files_base_url"
+  done
+  set -- -S "$@" # -S is a global option of curl
+  [ -n "$multiple_files" ] && curl "$@" \
+    | jq 'if has("error") then halt_error else . end'
+elif [ -n "$opt_delete" ]; then
+  [ "$#" -eq 0 ] && exit 0
+  count=$#
+  set -- "$@" -sS -X DELETE -H "Authorization: Bearer $opt_api_key" --
+  while [ "$count" -ne 0 ]; do
+    count=$((count - 1))
+    id=$1
+    shift
+    set -- "$@" "$opt_files_base_url/$id"
+  done
+  curl "$@" | jq 'if has("error") then halt_error else . end'
+elif [ -n "$opt_list" ]; then
+  tmp=$(tmpfile) || exit 1
+  after=
+  exitcode=0
+  while :; do
+    set -- -sS -G -H "Authorization: Bearer $opt_api_key"
+    if [ -n "$after" ]; then
+      set -- "$@" --data-urlencode after="$after"
+    fi
+
+    if ! curl "$@" -- "$opt_files_base_url" >"$tmp"; then
+      exitcode=1
+      break
+    fi
+
+    if ! jq '.data[]' -- "$tmp"; then
+      exitcode=1
+      break
+    fi
+
+    if jq -e '.has_more' -- "$tmp" >/dev/null; then
+      after=$(jq -j '.last_id'; echo x)
+      after=${after%x}
+    else
+      break
+    fi
+  done
+  rm -f -- "$tmp"
+  exit "$exitcode"
+elif [ -n "$opt_retrieve" ]; then
+  [ "$#" -eq 0 ] && exit 0
+  count=$#
+  set -- "$@" -sS -X GET -H "Authorization: Bearer $opt_api_key" --
+  while [ "$count" -ne 0 ]; do
+    count=$((count - 1))
+    id=$1
+    shift
+    set -- "$@" "$opt_files_base_url/$id"
+  done
+  curl "$@" | jq 'if has("error") then halt_error else . end'
+fi

@@ -1,0 +1,10 @@
+Request to execute given POSIX shell script. Output:
+  {"error":null,"exitcode":<int>,"stdout":<string>,"stderr":<string>} on execution,
+  {"error":<string>} on failure,
+  or {"error": "rejected", "reason":<string>} on rejection.
+
+Note:
+  - The request may be rejected.
+  - The script should terminate.
+  - Don't change system's state unless it is exactly what user wants or
+    is necessary to achieve user's request.

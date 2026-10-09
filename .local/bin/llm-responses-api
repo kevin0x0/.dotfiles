@@ -1,0 +1,532 @@
+#!/bin/sh
+
+opt_responses_base_url=
+opt_api_key=
+opt_stream=
+opt_reasoning=none
+opt_model=
+opt_tools=
+
+opt_fromfile=
+
+getarg() {
+  if [ -n "$opt_fromfile" ]; then
+    arg=$(cat -- "$2"; echo x)
+    arg=${arg%x}
+    opt_fromfile=
+  else
+    arg=$2
+  fi
+
+  eval "$1"='$arg'
+}
+
+while getopts "fu:k:sr:m:t:A:" opt; do
+  case $opt in
+    f)
+      opt_fromfile=1
+      ;;
+    u)
+      getarg opt_responses_base_url "$OPTARG"
+      ;;
+    k)
+      getarg opt_api_key "$OPTARG"
+      ;;
+    s)
+      opt_stream=1
+      ;;
+    r)
+      getarg opt_reasoning "$OPTARG"
+      ;;
+    m)
+      getarg opt_model "$OPTARG"
+      ;;
+    t)
+      getarg opt_tools "$OPTARG"
+      ;;
+    A)
+      getarg opt_extra_request_args "$OPTARG"
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
+
+event_output=/dev/null
+if [ "$#" -eq 0 ]; then
+  response_output=
+elif [ "$#" -ge 1 ]; then
+  if [ "$1" = - ]; then
+    response_output=
+  else
+    response_output=$1
+  fi
+
+  if [ "$#" -gt 1 ]; then
+    if [ "$2" = - ]; then
+      event_output=
+    else
+      event_output=$2
+    fi
+  fi
+fi
+
+make_input() {
+  stream=false
+  [ -n "$opt_stream" ] && stream=true
+  jq -cs --unbuffered \
+    --argjson stream "$stream" \
+    --argjson tools "${opt_tools:-null}" \
+    --arg reasoning "$opt_reasoning" \
+    --arg model "$opt_model" \
+    --argjson extra "${opt_extra_request_args:-"{}"}" \
+    '{"model":$model,"stream":$stream,"reasoning":{"effort":$reasoning},"input":.} + $extra
+      | if $tools != null then .tools = $tools end'
+}
+
+call_curl() {
+  opts=-sS${opt_stream:+N}
+  curl "$opts" "$opt_responses_base_url" \
+    -H 'Content-Type: application/json' \
+    -H 'Accept: application/json' \
+    -H "Authorization: Bearer $opt_api_key" \
+    -d '@-'
+
+  # print extra newline
+  echo
+}
+
+make_nonstream_output() {
+  tmp=$(tmpfile) || exit 1
+  jq -c 'if .status == "completed" then
+           .output[], ("" | halt_error(0))
+         elif .status == "failed" then
+           .error, ("" | halt_error(5))
+         elif .status == "incomplete" then
+           .incomplete_details, .output[], ("" | halt_error(5))
+         else
+           if has("error") | not then
+             {"error":{"message":.,"type":"__defined_by_me","code":"__defined_by_me"}}
+           end, ("" | halt_error(5))
+         end' >"$tmp"
+  exitcode=$?
+
+  case $response_output in
+    "") exec 3>&1 ;;
+    *)  exec 3>"$response_output" ;;
+  esac
+  cat "$tmp" >&3
+
+  case $event_output in
+    "") exec 3>&1 ;;
+    *)  exec 3>"$event_output" ;;
+  esac
+
+  case $exitcode in
+    0)
+      llm-render-events <"$tmp" >&3
+      ;;
+    5)
+      # `jq 'inputs'` skips the first value
+      jq 'inputs' "$tmp" | llm-render-events >&3
+      ;;
+  esac
+
+  rm -f -- "$tmp"
+  exit "$exitcode"
+}
+
+sse_to_jsons() {
+  sse_to_jsons_progrom='
+  if startswith("data:") then
+    if contains("[DONE]") then
+      halt
+    else
+      trimstr("data:") | trimstr(" ")
+    end
+  elif startswith("id:") or startswith("event:") or
+    startswith("retry:") or startswith(":") or . == "" then
+    empty
+  else
+    (try fromjson) // {"error":{"message":([., inputs] | add),"type":"__defined_by_me","code":"__defined_by_me"}} |
+      {"type":"response.failed","sequence_number","sequence_number":0,"response":.} | @json
+  end'
+
+  jq --unbuffered -Rr "$sse_to_jsons_progrom"
+}
+
+stream_sort() {
+  # Make sure the event arrives in .sequence_number order
+  stream_sort_program='
+    def split_succ_prefix($n):
+    .[0] as $head |
+    if .[0].sequence_number == $n then
+      .[1:] | split_succ_prefix($n + 1) | [[$head] + .[0], .[1]]
+    else
+      [[], .]
+    end;
+
+  foreach (inputs, "_END_") as $o (
+    {n:null,pending:[],out:null};
+    (.pending | length) as $len |
+    if $o == "_END_" then
+      .out = (.pending | sort_by(.sequence_number))
+    elif .n == null then
+      if $o.type == "response.created" then
+        .n = ($o.sequence_number + 1) |
+        .out= $o
+      else
+        .out = [] |
+        .pending = (.pending + [$o] | unique_by(.sequence_number))
+      end
+    elif $len == 0 then
+      if $o.sequence_number == .n then
+        .n += 1 | .out = $o
+      elif $o.sequence_number < .n then
+        .out = []
+      else
+        .out = [] | .pending = [$o]
+      end
+    else
+      .n as $expected |
+      (
+        .pending + [$o] |
+        unique_by(.sequence_number) |
+        split_succ_prefix($expected)
+      ) as [$out, $tail] |
+      .pending = $tail |
+      .out = $out |
+      .n += ($out | length)
+    end;
+    .out | if type == "array" then .[] end
+  )'
+
+  jq --unbuffered -cn "$stream_sort_program"
+}
+
+preprocess_render_event() {
+  preprocess_program='
+  def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
+  . as { type:$type } |
+  if .type == "response.reasoning_text.delta" then
+    [.output_index, .content_index, null, "reasoning", .delta]
+  elif .type == "response.reasoning_summary_text.delta" then
+    [.output_index, null, .summary_index, "reasoning-summary", .delta]
+  elif .type == "response.output_text.delta" then
+    [.output_index, .content_index, null, "message-text assistant", .delta]
+  elif .type == "response.refusal.delta" then
+    [.output_index, .content_index, null, "message-refusal assistant", .delta]
+  elif .type == "response.content_part.added" or
+      .type == "response.content_part.done" then
+    [
+      .output_index,
+      .content_index,
+      null,
+      (
+        .part |
+        if .type == "reasoning_text" then
+          "reasoning"
+        elif .type == "output_text" then
+          "message-text assistant"
+        elif .type == "refusal_text" then
+          "message-refusal assistant"
+        else
+          ""
+        end,
+        .text? // .refusal?
+      )
+    ]
+  elif .type == "response.output_item.added" then
+    [
+      .output_index,
+      null,
+      null,
+      if .item.type != "reasoning" and .item.type != "message" then
+        "notify " + .item.type + "@start", (.item | @json)
+      else
+        "", ""
+      end
+    ]
+  elif .type == "response.output_item.done" then
+    [
+      .output_index, null, null,
+      if .item.type == "reasoning" then
+        (.item.summary // [], .item.content // [])[] |
+        if .type == "reasoning_text" then
+          "reasoning", .text 
+        else
+          "reasoning-summary", .text 
+        end
+      else
+        "notify " + .item.type, (.item | @json)
+      end
+    ]
+  elif .type == "response.reasoning_summary_part.added" then
+    [.output_index, null, .summary_index, "reasoning-summary", .part.text]
+  elif .type == "response.reasoning_summary_part.done" then
+    [.output_index, null, .summary_index, "", .part.text]
+  elif .type == "response.completed" then
+    [null, null, null, "", (.response.output | @json)]
+  elif .type == "response.failed" then
+    [null, null, null, "", ([.response.error] | @json)]
+  elif .type == "response.incomplete" then
+    [null, null, null, "", ([.response.incomplete_details] + .response.output | @json)]
+  else
+    empty
+  end | . as [$output_index, $content_index, $summary_index, $render_event] | .[4] | chunk |
+  ($type, $output_index, $content_index, $summary_index, $render_event, @json)'
+
+  if ! jq --unbuffered -rc "$preprocess_program"; then
+    jq -nrc '"response.failed",0,0,0,"",({
+        "message":"json parsing error",
+        "code":"__defined_by_me",
+        "type":"__defined_by_me"
+      } | @json | @json)'
+  fi
+}
+
+make_stream_output() {
+  statedir=$(tmpfile -d) || exit 1
+  set --
+  case $event_output in
+    "") exec 3>&1 ;;
+    *)  exec 3>"$event_output" ;;
+  esac
+
+  current_is_summary=
+  current_is_nonsummary=
+  current_item_index=0
+  current_content_index=0
+  emit_render_event() {
+    printf "%s\n%s\n" "$1" "$2"
+  }
+
+  emit_on_advance() {
+    if [ ! -e "$statedir/$current_item_index/$prefix$current_content_index" ]; then
+      if [ -e "$statedir/$current_item_index/${prerix}0" ]; then
+        # There is a content part in this output item, which is already outputed, skip.
+        return
+      fi
+
+      cat -- "$statedir/$current_item_index/done"
+      return
+    fi
+      
+    dir="$statedir/$current_item_index/$prefix$current_content_index"
+    part_file=$dir/part
+    if [ -e "$part_file" ]; then
+      cat -- "$part_file"
+      rm -- "$part_file"
+    fi
+  }
+
+  emit_and_advance_index() {
+    prefix=
+    [ -e "$statedir/$current_item_index/is_summary" ] && prefix=summary-
+    while :; do
+      if [ -e "$statedir/$current_item_index/$prefix$current_content_index/done" ]; then
+        emit_on_advance
+        current_content_index=$((current_content_index + 1))
+        continue
+      fi
+      if [ -e "$statedir/$current_item_index/done" ]; then
+        if [ ! -e "$statedir/$current_item_index/0" ] \
+          && [ ! -e "$statedir/$current_item_index/summary-0" ]; then
+          # For output item that not contains content array, alway emit an event
+          emit_on_advance
+        fi
+        current_item_index=$((current_item_index + 1))
+        current_content_index=0
+        prefix=
+        [ -e "$statedir/$current_item_index/is_summary" ] && prefix=summary-
+        continue
+      fi
+
+      break
+    done
+  }
+
+  is_current() {
+    [ "$output_index" -eq "$current_item_index" ] \
+      && [ "$content_index" -eq "$current_content_index" ]
+  }
+
+  should_set_current_output_kind() {
+    [ "$output_index" -eq "$current_item_index" ] \
+      && [ -z "$current_is_summary$current_is_nonsummary" ]
+  }
+
+  should_set_output_kind() {
+    [ ! -e "$statedir/$output_index/is_nonsummary" ] && [ ! -e "$statedir/$output_index/is_summary" ]
+  }
+
+  done_pending=
+  while read -r type && read -r output_index && read -r content_index \
+    && read -r summary_index && read -r render_event && read -r payload; do
+    if [ -n "$done_pending" ]; then
+      case $type in
+        *.done)
+          if [ "$done_pending" != "${output_index}-${content_index}-$summary_index" ]; then
+            emit_and_advance_index
+            done_pending=
+          fi
+          ;;
+        *)
+          emit_and_advance_index
+          done_pending=
+          ;;
+      esac
+    fi
+
+    case $type in
+      response.completed|response.failed|response.incomplete)
+        break
+        ;;
+      response.content_part.added)
+        d=$statedir/$output_index/$content_index
+        [ ! -d "$d" ] && mkdir -p -- "$d"
+        should_set_current_output_kind && current_is_nonsummary=1
+        should_set_output_kind && : >"$statedir/$output_index/is_nonsummary"
+        if is_current && [ -n "$current_is_nonsummary" ]; then
+          emit_render_event "$render_event" "$payload"
+        else
+          emit_render_event "$render_event" "$payload" >>"$d/part"
+        fi
+        ;;
+      response.content_part.done)
+        f=$statedir/$output_index/$content_index/done
+        if [ ! -f "$f" ]; then
+          : >"$f"
+          done_pending=${output_index}-${content_index}-null
+        fi
+        ;;
+      response.output_item.added)
+        d=$statedir/$output_index
+        [ ! -d "$d" ] && mkdir -- "$d"
+        if [ -n "$render_event" ] && [ "$output_index" -eq "$current_item_index" ]; then
+          emit_render_event "$render_event" "$payload"
+        fi
+        ;;
+      response.output_item.done)
+        f=$statedir/$output_index/done
+        emit_render_event "$render_event" "$payload" >>"$f"
+        done_pending=${output_index}-null-null
+        if [ "$output_index" -eq "$current_item_index" ]; then
+          current_is_summary=
+          current_is_nonsummary=
+        fi
+        ;;
+      response.reasoning_summary_part.added)
+        d=$statedir/$output_index/summary-$summary_index
+        [ ! -d "$d" ] && mkdir -- "$d"
+        should_set_current_output_kind && current_is_summary=1
+        should_set_output_kind && : >"$statedir/$output_index/is_summary"
+        if is_current && [ -n "$current_is_summary" ]; then
+          emit_render_event "$render_event" "$payload"
+        else
+          emit_render_event "$render_event" "$payload" >>"$d/part"
+        fi
+        ;;
+      response.reasoning_summary_part.done)
+        f=$statedir/$output_index/summary-$summary_index/done
+        if [ ! -f "$f" ]; then
+          : >"$f"
+          done_pending=${output_index}-null-$summary_index
+        fi
+        ;;
+      response.reasoning_summary_text.delta)
+        if is_current && [ -n "$current_is_summary" ]; then
+          emit_render_event "$render_event" "$payload"
+        else
+          f=$statedir/$output_index/summary-$summary_index/part
+          emit_render_event "$render_event" "$payload" >>"$f"
+        fi
+        ;;
+      response.reasoning_text.delta)
+        # If output kind unset or directory not created, set it and create it.
+        # This should not happen on restrict server-side implementation of
+        # OpenAI Response API, but some non-restrict implementation may miss
+        # or misuse some events(for example, qwen) and make this happen.
+        if should_set_current_output_kind; then
+          current_is_nonsummary=1
+          d=$statedir/$output_index/$content_index
+          [ ! -d "$d" ] && mkdir -p -- "$d"
+        fi
+
+        if is_current && [ -z "$current_is_summary" ]; then
+          emit_render_event "$render_event" "$payload"
+        else
+          d=$statedir/$output_index/$content_index
+          emit_render_event "$render_event" "$payload" >>"$d/part"
+        fi
+        ;;
+      response.output_text.delta)
+        if is_current && [ -z "$current_is_summary" ]; then
+          emit_render_event "$render_event" "$payload"
+        else
+          d=$statedir/$output_index/$content_index
+          [ ! -d "$d" ] && mkdir -p -- "$d"
+          emit_render_event "$render_event" "$payload" >>"$d/part"
+        fi
+        ;;
+      response.refusal.delta)
+        if is_current && [ -z "$current_is_summary" ]; then
+          emit_render_event "$render_event" "$payload"
+        else
+          d=$statedir/$output_index/$content_index
+          [ ! -d "$d" ] && mkdir -p -- "$d"
+          emit_render_event "$render_event" "$payload" >>"$d/part"
+        fi
+        ;;
+      # response.reasoning_text.done)
+      #   ;;
+      # response.output_text.done)
+      #   ;;
+      # response.refusal.done)
+      #   ;;
+      *)
+        continue
+        ;;
+    esac
+  done >&3
+
+  case $response_output in
+    "") exec 3>&1 ;;
+    *)  exec 3>"$response_output" ;;
+  esac
+
+  exitcode=0
+  case $type in
+    response.completed)
+      ;;
+    response.failed)
+      exitcode=1
+      ;;
+    response.incomplete)
+      exitcode=3
+      ;;
+    *)
+      exitcode=4
+      ;;
+  esac
+  if [ "$exitcode" -ne 4 ]; then
+    printf "%s" "$payload"
+    while read -r unused && read -r unused && read -r unused \
+      && read -r unused && read -r unused && read -r payload; do
+      printf "%s" "$payload"
+    done
+  fi | jq -j '.' | jq -c '.[]' >&3
+
+  rm -rf -- "$statedir"
+  exit "$exitcode"
+}
+
+if [ -z "$opt_stream" ]; then
+  make_input | call_curl | make_nonstream_output
+else
+  make_input | call_curl | sse_to_jsons | stream_sort \
+    | preprocess_render_event | make_stream_output
+fi

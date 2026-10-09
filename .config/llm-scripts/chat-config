@@ -1,0 +1,5 @@
+# vim: ft=sh
+
+opt_reasoning=high
+opt_stream=1
+opt_repl_prompt_template='$(ansi_escape "33;1")llm> $(ansi_escape "0")'

@@ -1,0 +1,4 @@
+#!/bin/sh
+
+prompt_template=${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts/prompts/dict-verbose-template
+exec llm-lang-task -p "$prompt_template" "$@"

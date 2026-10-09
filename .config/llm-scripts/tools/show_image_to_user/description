@@ -1,0 +1,3 @@
+Show an image to user, you can use this tool to insert an image to your reply to user.
+Only one of .url and .pathname should be provided.
+Return {"error":null} on success, or {"error": <string>} on failure.

@@ -1,0 +1,18 @@
+# vim: ft=sh
+my_message_text_renderer() {
+  if [ "$argument" != assistant ]; then
+    cat >/dev/null
+    return 0
+  fi
+
+  cat -u
+  echo
+}
+
+opt_render_cmd_message_text=my_message_text_renderer
+opt_render_cmd_message_refusal=my_message_text_renderer
+opt_render_cmd_message_image='cat >/dev/null'
+opt_render_cmd_message_file='cat >/dev/null'
+opt_render_cmd_reasoning='cat >/dev/null'
+opt_render_cmd_reasoning_summary='cat >/dev/null'
+opt_render_cmd_notify='cat >/dev/null'

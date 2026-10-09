@@ -1,0 +1,123 @@
+#!/bin/sh
+
+opt_input=
+while getopts "i:" opt; do
+  case $opt in
+    i)
+      opt_input=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ -z "$opt_input" ]; then
+  exec 3<&0
+else
+  exec 3<"$opt_input"
+fi
+
+call() {
+  errmsg=
+  if [ -z "$execpath" ]; then
+    printf "missing tool: '%s'\n" "$name" >&2
+    errmsg='can not find this tool'
+    false
+  elif [ -x "$execpath" ]; then
+    "$execpath" "$@"
+  elif [ -r "$execpath" ]; then
+    sh -- "$execpath" "$@"
+  else
+    printf "%s is neither executable nor readable\n" "$d/$name/call" >&2
+    errmsg='this tool neither executable nor readable'
+    false
+  fi
+
+  if [ "$?" -ne 0 ]; then
+    if [ -n "$errmsg" ]; then
+      jq --arg err "$errmsg" '{"error": $err}' | llm-make-mcontent -t
+    else
+      llm-make-mcontent -t -- '{"error": "failed to execute this tool"}'
+    fi
+  fi
+}
+
+find_and_call() {
+  type=$1
+  id=$2
+  name=$3
+  shift 3
+
+  case $type in
+    function_call)
+      type=function_call_output
+      ;;
+    custom_tool_call)
+      type=custom_tool_call_output
+      ;;
+    *)
+      while IFS= read -r argpart; do
+        case $argpart in
+          __END__)
+            break
+            ;;
+        esac
+      done
+      ;;
+  esac
+
+  execpath=
+  while [ "$#" -ne 0 ]; do
+    d=$1
+    shift
+    [ -z "$d" ] && break
+
+    [ -f "$d/$name/call" ] || continue
+    execpath=$d/$name/call
+
+    while [ "$#" -ne 0 ]; do
+      d=$1
+      shift
+      [ -z "$d" ] && break
+    done
+    break
+  done
+
+  while IFS= read -r argpart; do
+    case $argpart in
+      __END__)
+        break
+        ;;
+    esac
+    printf "%s" "$argpart"
+  done | jq -sj '.[]' | call "$@" \
+    | jq -cs --argjson call_id "$id" --arg type "$type" --arg name "$name" \
+    '{"name":$name,"call_id":$call_id,"type":$type,"output":.}' 2>/dev/null
+
+  if [ "$?" -ne 0 ]; then
+    err='{"error":"this tool generated broken json(can not parsed as StringOutput or OutputContentList)"}'
+    jq -cs --argjson call_id "$id" --arg type "$type" --arg name "$name" \
+      --arg err "$err" \
+      '{"name":$name,"call_id":$call_id,"type":$type,"output":$err}'
+  fi
+}
+
+jq_program='
+def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
+if .type == "function_call" or .type == "custom_tool_call" then
+  .type, (.call_id | @json), .name, (.arguments | chunk | @json), "__END__"
+else
+  empty
+end
+'
+jq -rc "$jq_program" <&3 \
+  | {
+    exitcode=0
+    while read -r type && read -r id && read -r toolname; do
+      find_and_call "$type" "$id" "$toolname" "$@" || exitcode=$?
+    done
+
+    exit "$exitcode"
+  }

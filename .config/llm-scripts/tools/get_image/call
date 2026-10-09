@@ -1,0 +1,23 @@
+#!/bin/sh
+
+arg=$(cat)
+if ! printf "%s" "$arg" | jq -e 'has("url") or has("pathname")' >/dev/null; then
+  llm-make-mcontent -t -- '{"error":"bad argument"}'
+  exit 0
+fi
+url=$(printf "%s" "$arg" | jq -j ".url // .pathname"; echo x)
+url=${url%x}
+if path2uri -u "$url"; then
+  llm-make-mcontent -u -- "$url"
+  exit 0
+fi
+
+if ! output=$(llm-chat-get-fileid -F "$1" -p "$2" -k "$3" -K "$4" -S "$5" -- "$url" 2>&1 && echo x); then
+  jq -n --arg err "$output" '{"error":"failed to get file id: " + $err}' \
+    | llm-make-mcontent -t
+  exit 0
+fi
+
+llm-make-mcontent -i -- "${output%$'\nx'}"
+
+llm-make-mcontent -t -- '{"error":null}'

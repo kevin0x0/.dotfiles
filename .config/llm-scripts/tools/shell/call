@@ -1,0 +1,65 @@
+#!/bin/sh
+
+stderr=$(tmpfile) || exit 1
+stdout=$(tmpfile) || exit 1
+arg=$(tmpfile) || exit 1
+
+cat >"$arg"
+
+if ! jq -e 'has("code") and has("intent")' "$arg" >/dev/null 2>&1; then
+  llm-make-mcontent -t -- '{"error":"bad argument"}'
+  exit 0
+fi
+
+{
+  printf "\033[31mREQUEST TO EXECUTE COMMAND(s):\033[0m\n"
+  jq -r -- '.code' "$arg" \
+    | tr '\n' '\000' \
+    | xargs -r0 printf "\033[1;31m|\033[0m \033[32;1m%s\033[0m\n"
+
+  printf "\033[31mCOMMAND EXECUTION INTENT:\033[0m\n"
+  jq -r -- '.intent' "$arg" \
+    | tr '\n' '\000' \
+    | xargs -r0 printf "\033[1;31m=\033[0m \033[33;1m%s\033[0m\n"
+} >&2
+
+if [ -n "$LLM_CHAT_SH_YES" ]; then
+  reply=$LLM_CHAT_SH_YES
+else
+  printf "\033[1;31m%s\033[0m\n" \
+    "Do you approve the request(Y/n/[r]eplace the original command(s))?" >&2
+  IFS= read -r reply </dev/tty
+fi
+
+rejected=
+reason=
+exitcode=0
+case "$reply" in
+  y|"")
+    jq -r -- '.code' "$arg" | sh >"$stdout" 2>"$stderr"
+    exitcode=$?
+    ;;
+  n)
+    rejected=1
+    printf "\033[1;36mEnter your reason(one line):\033[0m\n" >&2
+    IFS= read -r reason </dev/tty
+    ;;
+  r)
+    printf "\033[1;36mEnter your replacing command(type ctrl+D to end your commands):\033[0m\n" >&2
+    sh </dev/tty >"$stdout" 2>"$stderr"
+    exitcode=$?
+    ;;
+esac
+
+if [ -n "$rejected" ]; then
+  jq -cn --arg reason "$reason" '{"error":"rejected","reason":$reason}' \
+    | llm-make-mcontent -t --
+else
+  jq -cn --rawfile out "$stdout" \
+    --rawfile err "$stderr" \
+    --argjson exitcode "$exitcode" \
+    '{"error":null,"stdout":$out,"$stderr":$err,"exitcode":$exitcode}' \
+    | llm-make-mcontent -t --
+fi
+
+rm "$stderr" "$stdout" "$arg"

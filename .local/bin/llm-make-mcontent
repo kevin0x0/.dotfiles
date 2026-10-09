@@ -1,0 +1,74 @@
+#!/bin/sh
+
+opt_detail=
+opt_type=input_text
+opt_key=text
+opt_fromfile=
+while getopts "e:ftuUiID" opt; do
+  case $opt in
+    e)
+      opt_detail=$OPTARG
+      ;;
+    f)
+      opt_fromfile=1
+      ;;
+    t)
+      opt_type=input_text
+      opt_key=text
+      ;;
+    u)
+      opt_type=input_image
+      opt_key=image_url
+      ;;
+    U)
+      opt_type=input_file
+      opt_key=file_url
+      ;;
+    i)
+      opt_type=input_image
+      opt_key=file_id
+      ;;
+    I)
+      opt_type=input_file
+      opt_key=file_id
+      ;;
+    D)
+      opt_type=input_file
+      opt_key=file_data
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ "$opt_type" = input_text ] && [ -n "$opt_detail" ]; then
+  opt_detail=
+fi
+
+if [ "$#" -gt 1 ]; then
+  printf "should provide at most one argument\n" >&2
+  exit 1
+fi
+
+if [ "$#" -eq 1 ] && [ -z "$opt_fromfile" ]; then
+  set -- -cn --arg value "$1"
+  fmt='{"type":$type,$key:$value}'
+  exec 3</dev/null
+else
+  if [ "$#" -eq 1 ]; then
+    exec 3<"$1"
+  else
+    exec 3<&0
+  fi
+  set -- -Rcs
+  fmt='{"type":$type,$key:.}'
+fi
+
+
+jq "$@" \
+  --arg key "$opt_key" \
+  --arg type "$opt_type" \
+  --arg detail "$opt_detail" \
+  "$fmt"' | if $detail != "" then .detail = $detail else . end' <&3

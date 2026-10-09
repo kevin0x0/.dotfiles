@@ -1,0 +1,74 @@
+#!/bin/sh
+
+opt_api_key=
+opt_cache_key=
+opt_purpose=user_data
+opt_files_base_url=
+opt_statedir=
+
+while getopts "F:k:p:K:S:" opt; do
+  case $opt in
+    k)
+      opt_api_key=$OPTARG
+      ;;
+    K)
+      opt_cache_key=$OPTARG
+      ;;
+    p)
+      opt_purpose=$OPTARG
+      ;;
+    F)
+      opt_files_base_url=$OPTARG
+      ;;
+    S)
+      opt_statedir=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ -z "$1" ]; then
+  printf "file not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_statedir" ]; then
+  printf "state directory not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_api_key" ]; then
+  printf "api key not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_cache_key" ]; then
+  printf "cache key not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_files_base_url" ]; then
+  printf "base url not provided\n" >&2
+  exit 1
+fi
+
+tmp=$(tmpfile) || exit 1
+if ! llm-file-manager -u "$opt_files_base_url" -k "$opt_api_key" -K "$opt_cache_key" -p "$opt_purpose" -Ulm -- "$1" >"$tmp"; then
+  exit 1
+fi
+
+add_to_file=
+if jq -e -- '.expires_at' "$tmp" >/dev/null 2>&1; then
+  add_to_file=$opt_statedir/volatile-file-ids
+else
+  add_to_file=$opt_statedir/persistent-file-ids
+fi
+
+cat "$tmp" >>"$add_to_file"
+jq -r -- '.id' "$tmp"
+jq -cs -- 'unique_by(.id)[]' "$add_to_file" >"$tmp"
+cp -- "$tmp" "$add_to_file"
+rm "$tmp"

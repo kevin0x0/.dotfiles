@@ -1,0 +1,26 @@
+# vim: ft=sh
+my_streamdown_renderer() {
+  case $event in
+    message-*)
+      ansi_escape "$(ansi_role_color "$argument");1"
+      printf "%s\n" "$argument"
+      ;;
+    reasoning|reasoning-summary)
+      ansi_escape "35;3;2;1"
+      printf "reasoning\n" "$argument"
+      ;;
+  esac
+  ansi_escape "0"
+
+  if ! command -v streamdown >/dev/null 2>&1; then
+    printf "warning: streamdown not available\n" >&2
+    cat -u
+  else
+    streamdown
+  fi
+}
+
+opt_render_cmd_message_text=my_streamdown_renderer
+opt_render_cmd_message_refusal=my_streamdown_renderer
+opt_render_cmd_reasoning=my_streamdown_renderer
+opt_render_cmd_reasoning_summary=my_streamdown_renderer
