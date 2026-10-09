@@ -22,6 +22,8 @@ for d; do
     esac
 
     name=${toolspec##*/}
+    description=
+    parameters=
     descriptionfile=$toolspec/description
     parametersfile=$toolspec/parameters
     if [ -f "$descriptionfile" ] && [ -r "$descriptionfile" ]; then
