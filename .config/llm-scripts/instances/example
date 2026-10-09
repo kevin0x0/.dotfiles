@@ -1,6 +1,11 @@
 # vim: ft=sh
 
 opt_api_key="<your api key>"
+# Or
+# opt_api_key_cmd="<command that prints your api key>"
+# Note: the command must print a trailing <newline>
+# For example, if your key is 'abc', then the command may like:
+# opt_api_key_cmd='printf "abc\n"'
 opt_cache_key="<cache key, this identifies your remote file storage>"
 
 . -- "$llm_configdir/providers/deepseek/models/deepseek-flash"

@@ -2,6 +2,7 @@
 
 opt_files_base_url=
 opt_api_key=
+opt_api_key_cmd=
 opt_cache_key=
 opt_purpose=user_data
 opt_clean=
@@ -19,7 +20,7 @@ llm_scriptname=llm-file-manager
 llm_configdir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts
 [ -f "$llm_configdir/file-manager-config" ] && . -- "$llm_configdir/file-manager-config"
 
-while getopts "c:u:k:K:p:aCUlmdtn" opt; do
+while getopts "c:u:C:k:K:p:aCUlmdtn" opt; do
   case $opt in
     c)
       # Additional config
@@ -32,8 +33,13 @@ while getopts "c:u:k:K:p:aCUlmdtn" opt; do
     u)
       opt_files_base_url=$OPTARG
       ;;
+    C)
+      opt_api_key_cmd=$OPTARG
+      opt_api_key=
+      ;;
     k)
       opt_api_key=$OPTARG
+      opt_api_key_cmd=
       ;;
     K)
       opt_cache_key=$OPTARG
@@ -74,6 +80,11 @@ done
 shift "$((OPTIND - 1))"
 
 [ -f "$llm_configdir/post-file-manager-config" ] && . -- "$llm_configdir/post-file-manager-config"
+
+if [ -n "$opt_api_key_cmd" ]; then
+  opt_api_key=$(eval " $opt_api_key_cmd" && echo x)
+  opt_api_key=${opt_api_key%$'\nx'}
+fi
 
 if [ -z "$opt_update$opt_list$opt_delete" ]; then
   opt_list=1
