@@ -12,7 +12,7 @@ opt_retrieve=
 
 opt_expire=
 
-while getopts "u:k:p:ecUdlr" opt; do
+while getopts "u:k:p:e:cUdlr" opt; do
   case $opt in
     u)
       opt_files_base_url=$OPTARG
