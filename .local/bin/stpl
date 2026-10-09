@@ -126,7 +126,7 @@ done
 
 shift "$((OPTIND - 1))"
 
-if [ -z "$1" ]; then
+if [ "$#" -eq 0 ]; then
   if [ -n "$stpl_opt_output" ]; then
     stpl_expand_file >"$stpl_opt_output"
   else
