@@ -196,6 +196,10 @@ if [ -z "$opt_repl_reader" ]; then
     break_chars=$'()[]{},+=&^%$#";|\\\''
     opt_repl_reader='
     historyfile=${XDG_STATE_HOME:-$HOME/.local/state}/llm-scripts/chat/rlwrap-history
+    if [ ! -f "$historyfile" ]; then
+      mkdir -p -- "${historyfile%/*}"
+      : >"$historyfile"
+    fi
     completion=${XDG_DATA_HOME:-$HOME/.local/share}/llm-scripts/chat/completion
     rlwrap -C llm-chat -H "$historyfile" -b "$break_chars" -f "$completion" -ca -S "$cmdline_prompt" -- sh -c '\''IFS= read -r line && printf "%s" "$line"'\'
   else
