@@ -66,13 +66,19 @@ stpl_expand_file() {
 stpl_opt_expansion_open='{'
 stpl_opt_expansion_close='}'
 stpl_opt_output=
-while getopts "l:r:s:o:" opt; do
+while getopts "l:r:c:s:o:" opt; do
   case $opt in
     l)
       stpl_opt_expansion_open=$OPTARG
       ;;
     r)
       stpl_opt_expansion_close=$OPTARG
+      ;;
+    c)
+      if ! command eval " $OPTARG"; then
+        printf "failed to execute %s\n" "$OPTARG" >&2
+        exit 1
+      fi
       ;;
     s)
       case $OPTARG in
