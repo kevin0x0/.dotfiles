@@ -66,7 +66,7 @@ stpl_expand_file() {
 stpl_opt_expansion_open='{'
 stpl_opt_expansion_close='}'
 stpl_opt_output=
-while getopts "l:r:c:s:o:" stpl_opt; do
+while getopts "l:r:c:v:s:o:" stpl_opt; do
   case $stpl_opt in
     l)
       stpl_opt_expansion_open=$OPTARG
@@ -79,6 +79,27 @@ while getopts "l:r:c:s:o:" stpl_opt; do
         printf "failed to execute %s\n" "$OPTARG" >&2
         exit 1
       fi
+      ;;
+    v)
+      stpl_varname=${OPTARG%%=*}
+      case $stpl_varname in
+        *[!ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_]*)
+          printf "invalid variable name: %s\n" "$stpl_varname" >&2
+          exit 1
+          ;;
+        [0123456789]*)
+          printf "invalid variable name: %s\n" "$stpl_varname" >&2
+          exit 1
+          ;;
+      esac
+      case $OPTARG in
+        *=*)
+          command eval " $stpl_varname"='${OPTARG#*=}'
+          ;;
+        *)
+          command eval " $stpl_varname"=
+          ;;
+      esac
       ;;
     s)
       case $OPTARG in
