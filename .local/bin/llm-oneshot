@@ -11,8 +11,9 @@ options_end=$OPTIND
 
 content_provided=
 content=
+count=$#
 index=1
-while [ "$index" -le "$#" ]; do
+while [ "$index" -le "$count" ]; do
   arg=$1
   shift
 
