@@ -574,8 +574,6 @@ dispatch_render_event() (
   trap '' PIPE
   exec 3>&1
   exec >/dev/null
-  current_event=
-  current_argument=
   renderer_id=
   while read -r event argument && read -r value; do
     if [ "$event $argument" != "$renderer_id" ]; then
