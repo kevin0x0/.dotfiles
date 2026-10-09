@@ -1,0 +1,306 @@
+#!/bin/sh
+
+opt_files_base_url=
+opt_api_key=
+opt_cache_key=
+opt_purpose=user_data
+opt_clean=
+opt_update=
+opt_list=
+opt_all=
+opt_metadata=
+opt_delete=
+opt_trash=
+opt_deleteboth=
+
+opt_nul_terminated=
+
+llm_scriptname=llm-file-manager
+llm_configdir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts
+[ -f "$llm_configdir/file-manager-config" ] && . -- "$llm_configdir/file-manager-config"
+
+while getopts "c:u:k:K:p:aCUlmdtn" opt; do
+  case $opt in
+    c)
+      # Additional config
+      case $OPTARG in
+        @*) . -- "$llm_configdir/${OPTARG#@}" ;;
+        /*) . -- "$OPTARG" ;;
+        *) . -- "./$OPTARG" ;;
+      esac
+      ;;
+    u)
+      opt_files_base_url=$OPTARG
+      ;;
+    k)
+      opt_api_key=$OPTARG
+      ;;
+    K)
+      opt_cache_key=$OPTARG
+      ;;
+    p)
+      opt_purpose=$OPTARG
+      ;;
+    a)
+      opt_all=1
+      ;;
+    c)
+      opt_clean=1
+      ;;
+    U)
+      opt_update=1
+      ;;
+    l)
+      opt_list=1
+      ;;
+    m)
+      opt_metadata=1
+      ;;
+    d)
+      [ -n "$opt_delete" ] && opt_deleteboth=1
+      opt_delete=1
+      ;;
+    t)
+      opt_trash=1
+      ;;
+    n)
+      opt_nul_terminated=1
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+[ -f "$llm_configdir/post-file-manager-config" ] && . -- "$llm_configdir/post-file-manager-config"
+
+if [ -z "$opt_update$opt_list$opt_delete" ]; then
+  opt_list=1
+fi
+
+# Normalize filenames
+count=$#
+while [ "$count" -ne 0 ]; do
+  count=$((count - 1))
+  f=$1
+  shift
+  norm=$(normpath -t x -- "$f") || exit
+  set -- "$@" "${norm%x}"
+done
+
+if [ -z "$opt_files_base_url" ]; then
+  printf "files api base url not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_cache_key" ]; then
+  printf "cache key not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_api_key" ]; then
+  printf "api key not provided\n" >&2
+  exit 1
+fi
+
+url_idencoded=$(idencode -- "$opt_files_base_url")
+cachekey_idencoded=$(idencode -- "$opt_cache_key")
+purpose_idencoded=$(idencode -- "$opt_purpose")
+cachedir="${XDG_CACHE_HOME:-$HOME/.cache}/llm-scripts/file-manager/$url_idencoded/$cachekey_idencoded/$purpose_idencoded/cache"
+trashfile="${XDG_CACHE_HOME:-$HOME/.cache}/llm-scripts/file-manager/$url_idencoded/$cachekey_idencoded/$purpose_idencoded/trash"
+if [ ! -d "$cachedir" ] && ! mkdir -p -- "$cachedir"; then
+  printf "failed to create cache dir: %s\n" "$cachedir" >&2
+  exit 1
+fi
+
+lockname=llm-file-manager-${url_idencoded}-${apikey_idencoded}
+lock "$lockname"
+trap 'unlock "$lockname"' EXIT
+trap 'unlock "$lockname"; trap - TERM; kill -TERM "$$"' TERM
+trap 'unlock "$lockname"; trap - QUIT; kill -QUIT "$$"' QUIT
+trap 'unlock "$lockname"; trap - INT; kill -INT "$$"' INT
+
+
+update_files() (
+  [ "$#" -eq 0 ] && return 0
+
+  for f; do
+    if [ ! -f "$f" ]; then
+      printf "'%s' is not a file\n" "$f" >&2
+      return 1
+    fi
+  done
+
+  set -o pipefail
+  check=$(tmpfile)
+  create=$(tmpfile)
+  tmp=$(tmpfile)
+  trap 'rm -rf -- "$check" "$create" "$tmp"' EXIT
+
+  for f; do
+    cachefile=$f
+    while [ ! -e "$cachedir/$cachefile" ]; do
+      cachefile=${cachefile%/*}
+    done
+
+    # Exist
+    if [ "$cachefile" = "$f" ]; then
+      if [ -d "$cachedir/$cachefile" ]; then
+        # But is a directory
+        # Move all files under it to trashfile
+        find "$cachedir/$cachefile" -type f -print0 \
+          | xargs -r0 -- cat -- >&5
+        rm -rf -- "$cachedir/$cachefile"
+        printf "%s\0" "$cachedir/$f" >&4
+      else
+        # It is a file
+        if [ -n "$(find "$f" -newer "$cachedir/$cachefile")" ]; then
+          # The file is newer than cached version, move cachefile to trashfile
+          cat -- "$cachedir/$cachefile" >&5
+          rm -rf -- "$cachedir/$cachefile"
+          printf "%s\0" "$cachedir/$f" >&4
+        else
+          printf "%s\0" "$cachedir/$f" >&3
+        fi
+      fi
+      continue
+    fi
+
+    # Doesn't exist, need to create cache file
+    printf "%s\0" "$cachedir/$f" >&4
+    if [ -f "$cachedir/$cachefile" ]; then
+      # $f's some ancestor is a regular file, move it to trash.
+      cat -- "$cachedir/$cachefile" >&5
+      rm -rf -- "$cachedir/$cachefile"
+    fi
+  done 3>"$check" 4>"$create" 5>>"$trashfile"
+
+  # Check some soon to expire files
+  xargs -r0 -- jq --arg cacheprefix "$cachedir/" --raw-output0 \
+    -- 'if .expires_at != null and .expires_at < now + 600 then $cacheprefix + .filename else empty end' \
+    <"$check" \
+    | tee -a "$create" \
+    | xargs -r0 -- rm -rf --
+
+  # Deduplicate to be created files
+  jq -Rs --raw-output0 -- 'split("\u0000") | unique | .[] | select(. != "")' \
+    <"$create" >"$tmp"
+  cat -- "$tmp" >"$create"
+
+  # Ensure the parent directories exist
+  xargs -r0 -- sh -c 'for f; do [ -d "${f%/*}" ] || mkdir -p -- "${f%/*}"; done' -- \
+    <"$create"
+
+  # Upload files and create cache files
+  xargs -r0 -- sh -c 'p=$1; shift; for f; do printf "%s\0" "${f#"$p"}"; done' -- "$cachedir/" <"$create" \
+    | xargs -r0 -- llm-files-api -u "$opt_files_base_url" -k "$opt_api_key" -p "$opt_purpose" -U -- \
+    | jq -r --arg cachedir "$cachedir/" '"printf \"%s\n\" "  + (@json | @sh) + " >" + (($cachedir + .filename) | @sh)' \
+    | sh \
+    || exit 1
+)
+
+delete_files() {
+  for f; do
+    if [ -d "$cachedir/$f" ]; then
+      find "$cachedir/$f" -type f -print0 \
+        | xargs -r0 -- cat -- >&3
+      rm -rf -- "$cachedir/$f"
+    elif [ -f "$cachedir/$f" ]; then
+      cat -- "$cachedir/$f" >&3
+      rm -rf -- "$cachedir/$f"
+    fi
+  done 3>>"$trashfile"
+}
+
+delete_trash() {
+  [ -f "$trashfile" ] || return 0
+
+  tmp=$(tmpfile)
+
+  jq --args -- 'if IN(.filename; $ARGS.positional[]) then . else empty end' "$@" \
+    <"$trashfile" >"$tmp"
+
+  jq --raw-output0 -- \
+    'if .expires_at == null or .expires_at >= now + 600 then .id else empty end' "$tmp" \
+    | xargs -r0 -- llm-files-api -u "$opt_files_base_url" -k "$opt_api_key" -p "$opt_purpose" -d -- \
+    | jq -r 'if .deleted | not then "not deleted: " + .id else empty end'
+
+  jq --args -- 'if IN(.filename; $ARGS.positional[]) then empty else . end' "$@" \
+    <"$trashfile" >"$tmp"
+  cp -- "$tmp" "$trashfile"
+
+  rm -rf -- "$tmp"
+}
+
+if [ -n "$opt_update" ]; then
+  update_files "$@" || exit
+fi
+
+if [ -n "$opt_list" ]; then
+  if [ -n "$opt_trash" ]; then
+    [ -f "$trashfile" ] && exec 3<"$trashfile" || exec 3</dev/null
+    if [ -n "$opt_all" ]; then
+      cat <&3
+    else
+      jq --args -- 'select(IN(.filename; $ARGS.positional[]))' \
+        "$@" <&3
+    fi
+  else
+    if [ -n "$opt_all" ]; then
+      find "$cachedir" -type f -print0
+    else
+      for f; do
+        [ -f "$cachedir/$f" ] && printf "%s\0" "$cachedir/$f"
+      done
+    fi
+  fi | {
+    if [ -n "$opt_metadata" ]; then
+      xargs -r0 -- cat --
+    else
+      out_opt=-r
+      [ -n "$opt_nul_terminated" ] && out_opt=--raw-output0
+      xargs -r0 -- jq "$out_opt" -- '.filename'
+    fi
+  }
+
+  # if [ -n "$opt_trash" ]; then
+  #   if [ -n "$opt_metadata" ]; then
+  #     [ -f "$trashfile" ] && cat -- "$trashfile"
+  #   else
+  #     if [ -f "$trashfile" ]; then
+  #       out_opt=-r
+  #       [ -n "$opt_nul_terminated" ] && out_opt=--raw-output0
+  #       jq "$out_opt" -- '.filename' "$trashfile"
+  #     fi
+  #   fi
+  # else
+  #   for f; do
+  #     [ -f "$cachedir/$f" ] && printf "%s\0" "$cachedir/$f"
+  #   done | {
+  #     if [ -n "$opt_metadata" ]; then
+  #       xargs -r0 -- cat --
+  #     else
+  #       out_opt=-r
+  #       [ -n "$opt_nul_terminated" ] && out_opt=--raw-output0
+  #       xargs -r0 -- jq "$out_opt" -- '.filename'
+  #     fi
+  #   }
+  # fi
+fi
+
+if [ -n "$opt_delete" ]; then
+  if [ -n "$opt_deleteboth" ]; then
+    delete_files "$@" || exit
+    delete_trash "$@" || exit
+  elif [ -n "$opt_trash" ]; then
+    delete_trash "$@" || exit
+  else
+    delete_files "$@" || exit
+  fi
+fi
+
+if [ -n "$opt_clean" ]; then
+  find "$cachedir" -depth -type d -exec rmdir {} \; 2>/dev/null
+  [ ! -s "$trashfile" ] && rm -f -- "$trashfile"
+fi

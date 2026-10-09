@@ -1,0 +1,78 @@
+#!/bin/sh
+
+opt_target_is_langcode=
+opt_source_is_langcode=
+opt_target=
+opt_source=
+opt_prompt_template=
+while getopts "t:s:T:S:p:" opt; do
+  case $opt in
+    T)
+      opt_target=$OPTARG
+      ;;
+    t)
+      opt_target_is_langcode=1
+      opt_target=$OPTARG
+      ;;
+    S)
+      opt_source=$OPTARG
+      ;;
+    s)
+      opt_source_is_langcode=1
+      opt_source=$OPTARG
+      ;;
+    p)
+      opt_prompt_template=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ -z "$opt_target" ]; then
+  locale=${LC_ALL:-${LC_MESSAGES:-$LANG}}
+  lang=${locale%%[.@_]*}
+  opt_target=$lang
+  opt_target_is_langcode=1
+fi
+
+if [ -z "$opt_target" ]; then
+  printf "target language(-t) not specified\n" >&1
+  exit 2
+fi
+
+case $opt_target$opt_source in
+  *[![:alpha:]_]*)
+    printf "invalid language name or code\n" >&2
+    exit 2
+    ;;
+esac
+
+if [ -n "$opt_target_is_langcode" ]; then
+  target_lang="$opt_target(language code)"
+else
+  target_lang="$opt_target"
+fi
+
+source_lang=
+if [ -n "$opt_source" ]; then
+  source_lang="$opt_source"
+  if [ -n "$opt_source_is_langcode" ]; then
+    source_lang="$source_lang(language code)"
+  fi
+fi
+
+{
+  stpl -v "source_lang=$source_lang" -v "target_lang=$target_lang" -- "$opt_prompt_template"
+  if [ "$#" -eq 0 ]; then
+    cat
+  else
+    printf "%s " "$@"
+  fi
+} | llm-oneshot \
+  -t "" \
+  -c @renderers/assistant-message-only \
+  -o prompt= \
+  -o default-role=system

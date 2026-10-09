@@ -1,0 +1,42 @@
+#!/bin/sh
+
+for d; do
+  [ -d "$d" ] || continue
+  [ -r "$d" ] || continue
+
+  for toolspec in "$d"/*; do
+    [ -d "$toolspec" ] || continue
+    [ -r "$toolspec" ] || continue
+
+    if [ -f "$toolspec/generate" ]; then
+      if [ -r "$toolspec/generate" ]; then
+        (. -- "$toolspec/generate")
+        continue
+      fi
+    fi
+
+    case $toolspec in
+      */)
+        toolspec=${toolspec%"${toolspec##*[!/]}"}
+        ;;
+    esac
+
+    name=${toolspec##*/}
+    descriptionfile=$toolspec/description
+    parametersfile=$toolspec/parameters
+    if [ -f "$descriptionfile" ] && [ -r "$descriptionfile" ]; then
+      description=$(cat -- "$descriptionfile")
+    fi
+    if [ -f "$parametersfile" ] && [ -r "$parametersfile" ]; then
+      parameters=$(cat -- "$parametersfile")
+    fi
+
+    if [ -z "$parameters" ]; then
+      jq -cn --arg desc "$description" --arg name "$name" \
+        '{"type":"custom","name":$name,"description":$desc}'
+    else
+      jq -cn --arg desc "$description" --arg name "$name" --argjson params "$parameters" \
+        '{"type":"function","name":$name,"description":$desc,"parameters":$params}'
+    fi
+  done
+done | jq -cs '.'

@@ -1,0 +1,3 @@
+# vim: ft=sh
+opt_responses_base_url=https://api.deepseek.com/responses
+opt_files_base_url=https://api.deepseek.com/files

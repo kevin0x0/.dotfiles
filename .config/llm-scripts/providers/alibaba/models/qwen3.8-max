@@ -1,0 +1,3 @@
+# vim: ft=sh
+. -- "$llm_configdir/providers/alibaba/config"
+opt_model=qwen3.8-max

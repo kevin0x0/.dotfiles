@@ -1,245 +1,886 @@
 #!/bin/sh
 
-make_input() (
-  not_empty=false
-  for f in "$opt_history_file" "$session" "$this_turn"; do
-    if [ -f "$f" ] && [ -s "$f" ] && [ "$not_empty" = true ]; then
-      printf ","
-    fi
-    cat -- "$f"
-    [ -f "$f" ] && [ -s "$f" ] && not_empty=true
-  done
-)
+opt_reasoning=none
+opt_stream=
+opt_api_key=
+opt_cache_key=
+opt_model=
+opt_responses_base_url=
+opt_files_base_url=
+opt_files_default_purpose=user_data
+opt_default_role=user
+opt_prompt=
+opt_prompt_file=
+opt_tooldir=
+opt_show_conversation_on_startup=1
+opt_color=auto
+opt_color_ansi=
+opt_repl_prompt_template='$(ansi_escape "33;1")llm> $(ansi_escape "0")'
+opt_repl_reader=
+opt_repl_read_wrapper=
+opt_repl_reader_ignore=
 
-separate_by_comma() {
-  if IFS= read -r line; then
-    printf "%s" "$line"
-    while IFS= read -r line; do
-      printf ",%s" "$line"
-    done
-  fi
-  echo
-}
+opt_extra_request_args=
 
-merge_tool_calls() {
-  jq -cs 'group_by(.index) | .[] | reduce .[] as $tool_call (
-    {
-      "index": null,
-      "id": null,
-      "type": null,
-      "function": {
-        "name": null,
-        "arguments": null
-      }
-    };
-    {
-      "index": $tool_call.index,
-      "id": if .id != null then .id else $tool_call.id? end,
-      "type": if .type != null then .type else $tool_call.type? end,
-      "function": {
-        "name": if .function.name != null then .function.name else $tool_call.function.name? end,
-        "arguments": (.function.arguments // "") + ($tool_call.function.arguments? // "")
-      }
-    })' <"$tool_calls" >"$tmp"
+opt_session_conversation=
+opt_session_fileids=
+opt_session_writeback=
 
-  cat -- "$tmp" >"$tool_calls"
+opt_fromfile=
 
-  # Empty the tmp file
-  : >"$tmp"
-}
-
-call_tool() {
-  if [ -x "$1" ]; then
-    "$@"
+getarg() {
+  if [ -n "$opt_fromfile" ]; then
+    arg=$(cat -- "$2"; echo x)
+    arg=${arg%x}
+    opt_fromfile=
   else
-    sh -- "$@"
+    arg=$2
   fi
-
-  # Empty the tmp file
-  : >"$tmp"
+  eval "$1"='$arg'
 }
 
-call_tools() (
-  delimiter=
-  while IFS= read -r call <&3; do
-    tool_name=$(printf "%s\n" "$call" | jq -r ".function.name")
-    id=$(printf "%s\n" "$call" | jq ".id")
-    printf "%s\n" "$call" | jq -r ".function.arguments" >"$tmp"
-    printf '%s{"role":"tool","tool_call_id":%s,"content":' "$delimiter" "$id"
+set_boolean_option() {
+  if [ -n "$opt_inverse_boolean_option" ]; then
+    eval "$1="
+    opt_inverse_boolean_option=
+  else
+    eval "$1=1"
+  fi
+}
 
-    tool=$opt_tool_dir/$tool_name
+llm_scriptname=llm-chat
+llm_configdir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts
+[ -f "$llm_configdir/chat-config" ] && . -- "$llm_configdir/chat-config"
 
-    if [ -f "$tool" ] && { [ -x "$tool" ] || [ -r "$tool" ]; }; then
-      call_tool "$tool" call "$tmp"
-    else
-      printf "llm-chat: failed to call tools: " >&2
-      if [ ! -e "$tool" ]; then
-        printf "%s doesn't exist.\n" "$tool" >&2
+while getopts "fnswSh:H:o:r:k:K:m:F:u:t:c:" opt; do
+  case $opt in
+    o)
+      option_name=${OPTARG%%=*}
+      option_value=${OPTARG#*=}
+      if [ "$option_name" = prompt ]; then
+        opt_prompt_file=
+        opt_prompt=
+        if [ -n "$opt_fromfile" ]; then
+          opt_prompt_file=$option_value
+        else
+          opt_prompt=$option_value
+        fi
       else
-        printf "%s is not executable or readable.\n" "$tool" >&2
+        getarg "opt_$(printf "%s" "$option_name" | tr '-' '_')" "$option_value"
       fi
-      printf "FAILED TO CALL THIS TOOL"
-    fi | jq -Rsc '.'
-
-    printf '}\n'
-    delimiter=,
-  done 3<"$tool_calls"
-)
-
-generate_tool_list() (
-  for f in "$opt_tool_dir"/*; do
-    if [ ! -f "$f" ]; then
-      return
-    fi
-  done
-
-  printf "["
-  delimiter=
-  for f in "$opt_tool_dir"/*; do
-    [ -f "$f" ] || continue
-    [ -x "$f" ] || [ -r "$f" ] || continue
-    printf '%s{"type": "function","function":{' "$delimiter"
-    printf '"name":"%s"' "${f##*/}"
-    printf ',"description":'
-    call_tool "$f" description
-    printf ',"parameters":{"type":"object","properties":'
-    call_tool "$f" parameters
-    printf '}}}'
-    delimiter=,
-  done
-  printf ']'
-)
-
-oneshot() {
-  [ "$opt_hot_reload_tools" = true ] && tool_list=$(generate_tool_list)
-  make_input | llm-oneshot -jd "$dump_file_spec" ${tool_list:+-t} "$tool_list" "$@"
-}
-
-read_line() {
-  if command -v rlwrap >/dev/null 2>/dev/null; then 
-    rlwrap -H ~/.llm-chat_history -- head -n 1
-  else
-   head -n 1
-  fi
-}
-
-handle_input() {
-  while :; do
-    line=$(read_line)
-    case $line in
-      ":"*)
-        # Execute command if input starts with ':'
-        eval "${line#:}"
-        ;;
-      *)
-        printf "%s\n" "$line" >"$1"
-        break
-        ;;
-    esac
-  done
-
-  if [ -z "$line" ]; then
-    return 1;
-  fi
-
-  while line=$(read_line); do
-    if [ -z "$line" ]; then
-      break
-    fi
-    printf "%s\n" "${line%" "}"
-  done >>"$1"
-}
-
-opt_history_file=/dev/null
-opt_hot_reload_tools=false
-opt_write_back=false
-opt_tool_dir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-chat/tools
-
-while getopts "rwh:" opt "$@"; do
-  case "$opt" in
-    r)
-      opt_hot_reload_tools=true
+      ;;
+    n)
+      set_boolean_option opt_inverse_boolean_option
+      ;;
+    f)
+      set_boolean_option opt_fromfile
+      ;;
+    s)
+      set_boolean_option opt_stream
       ;;
     w)
-      opt_write_back=true
+      set_boolean_option opt_session_writeback
+      ;;
+    S)
+      set_boolean_option opt_show_conversation_on_startup
       ;;
     h)
-      opt_history_file=$OPTARG
+      getarg opt_session_conversation "$OPTARG"
       ;;
-    '?')
-      exit 1
+    H)
+      getarg opt_session_fileids "$OPTARG"
+      ;;
+    r)
+      getarg opt_reasoning "$OPTARG"
+      ;;
+    k)
+      getarg opt_api_key "$OPTARG"
+      ;;
+    K)
+      getarg opt_cache_key "$OPTARG"
+      ;;
+    m)
+      getarg opt_model "$OPTARG"
+      ;;
+    F)
+      getarg opt_files_base_url "$OPTARG"
+      ;;
+    u)
+      getarg opt_responses_base_url "$OPTARG"
+      ;;
+    t)
+      getarg opt_tooldir "$OPTARG"
+      ;;
+    c)
+      # Additional config
+      case $OPTARG in
+        @*) . -- "$llm_configdir/${OPTARG#@}" ;;
+        /*) . -- "$OPTARG" ;;
+        *) . -- "./$OPTARG" ;;
+      esac
+      ;;
+    \?)
+      exit 2
       ;;
   esac
 done
 
+[ -f "$llm_configdir/post-chat-config" ] && . -- "$llm_configdir/post-chat-config"
+
+
+if [ -z "$opt_api_key" ]; then
+  printf "api key not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_cache_key" ]; then
+  printf "cache key not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_responses_base_url" ]; then
+  printf "base url not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_files_base_url" ]; then
+  printf "files api base url not provided\n" >&2
+  exit 1
+fi
+
+case $opt_color in
+  auto)
+    [ -t 1 ] && opt_color_ansi=1 || opt_color_ansi=
+    ;;
+  always)
+    opt_color_ansi=1
+    ;;
+  never)
+    opt_color_ansi=
+    ;;
+esac
+
+if [ -n "$opt_repl_reader_ignore" ]; then
+  opt_repl_reader=
+  opt_repl_read_wrapper=
+fi
+
+if [ -n "$opt_repl_read_wrapper" ]; then
+  if ! command eval " $opt_repl_read_wrapper"' "$0" -o repl-reader-ignore=1 "$@"'; then
+    printf "invalid repl read wrapper, exit\n" >&2
+    exit 1
+  else
+    printf "maybe you forget to prefix your repl reader wrapper command with exec?" >&2
+    exit 0
+  fi
+fi
+
+if [ -z "$opt_repl_reader" ]; then
+  if command -v rlwrap >/dev/null 2>&1; then
+    break_chars=$'()[]{},+=&^%$#";|\\\''
+    opt_repl_reader='
+    historyfile=${XDG_STATE_HOME:-$HOME/.local/state}/llm-scripts/chat/rlwrap-history
+    completion=${XDG_DATA_HOME:-$HOME/.local/share}/llm-scripts/chat/completion
+    rlwrap -C llm-chat -H "$historyfile" -b "$break_chars" -f "$completion" -ca -S "$cmdline_prompt" -- sh -c '\''IFS= read -r line && printf "%s" "$line"'\'
+  else
+    opt_repl_reader='
+    printf "%s" "$cmdline_prompt" >&3
+    if IFS= read -r line; then
+      printf "%s" "$line"
+    else
+      echo
+      exit 1
+    fi'
+  fi
+fi
+
 shift "$((OPTIND - 1))"
 
-RUNTIME_STATE_DIR=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}
-reasoning=$RUNTIME_STATE_DIR/llm-chat.reasoning.$$
-content=$RUNTIME_STATE_DIR/llm-chat.content.$$
-tool_calls=$RUNTIME_STATE_DIR/llm-chat.tool_calls.$$
-input=$RUNTIME_STATE_DIR/llm-chat.input.$$
-session=$RUNTIME_STATE_DIR/llm-chat.session.$$
-this_turn=$RUNTIME_STATE_DIR/llm-chat.this_turn.$$
-tmp=$RUNTIME_STATE_DIR/llm-chat.tmp.$$
+ansi_escape() {
+  [ -n "$opt_color_ansi" ] && printf "\033[%sm" "$1"
+}
 
-clean_command=
-for f in "$reasoning" "$content" "$tool_calls" "$input" "$session" \
-  "$this_turn" "$tmp"; do
-  if ! (set -C; : >"$f"); then
-    echo "failed to create file: $f"
-    eval "$clean_command"
-    exit 1
+file_input() {
+  is_image=
+  [ "${1%%/*}" = @image ] && is_image=1
+  file_detail=auto
+  case ${1%/*} in
+    */auto) file_detail=auto ;;
+    */low)  file_detail=low ;;
+    */high) file_detail=high ;;
+    */original)
+      if [ -n "$is_image" ]; then
+        file_detail=original
+      else
+        printf "detail level '%s' is only available for image, ignored\n" >&2
+      fi
+      ;;
+  esac
+  shift
+
+  if [ -n "$is_image" ]; then
+    mkcontent_data_opt=-u
+    mkcontent_id_opt=-i
+    mkcontent_url_opt=-u
+  else
+    mkcontent_data_opt=-D
+    mkcontent_id_opt=-I
+    mkcontent_url_opt=-U
   fi
-  this_command="rm -- '$(printf "%s" "$f" | sed "s/'/'\\\\''/g")'"
-  clean_command=$clean_command${clean_command:+\;}$this_command
-done
 
-trap "$clean_command" EXIT
-trap "$clean_command; trap - INT; kill -s INT $$" INT
-
-tool_list=$(generate_tool_list)
-dump_file_spec=reasoning_content="$reasoning",content="$content",tool_calls="$tool_calls"
-
-while handle_input "$input" && [ -s "$input" ]; do
-  printf '{"role":"user","content":'>"$this_turn"
-  jq -Rsc '.' <"$input" >>"$this_turn"
-  printf '}\n' >>"$this_turn"
-
-  # Run this turn
-  while oneshot "$@" && [ -s "$tool_calls" ]; do
-    merge_tool_calls
-    {
-      printf ',{"role": "assistant"'
-
-      if [ -s "$content" ]; then
-        printf ',"content":"'; cat -- "$content"; printf '"'
+  for file; do
+    if ! path2uri -u -- "$file"; then
+      if fileid=$(llm-chat-get-fileid -F "$opt_files_base_url" -k "$opt_api_key" \
+        -K "$opt_cache_key" -p "$opt_files_default_purpose" -S "$statedir" -- "$file" && echo x); then
+        fileid=${fileid%$'\nx'}
+        printf "file selected, file id: %s\n" "$fileid"
+        llm-make-mcontent -e "$file_detail" "$mkcontent_id_opt" -- "$fileid" >&3
+      else
+        printf "failed to get a file id for '%s', skip\n" "$file" >&2
       fi
+      continue
+    fi
 
-      if [ -s "$reasoning" ]; then
-        printf ',"reasoning_content":"'; cat -- "$reasoning"; printf '"'
+    case $file in
+      data:)
+        llm-make-mcontent -e "$file_detail" "$mkcontent_data_opt" -- "$file" >&3
+        ;;
+      *)
+        llm-make-mcontent -e "$file_detail" "$mkcontent_url_opt" -- "$file" >&3
+        ;;
+    esac
+  done
+}
+
+save_session() {
+  shift
+
+  if [ -z "$1" ]; then
+    set -- "$opt_session_conversation" "$opt_session_fileids"
+  fi
+  if [ -z "$1" ]; then
+    printf "please provide filename to save as\n" >&2
+    return 0
+  fi
+  if [ -z "$2" ]; then
+    set -- "$1" "${1}.fileids"
+  fi
+
+  if ! cp -- "$conversation" "$1" || \
+    ! cat -- "$persistent_fileids" "$volatile_fileids" >"$2"; then
+    printf "fialed to save as %s and %s\n" "$1" "$2" >&2
+  fi
+  return 0
+}
+
+show_conversation() {
+  shift
+
+  case ${1#-} in
+    *[!0123456789]*)
+      set -- "" "$2"
+      ;;
+  esac
+  case ${2#-} in
+    *[!0123456789]*)
+      set -- "$1" ""
+      ;;
+  esac
+  llm-chat-conversation-slice "$1" "$2" <"$conversation" \
+    | llm-render-events \
+    | dispatch_render_event
+}
+
+dispatch_command() {
+  eval 'set -- '"$1"
+
+  need_break_word=
+  case $1 in
+    */fzf)
+      extra_arg=$(fzf && echo x) || return 0
+      extra_arg=${extra_arg%$'\nx'}
+      set -- "$@" "$extra_arg"
+      ;;
+    */lf)
+      # lf doesn't support paths containing <newline> anyway, so we just treat
+      # <newline> as path terminator.
+      extra_arg=$(lf -print-selection && echo x) || return 0
+      extra_arg=${extra_arg%x}
+      while [ -n "$extra_arg" ]; do
+        set -- "$@" "${extra_arg%%$'\n'*}"
+        extra_arg=${extra_arg#*$'\n'}
+      done
+      ;;
+  esac
+
+  cmdname=${1%%/*}
+  cmdname=${cmdname#@}
+  case $cmdname in
+    nop)
+      return 0
+      ;;
+    break)
+      input_end_action=break
+      return 1
+      ;;
+    add)
+      input_end_action=add
+      return 1
+      ;;
+    cancel)
+      input_end_action=cancel
+      return 1
+      ;;
+    go)
+      input_end_action=go
+      return 1
+      ;;
+    retry)
+      if [ ! -s "$this_turn" ]; then
+        printf "there is no content to retry\n" >&2
+        return 0
       fi
+      input_end_action=go
+      return 1
+      ;;
+    drop)
+      : >"$this_turn"
+      return 0
+      ;;
+    role)
+      case $2 in
+        developer|system|user|assistant)
+          input_message_role=$2
+          ;;
+        *)
+          printf "invalid role: %s\n" "$2" >&2
+          ;;
+      esac
+      ;;
+    text)
+      shift
+      for text; do
+        llm-make-mcontent -t -- "$text" >&3
+      done
+      ;;
+    text-from-command)
+      shift
+      if ! ("$@" | llm-make-mcontent -t >&3); then
+        printf "failed to execute command\n" >&2
+      fi
+      ;;
+    text-from-file)
+      shift
+      if [ "$#" -eq 0 ]; then
+        llm-make-mcontent -t >&3
+      else
+        for f; do
+          llm-make-mcontent -ft -- "$f" >&3
+        done
+      fi
+      ;;
+    file|image)
+      file_input "$@"
+      ;;
+    save)
+      save_session "$@"
+      ;;
+    show-conversation)
+      show_conversation "$@"
+      ;;
+    command)
+      shift
+      command -- "$@" 3>&-
+      ;;
+    *)
+      printf "unrecognized command: %s\n" "$cmdname" >&2
+      ;;
+  esac
+  return 0
+}
 
-      printf ',"tool_calls":[';  separate_by_comma <"$tool_calls"; printf ']'
-      printf '}'
-      printf ','
-      call_tools
-    } >>"$this_turn"
+update_file_id() (
+  changed=$1
+  unchanged=$statedir/tmp.unchanged
+  new=$statedir/tmp.new
+  idmap=$statedir/tmp.idmap
+
+  jq --slurpfile changed "$changed" -- \
+    'if IN(.id; $changed[].id) then empty else . end' \
+    "$volatile_fileids" "$persistent_fileids" >"$unchanged"
+
+  jq --raw-output0 '.filename' -- "$changed" \
+    | xargs -r0 -- llm-file-manager -u "$opt_files_base_url" -k "$opt_api_key" -K "$opt_cache_key" - -Ulm -- >"$new" \
+    || return
+
+  jq -n --slurpfile new "$new" \
+    'reduce (inputs | JOIN(INDEX($new[]; .filename); .; .filename; {(.[0].id): .[1].id})) as $o ({}; . + $o)' \
+    <"$tmp" >"$idmap"
+
+  jq --slurpfile idmap "$idmap" \
+    '(.. | select(((.type? == "input_image" or .type? == "input_file") and IN(.file_id?; $idmap[0] | keys_unsorted[]))) | .file_id)
+      |= $idmap[0][.]' <"$conversation" >"$tmp"
+
+  cp -- "$tmp" "$conversation"
+
+  jq -c -- '[select(has("expires_at"))] | unique_by(.id)[]' "$unchanged" "$new" >"$volatile_fileids"
+  jq -c -- '[select(has("expires_at") | not)] | unique_by(.id)[]' "$unchanged" "$new" >"$persistent_fileids"
+
+  rm -- "$unchanged" "$new" "$idmap"
+)
+
+check_file_id() {
+  [ -f "$volatile_fileids" ] || return 0
+
+  changed=$statedir/tmp.changed
+  jq 'if .expires_at < now + 300 then . else empty end' \
+    <"$volatile_fileids" >"$changed"
+
+  [ ! -s "$changed" ] && return 0
+
+  printf "some file soon expires, update them\n"
+  update_file_id "$changed"
+}
+
+default_renderer_notify_header() {
+  ansi_escape "32;1"
+  printf "%s" "$1"
+  ansi_escape "0;32"
+}
+default_renderer_notify() {
+
+  case $1 in
+    function_call|custom_tool_call)
+      default_renderer_notify_header "$1: "
+      jq --unbuffered -j '.name, (inputs | ", " + .name), "\n"'
+      ;;
+    web_search_call|web_search_call@start)
+      default_renderer_notify_header "$1: "
+      echo
+      suffix=
+      case $1 in
+        *@start)
+          suffix="ing "
+          ;;
+        *)
+          suffix="ed "
+          ;;
+      esac
+      jq_program='
+      .action |
+      if .type == "search" then
+        .queries // [.query // empty] | .[] | "search" + $suffix + .
+      elif .type == "open_page" then
+        .url // empty | "open" + $suffix + .
+      elif .type == "find_in_page" then
+        "search" + $suffix + .pattern + "\nin page " + .url
+      else
+        empty
+      end
+      '
+      jq --unbuffered -r --arg suffix "$suffix" -- "$jq_program"
+      ;;
+    *@start)
+      ;;
+    *)
+      default_renderer_notify_header "$1"
+      echo
+      ;;
+  esac
+  cat >/dev/null
+  ansi_escape "0"
+}
+
+ansi_role_color() {
+  ansi_color=
+  case $1 in
+    user)
+      ansi_color=33
+      ;;
+    assistant)
+      ansi_color=35
+      ;;
+    system|developer)
+      ansi_color=31
+      ;;
+    *)
+      ansi_color=30
+      ;;
+  esac
+  printf "%s" "$ansi_color"
+}
+
+default_renderer_file_image() {
+  ansi_color=$(ansi_role_color "$2")
+  ansi_escape "$ansi_color;1"
+  printf "%s " "$2"
+  ansi_escape "36;1"
+  case $1 in
+    message-image)  printf "image: " ;;
+    message-file)   printf "file: " ;;
+  esac
+  ansi_escape "0;36"
+
+  data=$(cat)
+  if ! jq -ejn --argjson data "$data" '$data | .file_url // .image_url // .file_data // empty'; then
+    file_id=$(jq -ejn --argjson data "$data" '$data.file_id'; echo x)
+    file_id=${file_id%x}
+    jq -j --arg id "$file_id" -- \
+      'select(.id == $id).filename' "$persistent_fileids" "$volatile_fileids"
+  fi
+  ansi_escape "0"
+  printf "\n"
+}
+
+default_renderer() {
+  case "$1" in
+    notify)
+      default_renderer_notify "$2"
+      return
+      ;;
+    message-text)
+      ansi_color=$(ansi_role_color "$2")
+      ansi_escape "$ansi_color;1"
+      printf "%s\n" "$2"
+      ansi_escape "0;$ansi_color"
+      ;;
+    message-image|message-file)
+      default_renderer_file_image "$1" "$2"
+      return
+      ;;
+    message-refusal)
+      ansi_escape "31;1"
+      printf "%s refusal\n" "$2"
+      ansi_escape "0;31"
+      ;;
+    reasoning)
+      ansi_escape "35;3;2;1"
+      printf "reasoning\n"
+      ansi_escape "0;3;2"
+      ;;
+    reasoning-summary)
+      ansi_escape "35;3;2;1"
+      printf "reasoning-summary\n"
+      ansi_escape "0;3;2"
+      ;;
+  esac
+
+  cat -u
+  ansi_escape "0"
+  printf "\n"
+}
+
+dispatch_render_event() (
+  trap '' PIPE
+  exec 3>&1
+  exec >/dev/null
+  current_event=
+  current_argument=
+  renderer_id=
+  while read -r event argument && read -r value; do
+    if [ "$event $argument" != "$renderer_id" ]; then
+      exec >&-
+      while ! wait; do
+        continue
+      done
+
+      (
+        exec >&3
+        exec <"$render_event_fifo"
+        command eval render_cmd='$opt_render_cmd_'$(printf "%s" "$event" | tr '-' '_')
+        render_cmd=${render_cmd:-'default_renderer "$event" "$argument"'}
+        jq --unbuffered -j '.' | command eval " $render_cmd"
+      )&
+      exec >"$render_event_fifo"
+      renderer_id="$event $argument"
+    fi
+
+    printf "%s\n" "$value"
   done
 
-  # Merge this_turn to session
-  [ -s "$session" ] && printf "," >>"$session"
+  exec >&-
+  while ! wait; do
+    continue
+  done
+)
+
+call() (
+  if ! check_file_id; then
+    errmsg="some file ids expired and failed to retrieve a new one"
+    jq -n --arg err "$errmsg" >"$output" \
+      '{"error":{"message":$err,"type":"__defined_by_me","code":"__defined_by_me"}}'
+    return 1
+  fi
+  set -o pipefail
+  cat -- "$conversation" "$this_turn" \
+    | llm-responses-api "$@" -- "$output" - \
+    | dispatch_render_event
+)
+
+render_prompter() {
+  case $opt_repl_prompt_template in
+    *$'\n'*)
+      command eval " $1"='invalid prompt> '
+      ;;
+    EOF)
+      command eval " $1"=EOF
+      ;;
+    *)
+      command eval " $1"$'=$(cat <<EOF\n'"$opt_repl_prompt_template"$'\nEOF\n echo x)'
+      command eval " $1"='${'"$1""%\$'\nx'}"
+      ;;
+  esac
+  return 0
+}
+
+# We call the read in a subshell so that the remembered EOF state doesn't
+# propagate to the next read.
+# For example, in dash, while the read detects EOF, it remembers this. It
+# will exit with status 1 and not actually read anything on next read from
+# the same file descriptor if the descriptor not redirected.
+my_read() {
+  if [ -s "$cmdline_input" ]; then
+    IFS= read -r "$1" <"$cmdline_input"
+    tail -n +2 -- "$cmdline_input" >"$tmp"
+    cp -- "$tmp" "$cmdline_input"
+    return 0
+  fi
+  render_prompter cmdline_prompt # used in $opt_repl_reader
+  command eval " $1"='$('"$opt_repl_reader"')' 3>&1
+}
+
+create_state_dir() {
+  dirprefix=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/llm-chat-$$
+  dir=$dirprefix
+  i=0
+  while ! mkdir -- "$dir" >/dev/null 2>&1; do
+    dir=$dirprefix.$i
+    i=$((i + 1))
+  done
+  printf "%s" "$dir"
+}
+
+state_init() {
+  : >"$conversation"
+  : >"$volatile_fileids"
+  : >"$persistent_fileids"
+  : >"$this_turn"
+  : >"$output"
+  : >"$input_content"
+  : >"$text_input"
+  : >"$tmp"
+
+  mkfifo -- "$render_event_fifo"
+
+  [ -n "$opt_tooldir" ] && llm-tool-list "$opt_tooldir" >"$toollist"
+
+  if [ "$opt_prompt" ]; then
+    llm-make-message -r system -tE "$opt_prompt" >"$conversation"
+  fi
+
+  if [ "$opt_prompt_file" ]; then
+    llm-make-message -r system -ftE "$opt_prompt_file" >"$conversation"
+  fi
+}
+
+state_init_from_session() {
+  : >"$this_turn"
+  : >"$output"
+  : >"$input_content"
+  : >"$text_input"
+  : >"$tmp"
+
+  [ -z "$opt_session_fileids" ] && opt_session_fileids=${opt_session_conversation}.fileids
+  for f in "$opt_session_conversation" "$opt_session_fileids"; do
+    if [ ! -f "$f" ] || [ ! -r "$f" ]; then
+      printf "'%s' does not exist or is not a readable file\n" "$f" >&2
+      exit 1
+    fi
+  done
+  cp -- "$opt_session_conversation" "$conversation"
+
+  if ! jq -c -- '[select(has("expires_at"))] | unique_by(.id)[]' "$opt_session_fileids" >"$volatile_fileids" ||
+    ! jq -c -- '[select(has("expires_at") | not)] | unique_by(.id)[]' "$opt_session_fileids" >"$persistent_fileids"; then
+    printf "failed to extract file ids from '%s'\n" "$opt_session_fileids" >&2
+    exit 1
+  fi
+
+  mkfifo -- "$render_event_fifo"
+}
+
+cleanup() {
+  rm -rf -- "$statedir"
+}
+
+trap 'cleanup' EXIT
+trap 'cleanup' QUIT
+trap 'cleanup' TERM
+trap ':' INT
+
+statedir=$(create_state_dir)
+conversation=$statedir/conversation
+volatile_fileids=$statedir/volatile-file-ids
+persistent_fileids=$statedir/persistent-file-ids
+this_turn=$statedir/this-turn
+output=$statedir/output
+input_content=$statedir/input-content
+toollist=$statedir/tool-list
+text_input=$statedir/text-input
+cmdline_input=$statedir/cmdline-input
+render_event_fifo=$statedir/render-event-fifo
+tmp=$statedir/tmp
+
+if [ -n "$opt_session_conversation" ] && [ -f "$opt_session_conversation" ]; then
+  state_init_from_session
+  if [ -n "$opt_show_conversation_on_startup" ]; then
+    llm-render-events "$conversation" | dispatch_render_event
+  fi
+else
+  state_init
+fi
+[ "$#" -ne 0 ] && printf "%s\n" "$@" >"$cmdline_input"
+[ -n "$opt_tooldir" ] && llm-tool-list "$opt_tooldir" >"$toollist"
+
+
+set -- \
+  -u "$opt_responses_base_url" \
+  -k "$opt_api_key" \
+  -r "$opt_reasoning" \
+  -m "$opt_model"
+[ -n "$opt_stream" ] && set -- "$@" -s
+[ -n "$opt_extra_request_args" ] && set -- "$@" -A "$opt_extra_request_args"
+
+if [ -n "$opt_tooldir" ]; then
+  set -- "$@" -ft "$toollist"
+fi
+
+# REPL
+while :; do
+  input_end_action=
+  input_message_role=${opt_default_role:-user}
+  # Read input
   {
-    printf '['
-    cat -- "$this_turn"
-    printf ',{"role": "assistant"'
-    printf ',"content":"'; cat -- "$content"; printf '"}'
-    printf ']\n'
-  } | jq -c '.[] | del(.reasoning_content?) | select(has("content") or has("tool_calls"))' \
-    | separate_by_comma >>"$session"
+    : >"$text_input"
+    need_break_word=
+    while my_read line; do
+      case $line in
+        '')
+          need_break_word=
+          printf "\n" >>"$text_input"
+          ;;
+        [!@]*|@@*)
+          line=${line#@}
+          need_prefix_space=
+          if [ -n "$need_break_word" ]; then
+            case $line in
+              [[:alnum:]]*) line=" $line" ;;
+            esac
+          fi
+          case $line in
+            *[[:alnum:]]) need_break_word=1 ;;
+            *)            need_break_word= ;;
+          esac
+          printf "%s" "$line" >>"$text_input"
+          ;;
+        *)
+          [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >&3
+          : >"$text_input"
+
+          if ! dispatch_command "$line"; then
+            break
+          fi
+          ;;
+      esac
+    done
+    [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >&3
+  } 3>"$input_content"
+
+  if [ -z "$input_end_action" ]; then
+    if [ -s "$input_content" ]; then
+      input_end_action=go
+    else
+      input_end_action=break
+    fi
+  fi
+
+  case $input_end_action in
+    break)
+      break
+      ;;
+    go)
+      if [ -s "$input_content" ]; then
+        llm-make-message -r "$input_message_role" -p <"$input_content" \
+          | tee -a "$this_turn" | llm-render-events | dispatch_render_event
+      fi
+      ;;
+    add)
+      llm-make-message -r "$input_message_role" -p <"$input_content" \
+        | tee -a "$this_turn" | llm-render-events | dispatch_render_event
+      continue
+      ;;
+    cancel)
+      continue
+      ;;
+    *)
+      continue
+      ;;
+  esac
+
+  # Agent loop
+  while :; do
+    # Call
+    call "$@"
+    exitcode=$?
+    if [ ! -s "$output" ]; then
+      printf "agent loop failed but no error message given\n" >&2
+      continue 2
+    fi
+
+    case $exitcode in
+      0)
+        ;;
+      3) # response.incomplete
+        echo
+        if incomplete_reason=$(jq -jn 'limit(1; inputs) | .reason' "$output" 2>/dev/null); then
+          case $incomplete_reason in
+            max_output_tokens)
+              # Handle normally
+              ;;
+            steered)
+              # Handle normally
+              ;;
+            *)
+              printf "response incomplete: %s\n" "$incomplete_reason" >&2
+              continue 2
+              ;;
+          esac
+        fi
+        ;;
+      *)
+        [ -s "$output" ] && jq -n 'limit(1; inputs)' "$output" >&2
+        continue 2
+        ;;
+    esac
+
+    # Append to input
+    llm-o2i "$output" >>"$this_turn"
+    if [ -z "$opt_tooldir" ]; then
+      break
+    fi
+
+    # Call tool
+    llm-tool-call -i "$output" -- "$opt_tooldir" "" "$opt_files_base_url" "$opt_files_default_purpose" "$opt_api_key" "$opt_cache_key" "$statedir" >"$tmp" \
+      || break
+    cat -- "$tmp" >>"$this_turn"
+    if [ ! -s "$tmp" ]; then
+      break
+    fi
+  done
+
+  cat -- "$this_turn" >>"$conversation"
+  : >"$this_turn"
 done
 
-if [ "$opt_write_back" = true ]; then
-  [ -s "$opt_history_file" ] && printf "," >>"$opt_history_file"
-  cat -- "$session" >>"$opt_history_file"
+if [ -n "$opt_session_writeback" ]; then
+  save_session "@save" "$opt_session_conversation" "$opt_session_fileids"
 fi

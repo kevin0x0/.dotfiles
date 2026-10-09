@@ -1,0 +1,24 @@
+#!/bin/sh
+
+jq_program='
+def add($item):
+  if (length) == 0 then
+    [{msgs:[$item], still_prompt:true, role:$item.role}]
+  elif $item.type != "message" then
+    .[-1].msgs += [$item] | .[-1].still_prompt = false
+  elif $item.role == .[-1].role and .[-1].still_prompt then
+    .[-1].msgs += [$item]
+  elif $item.role == "assistant" then
+    .[-1].msgs += [$item]
+  elif $item.role == "system" or $item.role == "developer" or $item.role == "user" then
+    . += [{msgs:[$item], still_prompt:true, role:$item.role}]
+  else # this should not happen
+    . += [{msgs:[$item], still_prompt:true, role:$item.role}]
+  end;
+
+reduce inputs as $item ([]; add($item)) |
+  [$begin // 0, $end // length] as [$begin, $end] |
+  .[$begin:$end][].msgs[]
+'
+
+jq -cn --argjson begin "${1:-null}" --argjson end "${2:-null}" -- "$jq_program"

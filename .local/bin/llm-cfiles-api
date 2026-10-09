@@ -1,0 +1,31 @@
+#!/bin/sh
+
+if [ "$#" -eq 0 ]; then
+  printf "provide an instance\n" >&2
+  exit 2
+fi
+
+instance=$1
+case $instance in
+  -*)
+    instance=default
+    ;;
+  *)
+    shift
+    ;;
+esac
+
+
+opt_files_base_url=
+opt_api_key=
+opt_files_default_purpose=user_data
+
+llm_scriptname=llm-cfiles-api
+llm_configdir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts
+if [ ! -f "$llm_configdir/instances/$instance" ]; then
+  printf "no such instance: %s\n" "$instance" >&2
+  exit 1
+fi
+. -- "$llm_configdir/instances/$instance"
+
+exec llm-files-api -u "$opt_files_base_url" -k "$opt_api_key" -p "$opt_files_default_purpose" "$@"

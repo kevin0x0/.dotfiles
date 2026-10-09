@@ -1,0 +1,40 @@
+#!/bin/sh
+
+jq_program='
+def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
+if (.type // "message") == "message" then
+  .role as $role |
+  .content |
+  if type == "string" then
+    {"type":"input_text","text":.}
+  else
+    .[]
+  end |
+  if .type == "input_text" then
+    ["message-text " + $role, .text]
+  elif .type == "output_text" then
+    ["message-text " + $role, .text]
+  elif .type == "input_image" then
+    ["message-image " + $role, @json]
+  elif .type == "input_file" then
+    ["message-file " + $role, @json]
+  elif .type == "refusal" then
+    ["message-refusal " + $role, .refusal]
+  else
+    ["notify unknown-" + .type, @json]
+  end
+elif .type == "reasoning" then
+  (.summary // [], .content // []) | .[] |
+  if .type == "reasoning_text" then
+    ["reasoning", .text]
+  elif .type == "summary_text" then
+    ["reasoning-summary", .text]
+  else
+    ["notify unknown-" + .type, @json]
+  end
+else
+  ["notify " + .type, @json]
+end |
+.[0] as $header | .[1] | chunk | ($header, @json)
+'
+jq -cr -- "$jq_program" "$@"

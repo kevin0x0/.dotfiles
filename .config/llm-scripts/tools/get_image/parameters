@@ -1,0 +1,13 @@
+{
+  "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "The image url"
+      },
+      "pathname": {
+        "type": "string",
+        "description": "The image file pathname(absolute or relative to current directory)"
+      }
+    }
+}

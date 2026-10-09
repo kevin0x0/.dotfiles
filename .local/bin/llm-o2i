@@ -1,0 +1,18 @@
+jqcmd='del(.created_by) |
+if .type == "message" then
+  .
+elif .type == "reasoning" then
+  .
+elif .type == "computer_call" then
+  select(.status != "failed")
+elif .type == "custom_tool_call_output" then
+  select(.status == "completed") | del(.status)
+elif .type == "shell_call_output" then
+  [ .[] | del(.created_by) ]
+else
+  .
+end'
+
+exec jq -c "$jqcmd" "$@"
+
+# vim: ft=sh

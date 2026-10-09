@@ -1,0 +1,15 @@
+#!/bin/sh
+
+arg=$(cat)
+if ! printf "%s" "$arg" | jq -e 'has("url") or has("pathname")' >/dev/null; then
+  llm-make-mcontent -t -- '{"error":"bad argument"}'
+  exit 0
+fi
+url=$(printf "%s" "$arg" | jq -j ".url // .pathname"; echo x)
+url=$(path2uri -- "${url%x}")
+exec 3>&1
+if ! err=$(curl -sS -- "$url" | { exec 3>&1; catimg - >&2 2>&3; }); then
+  jq -n --arg err "$err" -- '{"error":$err}' | llm-make-mcontent -t --
+  exit 0
+fi
+llm-make-mcontent -t -- '{"error":null}'

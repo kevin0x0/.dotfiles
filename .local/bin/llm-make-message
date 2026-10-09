@@ -1,0 +1,61 @@
+#!/bin/sh
+
+emit() {
+  set -- -- "$1"
+  [ -n "$opt_opts" ] && set -- "-$opt_opts" "$@"
+  [ -n "$opt_detail" ] && set -- -e "$opt_detail" "$@"
+  llm-make-mcontent "$@"
+}
+
+generate() {
+  OPTIND=1
+  opt_detail=
+  opt_opts=
+  while getopts "pr:E:e:ftuUiID" opt; do
+    case $opt in
+      p)
+        cat
+        ;;
+      r)
+        continue
+        ;;
+      E)
+        emit "$OPTARG"
+        outputed=1
+        opt_detail=
+        opt_opts=
+        ;;
+      e)
+        opt_detail=$OPTARG
+        ;;
+      [ftuUiID])
+        opt_opts=${opt_opts}$opt
+        ;;
+      \?)
+        exit 2
+        ;;
+    esac
+  done
+}
+
+collect() {
+  OPTIND=1
+  opt_role=system
+  while getopts "pr:E:e:ftuUiID" opt; do
+    case $opt in
+      r)
+        opt_role=$OPTARG
+        ;;
+      [pEeftuUiID])
+        continue
+        ;;
+      \?)
+        exit 2
+        ;;
+    esac
+  done
+
+  jq -cs --arg role "$opt_role" '{"content":., "role":$role, "type":"message"}'
+}
+
+generate "$@" | collect "$@"
