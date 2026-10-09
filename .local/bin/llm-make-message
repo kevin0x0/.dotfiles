@@ -21,7 +21,6 @@ generate() {
         ;;
       E)
         emit "$OPTARG"
-        outputed=1
         opt_detail=
         opt_opts=
         ;;
