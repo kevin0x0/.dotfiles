@@ -134,8 +134,8 @@ elif [ -n "$opt_list" ]; then
       break
     fi
 
-    if jq -e '.has_more' -- "$tmp" >/dev/null; then
-      after=$(jq -j '.last_id'; echo x)
+    if jq -e -- '.has_more' "$tmp" >/dev/null; then
+      after=$(jq -j -- '.last_id' "$tmp"; echo x)
       after=${after%x}
     else
       break
