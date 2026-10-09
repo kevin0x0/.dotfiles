@@ -63,7 +63,7 @@ if [ -z "$opt_getcontent$opt_upload$opt_delete$opt_list$opt_retrieve" ]; then
 fi
 
 curl_file_escape() {
-  tmp=$(printf "%sx\n" "$2" | sed 's/"\\/\\&/g')
+  tmp=$(printf "%sx\n" "$2" | sed 's/["\]/\\&/g')
   eval " $1"='${tmp%x}'
 }
 
