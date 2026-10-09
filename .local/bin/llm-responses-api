@@ -251,19 +251,18 @@ preprocess_render_event() {
       end
     ]
   elif .type == "response.output_item.done" then
-    [
-      .output_index, null, null,
-      if .item.type == "reasoning" then
-        (.item.summary // [], .item.content // [])[] |
-        if .type == "reasoning_text" then
-          "reasoning", .text 
-        else
-          "reasoning-summary", .text 
-        end
+    .output_index as $output_index |
+    if .item.type == "reasoning" then
+      (.item.summary // [], .item.content // [])[] |
+      if .type == "reasoning_text" then
+        [ "reasoning", .text ]
       else
-        "notify " + .item.type, (.item | @json)
+        [ "reasoning-summary", .text ]
       end
-    ]
+    else
+      ["notify " + .item.type, (.item | @json)]
+    end | . as [$render_event, $payload] |
+    [$output_index, null, null, $render_event, $payload]
   elif .type == "response.reasoning_summary_part.added" then
     [.output_index, null, .summary_index, "reasoning-summary", .part.text]
   elif .type == "response.reasoning_summary_part.done" then
