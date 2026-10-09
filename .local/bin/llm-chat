@@ -154,6 +154,11 @@ if [ -z "$opt_responses_base_url" ]; then
   exit 1
 fi
 
+if [ -z "$opt_model" ]; then
+  printf "model not provided\n" >&2
+  exit 1
+fi
+
 if [ -z "$opt_files_base_url" ]; then
   printf "files api base url not provided\n" >&2
   exit 1
