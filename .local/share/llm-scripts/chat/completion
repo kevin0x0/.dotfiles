@@ -1,0 +1,16 @@
+@nop
+@break
+@add
+@cancel
+@go
+@retry
+@drop
+@role
+@text
+@text-from-file
+@text-from-command
+@file
+@image
+@save
+@show-conversation
+@command
