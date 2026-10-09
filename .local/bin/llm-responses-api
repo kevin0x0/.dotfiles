@@ -140,7 +140,7 @@ make_nonstream_output() {
 }
 
 sse_to_jsons() {
-  sse_to_jsons_progrom='
+  sse_to_json_program='
   if startswith("data:") then
     if contains("[DONE]") then
       halt
@@ -155,7 +155,7 @@ sse_to_jsons() {
       {"type":"response.failed","sequence_number","sequence_number":0,"response":.} | @json
   end'
 
-  jq --unbuffered -Rr "$sse_to_jsons_progrom"
+  jq --unbuffered -Rr "$sse_to_json_program"
 }
 
 stream_sort() {
@@ -306,7 +306,7 @@ make_stream_output() {
   emit_on_advance() {
     if [ ! -e "$statedir/$current_item_index/$prefix$current_content_index" ]; then
       if [ -e "$statedir/$current_item_index/${prefix}0" ]; then
-        # There is a content part in this output item, which is already outputed, skip.
+        # There is a content part in this output item, which is already output, skip.
         return
       fi
 
