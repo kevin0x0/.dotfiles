@@ -44,7 +44,7 @@ while getopts "c:u:k:K:p:aCUlmdtn" opt; do
     a)
       opt_all=1
       ;;
-    c)
+    C)
       opt_clean=1
       ;;
     U)
@@ -114,7 +114,7 @@ if [ ! -d "$cachedir" ] && ! mkdir -p -- "$cachedir"; then
   exit 1
 fi
 
-lockname=llm-file-manager-${url_idencoded}-${apikey_idencoded}
+lockname=llm-file-manager-${url_idencoded}-${cachekey_idencoded}-${purpose_idencoded}
 lock "$lockname"
 trap 'unlock "$lockname"' EXIT
 trap 'unlock "$lockname"; trap - TERM; kill -TERM "$$"' TERM
