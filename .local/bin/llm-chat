@@ -770,7 +770,6 @@ while :; do
           ;;
         [!@]*|@@*)
           line=${line#@}
-          need_prefix_space=
           if [ -n "$need_break_word" ]; then
             case $line in
               [[:alnum:]]*) line=" $line" ;;
