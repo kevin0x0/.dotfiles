@@ -39,7 +39,7 @@ if [ -z "$opt_target" ]; then
 fi
 
 if [ -z "$opt_target" ]; then
-  printf "target language(-t) not specified\n" >&1
+  printf "target language(-t) not specified\n" >&2
   exit 2
 fi
 
