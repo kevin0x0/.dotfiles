@@ -19,5 +19,3 @@ if ! output=$(llm-chat-get-fileid -F "$1" -p "$2" -k "$3" -K "$4" -S "$5" -- "$u
 fi
 
 llm-make-mcontent -i -- "${output%$'\nx'}"
-
-llm-make-mcontent -t -- '{"error":null}'
