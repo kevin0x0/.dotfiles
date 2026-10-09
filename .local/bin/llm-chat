@@ -212,7 +212,7 @@ file_input() {
       if [ -n "$is_image" ]; then
         file_detail=original
       else
-        printf "detail level '%s' is only available for image, ignored\n" >&2
+        printf "detail level 'original' is only available for image, ignored\n" >&2
       fi
       ;;
   esac
