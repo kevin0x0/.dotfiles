@@ -268,7 +268,7 @@ save_session() {
 
   if ! cp -- "$conversation" "$1" || \
     ! cat -- "$persistent_fileids" "$volatile_fileids" >"$2"; then
-    printf "fialed to save as %s and %s\n" "$1" "$2" >&2
+    printf "failed to save as %s and %s\n" "$1" "$2" >&2
   fi
   return 0
 }
