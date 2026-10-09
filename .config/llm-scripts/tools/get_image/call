@@ -12,8 +12,11 @@ if path2uri -u "$url"; then
   exit 0
 fi
 
-if ! output=$(llm-chat-get-fileid -F "$1" -p "$2" -k "$3" -K "$4" -S "$5" -- "$url" 2>&1 && echo x); then
-  jq -n --arg err "$output" '{"error":"failed to get file id: " + $err}' \
+tmp=$(tmpfile) || exit
+trap 'rm "$tmp"' EXIT
+
+if ! output=$(llm-chat-get-fileid -F "$1" -p "$2" -k "$3" -K "$4" -S "$5" -- "$url" 2>"$tmp" && echo x); then
+  jq -n --rawfile err "$tmp" '{"error":"failed to get file id: " + $err}' \
     | llm-make-mcontent -t
   exit 0
 fi
