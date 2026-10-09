@@ -62,6 +62,7 @@ while getopts "fnswSh:H:o:r:k:K:m:F:u:t:c:" opt; do
         opt_prompt=
         if [ -n "$opt_fromfile" ]; then
           opt_prompt_file=$option_value
+          opt_fromfile=
         else
           opt_prompt=$option_value
         fi
