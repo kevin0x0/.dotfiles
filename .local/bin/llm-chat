@@ -668,8 +668,6 @@ state_init() {
   : >"$text_input"
   : >"$tmp"
 
-  mkfifo -- "$render_event_fifo"
-
   if [ "$opt_prompt" ]; then
     llm-make-message -r system -tE "$opt_prompt" >"$conversation"
   fi
@@ -700,8 +698,6 @@ state_init_from_session() {
     printf "failed to extract file ids from '%s'\n" "$opt_session_fileids" >&2
     exit 1
   fi
-
-  mkfifo -- "$render_event_fifo"
 }
 
 cleanup() {
@@ -736,6 +732,7 @@ else
 fi
 [ "$#" -ne 0 ] && printf "%s\n" "$@" >"$cmdline_input"
 [ -n "$opt_tooldir" ] && llm-tool-list "$opt_tooldir" >"$toollist"
+mkfifo -- "$render_event_fifo" || exit
 
 
 set -- \
