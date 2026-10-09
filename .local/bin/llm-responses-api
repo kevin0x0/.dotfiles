@@ -306,7 +306,7 @@ make_stream_output() {
 
   emit_on_advance() {
     if [ ! -e "$statedir/$current_item_index/$prefix$current_content_index" ]; then
-      if [ -e "$statedir/$current_item_index/${prerix}0" ]; then
+      if [ -e "$statedir/$current_item_index/${prefix}0" ]; then
         # There is a content part in this output item, which is already outputed, skip.
         return
       fi
