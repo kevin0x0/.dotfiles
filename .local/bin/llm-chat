@@ -204,11 +204,11 @@ file_input() {
   is_image=
   [ "${1%%/*}" = @image ] && is_image=1
   file_detail=auto
-  case ${1%/*} in
-    */auto) file_detail=auto ;;
-    */low)  file_detail=low ;;
-    */high) file_detail=high ;;
-    */original)
+  case ${1#*/} in
+    auto*) file_detail=auto ;;
+    low*)  file_detail=low ;;
+    high*) file_detail=high ;;
+    original*)
       if [ -n "$is_image" ]; then
         file_detail=original
       else
