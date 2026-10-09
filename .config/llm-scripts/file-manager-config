@@ -1,0 +1,3 @@
+# vim: ft=sh
+
+. -- "$llm_configdir/instances/default"

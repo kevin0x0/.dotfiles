@@ -3,6 +3,7 @@
 opt_reasoning=none
 opt_stream=
 opt_api_key=
+opt_api_key_cmd=
 opt_cache_key=
 opt_model=
 opt_responses_base_url=
@@ -96,6 +97,7 @@ while getopts "fnswSh:H:o:r:k:K:m:F:u:t:c:" opt; do
       ;;
     k)
       getarg opt_api_key "$OPTARG"
+      opt_api_key_cmd=
       ;;
     K)
       getarg opt_cache_key "$OPTARG"
@@ -128,6 +130,10 @@ done
 
 [ -f "$llm_configdir/post-chat-config" ] && . -- "$llm_configdir/post-chat-config"
 
+if [ -n "$opt_api_key_cmd" ]; then
+  opt_api_key=$(eval " $opt_api_key_cmd" && echo x)
+  opt_api_key=${opt_api_key%$'\nx'}
+fi
 
 if [ -z "$opt_api_key" ]; then
   printf "api key not provided\n" >&2
