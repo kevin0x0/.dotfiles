@@ -670,8 +670,6 @@ state_init() {
 
   mkfifo -- "$render_event_fifo"
 
-  [ -n "$opt_tooldir" ] && llm-tool-list "$opt_tooldir" >"$toollist"
-
   if [ "$opt_prompt" ]; then
     llm-make-message -r system -tE "$opt_prompt" >"$conversation"
   fi
