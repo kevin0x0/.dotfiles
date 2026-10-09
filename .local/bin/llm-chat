@@ -410,12 +410,12 @@ update_file_id() (
     "$volatile_fileids" "$persistent_fileids" >"$unchanged"
 
   jq --raw-output0 '.filename' -- "$changed" \
-    | xargs -r0 -- llm-file-manager -u "$opt_files_base_url" -k "$opt_api_key" -K "$opt_cache_key" - -Ulm -- >"$new" \
+    | xargs -r0 -- llm-file-manager -u "$opt_files_base_url" -k "$opt_api_key" -K "$opt_cache_key" -p "$opt_files_default_purpose" -Ulm -- >"$new" \
     || return
 
   jq -n --slurpfile new "$new" \
     'reduce (inputs | JOIN(INDEX($new[]; .filename); .; .filename; {(.[0].id): .[1].id})) as $o ({}; . + $o)' \
-    <"$tmp" >"$idmap"
+    <"$changed" >"$idmap"
 
   jq --slurpfile idmap "$idmap" \
     '(.. | select(((.type? == "input_image" or .type? == "input_file") and IN(.file_id?; $idmap[0] | keys_unsorted[]))) | .file_id)
