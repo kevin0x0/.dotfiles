@@ -34,8 +34,15 @@ shift "$((OPTIND - 1))"
 if [ -z "$opt_target" ]; then
   locale=${LC_ALL:-${LC_MESSAGES:-$LANG}}
   lang=${locale%%[.@_]*}
-  opt_target=$lang
-  opt_target_is_langcode=1
+  # Validate the language code heuristically
+  case $lang in
+    C|POSIX)
+      ;;
+    *)
+      opt_target=$lang
+      opt_target_is_langcode=1
+      ;;
+  esac
 fi
 
 if [ -z "$opt_target" ]; then
