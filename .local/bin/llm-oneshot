@@ -1,6 +1,7 @@
 #!/bin/sh
 
-while getopts "fnswSh:H:o:r:k:K:m:F:u:t:c:" opt; do
+llm_chat_options=$(llm-chat -o print-options)
+while getopts "$llm_chat_options" opt; do
   case $opt in
     \?)
       exit 2

@@ -29,31 +29,16 @@ opt_session_writeback=
 
 opt_fromfile=
 
-getarg() {
-  if [ -n "$opt_fromfile" ]; then
-    arg=$(cat -- "$2"; echo x)
-    arg=${arg%x}
-    opt_fromfile=
-  else
-    arg=$2
-  fi
-  eval "$1"='$arg'
-}
+opt_print_options=
 
-set_boolean_option() {
-  if [ -n "$opt_inverse_boolean_option" ]; then
-    eval "$1="
-    opt_inverse_boolean_option=
-  else
-    eval "$1=1"
-  fi
-}
+. llm-argparse-utils
+. llm-render-utils
 
 llm_scriptname=llm-chat
-llm_configdir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts
 [ -f "$llm_configdir/chat-config" ] && . -- "$llm_configdir/chat-config"
 
-while getopts "fnswSh:H:o:r:E:k:K:m:F:u:t:c:" opt; do
+llm_chat_options="fnswSh:H:o:r:E:k:K:m:F:u:t:c:" 
+while getopts "$llm_chat_options" opt; do
   case $opt in
     o)
       option_name=${OPTARG%%=*}
@@ -120,11 +105,7 @@ while getopts "fnswSh:H:o:r:E:k:K:m:F:u:t:c:" opt; do
       ;;
     c)
       # Additional config
-      case $OPTARG in
-        @*) . -- "$llm_configdir/${OPTARG#@}" ;;
-        /*) . -- "$OPTARG" ;;
-        *) . -- "./$OPTARG" ;;
-      esac
+      source_configfile "$OPTARG"
       ;;
     \?)
       exit 2
@@ -132,12 +113,14 @@ while getopts "fnswSh:H:o:r:E:k:K:m:F:u:t:c:" opt; do
   esac
 done
 
+if [ -n "$opt_print_options" ]; then
+  printf "%s\n" "$llm_chat_options"
+  exit 0
+fi
+
 [ -f "$llm_configdir/post-chat-config" ] && . -- "$llm_configdir/post-chat-config"
 
-if [ -z "$opt_api_key" ] && [ -n "$opt_api_key_cmd" ]; then
-  opt_api_key=$(eval " $opt_api_key_cmd" && echo x) || exit
-  opt_api_key=${opt_api_key%$'\nx'}
-fi
+eval_api_key
 
 if [ -z "$opt_api_key" ]; then
   printf "api key not provided\n" >&2
@@ -215,10 +198,6 @@ if [ -z "$opt_repl_reader" ]; then
 fi
 
 shift "$((OPTIND - 1))"
-
-ansi_escape() {
-  [ -n "$opt_color_ansi" ] && printf "\033[%sm" "$1"
-}
 
 file_input() {
   is_image=
@@ -308,7 +287,7 @@ show_conversation() {
   esac
   llm-chat-conversation-slice "$1" "$2" <"$conversation" \
     | llm-render-events \
-    | dispatch_render_event
+    | dispatch_render_event "$render_event_fifo"
 }
 
 dispatch_command() {
@@ -461,167 +440,6 @@ check_file_id() {
   printf "some file soon expires, update them\n"
   update_file_id "$changed"
 }
-
-default_renderer_notify_header() {
-  ansi_escape "32;1"
-  printf "%s" "$1"
-  ansi_escape "0;32"
-}
-default_renderer_notify() {
-
-  case $1 in
-    function_call|custom_tool_call)
-      default_renderer_notify_header "$1: "
-      jq --unbuffered -j '.name, (inputs | ", " + .name), "\n"'
-      ;;
-    web_search_call|web_search_call@start)
-      default_renderer_notify_header "$1: "
-      echo
-      suffix=
-      case $1 in
-        *@start)
-          suffix="ing "
-          ;;
-        *)
-          suffix="ed "
-          ;;
-      esac
-      jq_program='
-      .action |
-      if .type == "search" then
-        .queries // [.query // empty] | .[] | "search" + $suffix + .
-      elif .type == "open_page" then
-        .url // empty | "open" + $suffix + .
-      elif .type == "find_in_page" then
-        "search" + $suffix + .pattern + "\nin page " + .url
-      else
-        empty
-      end
-      '
-      jq --unbuffered -r --arg suffix "$suffix" -- "$jq_program"
-      ;;
-    *@start)
-      ;;
-    *)
-      default_renderer_notify_header "$1"
-      echo
-      ;;
-  esac
-  cat >/dev/null
-  ansi_escape "0"
-}
-
-ansi_role_color() {
-  ansi_color=
-  case $1 in
-    user)
-      ansi_color=33
-      ;;
-    assistant)
-      ansi_color=35
-      ;;
-    system|developer)
-      ansi_color=31
-      ;;
-    *)
-      ansi_color=30
-      ;;
-  esac
-  printf "%s" "$ansi_color"
-}
-
-default_renderer_file_image() {
-  ansi_color=$(ansi_role_color "$2")
-  ansi_escape "$ansi_color;1"
-  printf "%s " "$2"
-  ansi_escape "36;1"
-  case $1 in
-    message-image)  printf "image: " ;;
-    message-file)   printf "file: " ;;
-  esac
-  ansi_escape "0;36"
-
-  data=$(cat)
-  if ! jq -ejn --argjson data "$data" '$data | .file_url // .image_url // .file_data // empty'; then
-    file_id=$(jq -ejn --argjson data "$data" '$data.file_id'; echo x)
-    file_id=${file_id%x}
-    jq -j --arg id "$file_id" -- \
-      'select(.id == $id).filename' "$persistent_fileids" "$volatile_fileids"
-  fi
-  ansi_escape "0"
-  printf "\n"
-}
-
-default_renderer() {
-  case "$1" in
-    notify)
-      default_renderer_notify "$2"
-      return
-      ;;
-    message-text)
-      ansi_color=$(ansi_role_color "$2")
-      ansi_escape "$ansi_color;1"
-      printf "%s\n" "$2"
-      ansi_escape "0;$ansi_color"
-      ;;
-    message-image|message-file)
-      default_renderer_file_image "$1" "$2"
-      return
-      ;;
-    message-refusal)
-      ansi_escape "31;1"
-      printf "%s refusal\n" "$2"
-      ansi_escape "0;31"
-      ;;
-    reasoning)
-      ansi_escape "35;3;2;1"
-      printf "reasoning\n"
-      ansi_escape "0;3;2"
-      ;;
-    reasoning-summary)
-      ansi_escape "35;3;2;1"
-      printf "reasoning-summary\n"
-      ansi_escape "0;3;2"
-      ;;
-  esac
-
-  cat -u
-  ansi_escape "0"
-  printf "\n"
-}
-
-dispatch_render_event() (
-  trap '' PIPE
-  exec 3>&1
-  exec >/dev/null
-  renderer_id=
-  while read -r event argument && read -r value; do
-    if [ "$event $argument" != "$renderer_id" ]; then
-      exec >&-
-      while ! wait; do
-        continue
-      done
-
-      (
-        exec >&3
-        exec <"$render_event_fifo"
-        command eval render_cmd='$opt_render_cmd_'$(printf "%s" "$event" | tr '-' '_')
-        render_cmd=${render_cmd:-'default_renderer "$event" "$argument"'}
-        jq --unbuffered -j '.' | command eval " $render_cmd"
-      )&
-      exec >"$render_event_fifo"
-      renderer_id="$event $argument"
-    fi
-
-    printf "%s\n" "$value"
-  done
-
-  exec >&-
-  while ! wait; do
-    continue
-  done
-)
-
 call() (
   if ! check_file_id; then
     errmsg="some file ids expired and failed to retrieve a new one"
@@ -632,7 +450,7 @@ call() (
   set -o pipefail
   cat -- "$conversation" "$this_turn" \
     | llm-responses-api "$@" -- "$output" - \
-    | dispatch_render_event
+    | dispatch_render_event "$render_event_fifo"
 )
 
 render_prompter() {
@@ -745,7 +563,7 @@ tmp=$statedir/tmp
 if [ -n "$opt_session_conversation" ] && [ -f "$opt_session_conversation" ]; then
   state_init_from_session
   if [ -n "$opt_show_conversation_on_startup" ]; then
-    llm-render-events "$conversation" | dispatch_render_event
+    llm-render-events "$conversation" | dispatch_render_event "$render_event_fifo"
   fi
 else
   state_init
@@ -822,12 +640,12 @@ while :; do
     go)
       if [ -s "$input_content" ]; then
         llm-make-message -r "$input_message_role" -p <"$input_content" \
-          | tee -a "$this_turn" | llm-render-events | dispatch_render_event
+          | tee -a "$this_turn" | llm-render-events | dispatch_render_event "$render_event_fifo"
       fi
       ;;
     add)
       llm-make-message -r "$input_message_role" -p <"$input_content" \
-        | tee -a "$this_turn" | llm-render-events | dispatch_render_event
+        | tee -a "$this_turn" | llm-render-events | dispatch_render_event "$render_event_fifo"
       continue
       ;;
     cancel)

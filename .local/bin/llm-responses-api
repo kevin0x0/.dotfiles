@@ -9,17 +9,7 @@ opt_tools=
 
 opt_fromfile=
 
-getarg() {
-  if [ -n "$opt_fromfile" ]; then
-    arg=$(cat -- "$2"; echo x)
-    arg=${arg%x}
-    opt_fromfile=
-  else
-    arg=$2
-  fi
-
-  eval "$1"='$arg'
-}
+. llm-argparse-utils
 
 while getopts "fu:k:sr:m:t:A:" opt; do
   case $opt in

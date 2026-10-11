@@ -1,0 +1,48 @@
+#!/bin/sh
+
+. llm-argparse-utils
+. llm-render-utils
+
+opt_color=auto
+opt_color_ansi=
+opt_fromfile=
+
+llm_scriptname=llm-render
+[ -f "$llm_configdir/llm-render" ] && . -- "$llm_configdir/llm-render"
+
+while getopts "f:o:c:" opt; do
+  case $opt in
+    f)
+      opt_fromfile=1
+      ;;
+    o)
+      option_name=${OPTARG%%=*}
+      option_value=${OPTARG#*=}
+      getarg "opt_$(printf "%s" "$option_name" | tr '-' '_')" "$option_value"
+      ;;
+    c)
+      source_configfile "$OPTARG"
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+case $opt_color in
+  auto)
+    opt_color_ansi=
+    [ -t 1 ] && opt_color_ansi=1
+    ;;
+  never)
+    opt_color_ansi=
+    ;;
+  always)
+    opt_color_ansi=1
+    ;;
+esac
+
+tmpdir=$(tmpfile -d) || exit
+trap 'rm -rf -- "$tmpdir"' EXIT
+mkfifo "$tmpdir/fifo" || exit
+dispatch_render_event "$tmpdir/fifo"
