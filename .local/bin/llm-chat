@@ -184,7 +184,9 @@ if [ -z "$opt_repl_reader" ]; then
       : >"$historyfile"
     fi
     builtin_completion=${XDG_DATA_HOME:-$HOME/.local/share}/llm-scripts/chat/completion
-    (cd -- "$llm_configdir/commands" && printf "@%s\n" * >"$statedir/tmp.completions")
+    if [ ! -e "$statedir/tmp.completions" ]; then
+      (cd -- "$llm_configdir/commands" && printf "@%s\n" * >"$statedir/tmp.completions")
+    fi
     rlwrap -C llm-chat -H "$historyfile" -b "$break_chars" -f "$builtin_completion" -f "$statedir/tmp.completions" -ca -S "$cmdline_prompt" -- sh -c '\''IFS= read -r line && printf "%s" "$line"'\'
   else
     opt_repl_reader='
