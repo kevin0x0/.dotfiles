@@ -1,0 +1,17 @@
+# vim: ft=sh
+
+  shift
+
+  case ${1#-} in
+    *[!0123456789]*)
+      set -- "" "$2"
+      ;;
+  esac
+  case ${2#-} in
+    *[!0123456789]*)
+      set -- "$1" ""
+      ;;
+  esac
+  llm-chat-conversation-slice "$1" "$2" <"$conversation" \
+    | llm-render-events \
+    | dispatch_render_event "$render_event_fifo"

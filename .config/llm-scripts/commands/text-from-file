@@ -1,0 +1,13 @@
+# vim: ft=sh
+
+
+shift
+if [ "$#" -eq 0 ]; then
+  llm-make-mcontent -t >&3
+else
+  for f; do
+    llm-make-mcontent -ft -- "$f" >&3
+  done
+fi
+
+return 0

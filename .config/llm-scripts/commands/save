@@ -1,0 +1,20 @@
+# vim: ft=sh
+
+shift
+
+if [ -z "$1" ]; then
+  set -- "$opt_session_conversation" "$opt_session_fileids"
+fi
+if [ -z "$1" ]; then
+  printf "please provide filename to save as\n" >&2
+  return 0
+fi
+if [ -z "$2" ]; then
+  set -- "$1" "${1}.fileids"
+fi
+
+if ! cp -- "$conversation" "$1" || \
+  ! cat -- "$persistent_fileids" "$volatile_fileids" >"$2"; then
+  printf "failed to save as %s and %s\n" "$1" "$2" >&2
+fi
+return 0
