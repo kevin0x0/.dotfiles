@@ -7,10 +7,6 @@
 @drop
 @role
 @text
-@text-from-file
-@text-from-command
 @file
 @image
-@save
-@show-conversation
 @command
