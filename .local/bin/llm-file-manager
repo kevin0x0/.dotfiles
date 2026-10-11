@@ -16,8 +16,9 @@ opt_deleteboth=
 
 opt_nul_terminated=
 
+. llm-argparse-utils
+
 llm_scriptname=llm-file-manager
-llm_configdir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts
 [ -f "$llm_configdir/file-manager-config" ] && . -- "$llm_configdir/file-manager-config"
 
 while getopts "c:u:E:k:K:p:aCUlmdtn" opt; do
@@ -81,10 +82,7 @@ shift "$((OPTIND - 1))"
 
 [ -f "$llm_configdir/post-file-manager-config" ] && . -- "$llm_configdir/post-file-manager-config"
 
-if [ -n "$opt_api_key_cmd" ]; then
-  opt_api_key=$(eval " $opt_api_key_cmd" && echo x)
-  opt_api_key=${opt_api_key%$'\nx'}
-fi
+eval_api_key
 
 if [ -z "$opt_update$opt_list$opt_delete" ]; then
   opt_list=1

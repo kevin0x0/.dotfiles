@@ -1,0 +1,172 @@
+#!/bin/sh
+
+ansi_escape() {
+  [ -n "$opt_color_ansi" ] && printf "\033[%sm" "$1"
+}
+
+default_renderer_notify_header() {
+  ansi_escape "32;1"
+  printf "%s" "$1"
+  ansi_escape "0;32"
+}
+
+default_renderer_notify() {
+  case $1 in
+    function_call|custom_tool_call)
+      default_renderer_notify_header "$1: "
+      jq --unbuffered -j '.name, (inputs | ", " + .name), "\n"'
+      ;;
+    web_search_call|web_search_call@start)
+      default_renderer_notify_header "$1: "
+      echo
+      suffix=
+      case $1 in
+        *@start)
+          suffix="ing "
+          ;;
+        *)
+          suffix="ed "
+          ;;
+      esac
+      jq_program='
+      .action |
+      if .type == "search" then
+        .queries // [.query // empty] | .[] | "search" + $suffix + .
+      elif .type == "open_page" then
+        .url // empty | "open" + $suffix + .
+      elif .type == "find_in_page" then
+        "search" + $suffix + .pattern + "\nin page " + .url
+      else
+        empty
+      end
+      '
+      jq --unbuffered -r --arg suffix "$suffix" -- "$jq_program"
+      ;;
+    *@start)
+      ;;
+    *)
+      default_renderer_notify_header "$1"
+      echo
+      ;;
+  esac
+  cat >/dev/null
+  ansi_escape "0"
+}
+
+ansi_role_color() {
+  ansi_color=
+  case $1 in
+    user)
+      ansi_color=33
+      ;;
+    assistant)
+      ansi_color=35
+      ;;
+    system|developer)
+      ansi_color=31
+      ;;
+    *)
+      ansi_color=30
+      ;;
+  esac
+  printf "%s" "$ansi_color"
+}
+
+default_renderer_file_image() {
+  ansi_color=$(ansi_role_color "$2")
+  ansi_escape "$ansi_color;1"
+  printf "%s " "$2"
+  ansi_escape "36;1"
+  case $1 in
+    message-image)  printf "image: " ;;
+    message-file)   printf "file: " ;;
+  esac
+  ansi_escape "0;36"
+
+  data=$(cat)
+  if ! jq -ejn --argjson data "$data" '$data | .file_url // .image_url // .file_data // empty'; then
+    file_id=$(jq -ejn --argjson data "$data" '$data.file_id'; echo x)
+    file_id=${file_id%x}
+    set --
+    [ -n "$persistent_fileids" ] && set -- "$@" "$persistent_fileids"
+    [ -n "$volatile_fileids" ] && set -- "$@" "$volatile_fileids"
+    if [ "$#" -ne 0 ]; then
+      jq -j --arg id "$file_id" -- \
+        'select(.id == $id).filename' "$@"
+    else
+      printf "%s" "$file_id"
+    fi
+  fi
+  ansi_escape "0"
+  printf "\n"
+}
+
+default_renderer() {
+  case "$1" in
+    notify)
+      default_renderer_notify "$2"
+      return
+      ;;
+    message-text)
+      ansi_color=$(ansi_role_color "$2")
+      ansi_escape "$ansi_color;1"
+      printf "%s\n" "$2"
+      ansi_escape "0;$ansi_color"
+      ;;
+    message-image|message-file)
+      default_renderer_file_image "$1" "$2"
+      return
+      ;;
+    message-refusal)
+      ansi_escape "31;1"
+      printf "%s refusal\n" "$2"
+      ansi_escape "0;31"
+      ;;
+    reasoning)
+      ansi_escape "35;3;2;1"
+      printf "reasoning\n"
+      ansi_escape "0;3;2"
+      ;;
+    reasoning-summary)
+      ansi_escape "35;3;2;1"
+      printf "reasoning-summary\n"
+      ansi_escape "0;3;2"
+      ;;
+  esac
+
+  cat -u
+  ansi_escape "0"
+  printf "\n"
+}
+
+dispatch_render_event() (
+  trap '' PIPE
+  exec 3>&1
+  exec >/dev/null
+  renderer_id=
+  while read -r event argument && read -r value; do
+    if [ "$event $argument" != "$renderer_id" ]; then
+      exec >&-
+      while ! wait; do
+        continue
+      done
+
+      (
+        exec >&3
+        exec <"$1"
+        command eval render_cmd='$opt_render_cmd_'$(printf "%s" "$event" | tr '-' '_')
+        render_cmd=${render_cmd:-'default_renderer "$event" "$argument"'}
+        jq --unbuffered -j '.' | command eval " $render_cmd"
+      )&
+      exec >"$1"
+      renderer_id="$event $argument"
+    fi
+
+    printf "%s\n" "$value"
+  done
+
+  exec >&-
+  while ! wait; do
+    continue
+  done
+)
