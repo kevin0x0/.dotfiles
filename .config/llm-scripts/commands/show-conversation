@@ -15,3 +15,5 @@ esac
 llm-chat-conversation-slice "$1" "$2" <"$conversation" \
   | llm-render-events \
   | dispatch_render_event "$render_event_fifo"
+
+return 0
