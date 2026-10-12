@@ -1,7 +1,7 @@
 -- Text overlay configuration
 { swayimg.text.color = 0x${alpha_hex:-ff}$fg }           -- foreground text color
 { swayimg.text.background = 0xc0$bg }      -- text background color
-swayimg.text.shadow = 0xff000000          -- text shadow color
+swayimg.text.shadow = 0xff{ $([ "$kind" = dark ] && printf "000000" || printf "ffffff") }          -- text shadow color
 
 -- Image viewer mode
 swayimg.viewer.set_window_background(0x00000000) -- window background color
