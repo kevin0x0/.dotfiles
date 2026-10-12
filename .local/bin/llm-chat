@@ -159,12 +159,7 @@ case $opt_color in
     ;;
 esac
 
-if [ -n "$opt_repl_reader_ignore" ]; then
-  opt_repl_reader=
-  opt_repl_read_wrapper=
-fi
-
-if [ -n "$opt_repl_read_wrapper" ]; then
+if [ -n "$opt_repl_read_wrapper" ] && [ -z "$opt_repl_reader_ignore" ]; then
   if ! command eval " $opt_repl_read_wrapper"' "$0" -o repl-reader-ignore=1 "$@"'; then
     printf "invalid repl read wrapper, exit\n" >&2
     exit 1
@@ -174,7 +169,8 @@ if [ -n "$opt_repl_read_wrapper" ]; then
   fi
 fi
 
-if [ -z "$opt_repl_reader" ]; then
+[ -n "$opt_repl_reader_ignore" ] && opt_repl_reader=
+if [ -z "$opt_repl_reader" ] && [ -z "$opt_repl_reader_ignore" ]; then
   if command -v rlwrap >/dev/null 2>&1; then
     break_chars=$'()[]{},+=&^%$#";|\\\''
     opt_repl_reader='
@@ -188,16 +184,18 @@ if [ -z "$opt_repl_reader" ]; then
       (cd -- "$llm_configdir/commands" && printf "@%s\n" * >"$statedir/tmp.completions")
     fi
     rlwrap -C llm-chat -H "$historyfile" -b "$break_chars" -f "$builtin_completion" -f "$statedir/tmp.completions" -ca -S "$cmdline_prompt" -- sh -c '\''IFS= read -r line && printf "%s" "$line"'\'
-  else
-    opt_repl_reader='
-    printf "%s" "$cmdline_prompt" >&3
-    if IFS= read -r line; then
-      printf "%s" "$line"
-    else
-      echo
-      exit 1
-    fi'
   fi
+fi
+
+if [ -z "$opt_repl_reader" ]; then
+  opt_repl_reader='
+  printf "%s" "$cmdline_prompt" >&3
+  if IFS= read -r line; then
+    printf "%s" "$line"
+  else
+    echo
+    exit 1
+  fi'
 fi
 
 shift "$((OPTIND - 1))"
