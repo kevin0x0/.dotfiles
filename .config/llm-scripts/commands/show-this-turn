@@ -1,0 +1,5 @@
+# vim: ft=sh
+
+shift
+
+llm-render-events <"$this_turn" | dispatch_render_event "$render_event_fifo"
