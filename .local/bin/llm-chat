@@ -332,7 +332,15 @@ dispatch_command() {
       ;;
     *)
       if [ -f "$llm_configdir/commands/$cmdname" ]; then
-        command . -- "$llm_configdir/commands/$cmdname"
+        if [ -x "$llm_configdir/commands/$cmdname" ]; then
+          shift
+          (
+            export conversation volatile_fileids persistent_fileids this_turn toollist
+            "$llm_configdir/commands/$cmdname" "$@"
+          )
+        elif [ -r "$llm_configdir/commands/$cmdname" ]; then
+          command . -- "$llm_configdir/commands/$cmdname"
+        fi
       else
         printf "unrecognized command: %s\n" "$cmdname" >&2
       fi
