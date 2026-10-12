@@ -193,7 +193,7 @@ if [ -z "$opt_repl_reader" ]; then
   if IFS= read -r line; then
     printf "%s" "$line"
   else
-    echo
+    echo >&3
     exit 1
   fi'
 fi
