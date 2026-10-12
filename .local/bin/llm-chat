@@ -129,45 +129,6 @@ fi
 
 [ -f "$llm_configdir/post-chat-config" ] && . -- "$llm_configdir/post-chat-config"
 
-eval_api_key
-
-if [ -z "$opt_api_key" ]; then
-  printf "api key not provided\n" >&2
-  exit 1
-fi
-
-if [ -z "$opt_cache_key" ]; then
-  printf "cache key not provided\n" >&2
-  exit 1
-fi
-
-if [ -z "$opt_responses_base_url" ]; then
-  printf "base url not provided\n" >&2
-  exit 1
-fi
-
-if [ -z "$opt_model" ]; then
-  printf "model not provided\n" >&2
-  exit 1
-fi
-
-if [ -z "$opt_files_base_url" ]; then
-  printf "files api base url not provided\n" >&2
-  exit 1
-fi
-
-case $opt_color in
-  auto)
-    [ -t 1 ] && opt_color_ansi=1 || opt_color_ansi=
-    ;;
-  always)
-    opt_color_ansi=1
-    ;;
-  never)
-    opt_color_ansi=
-    ;;
-esac
-
 if [ -n "$opt_repl_read_wrapper" ] && [ -z "$opt_repl_reader_ignore" ]; then
   if ! command eval " $opt_repl_read_wrapper"' "$0" -o repl-reader-ignore=1 "$@"'; then
     printf "invalid repl read wrapper, exit\n" >&2
@@ -206,6 +167,35 @@ if [ -z "$opt_repl_reader" ]; then
     exit 1
   fi'
 fi
+
+eval_api_key
+
+if [ -z "$opt_api_key" ]; then
+  printf "api key not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_responses_base_url" ]; then
+  printf "base url not provided\n" >&2
+  exit 1
+fi
+
+if [ -z "$opt_model" ]; then
+  printf "model not provided\n" >&2
+  exit 1
+fi
+
+case $opt_color in
+  auto)
+    [ -t 1 ] && opt_color_ansi=1 || opt_color_ansi=
+    ;;
+  always)
+    opt_color_ansi=1
+    ;;
+  never)
+    opt_color_ansi=
+    ;;
+esac
 
 shift "$((OPTIND - 1))"
 

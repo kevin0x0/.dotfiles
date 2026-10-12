@@ -51,7 +51,7 @@ if [ -z "$opt_cache_key" ]; then
 fi
 
 if [ -z "$opt_files_base_url" ]; then
-  printf "base url not provided\n" >&2
+  printf "base url for Files API not provided\n" >&2
   exit 1
 fi
 
