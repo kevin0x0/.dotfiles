@@ -38,7 +38,11 @@ stpl_expand_line() {
           return
         fi
 
-        if [ "$stpl_expr" = EOF ]; then
+        if [ "$stpl_mark" = '$' ]; then
+          if ! command eval " $stpl_expr" 2>/dev/null; then
+            stpl_error "failed to execute command: %s" "$stpl_expr"
+          fi
+        elif [ "$stpl_expr" = EOF ]; then
           printf "EOF"
         else
           stpl_cmd=$'stpl_result=$(cat <<EOF\n'"$stpl_expr"$'\nEOF\n) && printf "%s" "$stpl_result"'
