@@ -1,14 +1,30 @@
 
 newer_than_output() {
-  [ "$#" -ne 0 ] && [ -n "$(find "$@" -newer "$output")" ] && return 0
-  count=$#
-  while [ "$count" -ne 0 ]; do
-    count=$((count - 1))
-    arg=$1
-    shift
-    [ -L "$arg" ] && set -- "$@" "$arg"
+  count=0
+  while [ "$count" -lt "$#" ]; do
+    count=$((count + 1))
+    eval arg='${'"$count}"
+
+    if [ -L "$arg" ]; then
+      link_target=$(readlink -- "$arg" && echo x) || return 0
+      link_target=${link_target%$'\nx'}
+      case $link_target in
+        /*)
+          ;;
+        *)
+          link_target="${arg%/*}/$link_target"
+          ;;
+      esac
+      set -- "$@" "$link_target"
+    fi
+
+    if [ "$count" -gt 100 ]; then
+      # Too many files, may be symbolic link loop, stop and always
+      # do re-generatition.
+      return 0
+    fi
   done
-  [ "$#" -ne 0 ] && [ -n "$(find -H "$@" -newer "$output")" ]
+  [ "$#" -ne 0 ] && [ -n "$(find "$@" -newer "$output")" ]
 }
 
 theme=$COLORSCHEME_COLORSCHEMES_DIR/$COLORSCHEME_THEME
