@@ -5,7 +5,7 @@ swayimg.text.shadow = 0xff{ $([ "$kind" = dark ] && printf "000000" || printf "f
 
 -- Image viewer mode
 swayimg.viewer.set_window_background(0x00000000) -- window background color
-{ swayimg.viewer.set_image_chessboard(20, 0x${alpha_hex:-ff}$surface, 0x${alpha_hex:-ff}$bg) } -- chessboard
+swayimg.viewer.set_image_chessboard(20, 0x00000000, 0x00000000) -- chessboard
 { swayimg.viewer.mark_color = 0x${alpha_hex:-ff}$accent }           -- mark icon color
 
 -- Gallery mode
