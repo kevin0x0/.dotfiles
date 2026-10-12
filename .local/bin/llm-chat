@@ -41,7 +41,16 @@ llm_chat_options="fnswSh:H:o:r:E:k:K:m:F:u:t:c:"
 while getopts "$llm_chat_options" opt; do
   case $opt in
     o)
-      option_name=${OPTARG%%=*}
+      option_name=$(printf "%s" "${OPTARG%%=*}" | tr '-' '_')
+      case $OPTARG in
+        *=*)
+          ;;
+        *)
+          set_boolean_option "opt_$option_name"
+          continue
+          ;;
+      esac
+
       option_value=${OPTARG#*=}
       if [ "$option_name" = prompt ]; then
         opt_prompt_file=
@@ -53,7 +62,7 @@ while getopts "$llm_chat_options" opt; do
           opt_prompt=$option_value
         fi
       else
-        getarg "opt_$(printf "%s" "$option_name" | tr '-' '_')" "$option_value"
+        getarg "opt_$option_name" "$option_value"
       fi
       ;;
     n)
