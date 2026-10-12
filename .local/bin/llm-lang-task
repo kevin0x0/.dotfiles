@@ -32,7 +32,7 @@ done
 shift "$((OPTIND - 1))"
 
 if [ -z "$opt_target" ]; then
-  locale=${LC_ALL:-${LC_MESSAGES:-$LANG}}
+  locale=${LC_ALL:-${LC_MESSAGES:-${LANG:-C}}}
   lang=${locale%%[.@_]*}
   # Validate the language code heuristically
   case $lang in
