@@ -363,8 +363,9 @@ update_file_id() (
     <"$changed" >"$idmap"
 
   jq --slurpfile idmap "$idmap" \
-    '(.. | select(((.type? == "input_image" or .type? == "input_file") and IN(.file_id?; $idmap[0] | keys_unsorted[]))) | .file_id)
-      |= $idmap[0][.]' <"$conversation" >"$tmp"
+    '$idmap[0] as $idmap |
+     walk(if type == "object" and (.type == "input_image" or .type == "input_file") and $idmap[.file_id // ""] != null then .file_id = $idmap[.file_id] end)' \
+    <"$conversation" >"$tmp"
 
   cp -- "$tmp" "$conversation"
 
