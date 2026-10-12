@@ -640,13 +640,18 @@ while :; do
 
     # Append to input
     llm-o2i "$output" >>"$this_turn"
-    if [ -z "$opt_tooldir" ]; then
-      break
-    fi
 
     # Call tool
-    llm-tool-call -i "$output" -- "$opt_tooldir" "" "$opt_files_base_url" "$opt_files_default_purpose" "$opt_api_key" "$opt_cache_key" "$statedir" >"$tmp" \
-      || break
+    if [ -n "$opt_tooldir" ]; then
+      llm-tool-call -i "$output" -- "$opt_tooldir" "" "$opt_files_base_url" "$opt_files_default_purpose" "$opt_api_key" "$opt_cache_key" "$statedir" >"$tmp" \
+        || break
+    else
+      # No tool provided but the model still returned a tool call, give no tool
+      # directory to llm-tool-call and let it report missing tool to the model.
+      # I don't know whether this could ever happen, but writing defensively
+      # like this is always a good idea.
+      llm-tool-call -i "$output" -- >"$tmp" || break
+    fi
     cat -- "$tmp" >>"$this_turn"
     if [ ! -s "$tmp" ]; then
       break
