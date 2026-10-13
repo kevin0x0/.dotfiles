@@ -92,7 +92,7 @@ find_and_call() {
         ;;
     esac
     printf "%s" "$argpart"
-  done | jq -sj '.[]' | call "$@" \
+  done | jq -sj '.[]' | call "${execpath%/*}" "$@" \
     | jq -cs --argjson call_id "$id" --arg type "$type" --arg name "$name" \
     '{"name":$name,"call_id":$call_id,"type":$type,"output":.}' 2>/dev/null
 
