@@ -149,15 +149,23 @@ dsk_split_list='{
   fi
 }'
 
-MESSAGES=${LC_ALL:-"${LC_MESSAGES:-"$LANG"}"}
+MESSAGES=${LC_ALL:-"${LC_MESSAGES:-"${LANG:-C}"}"}
+case $MESSAGES in
+  /*)
+    M_MODIFIER=
+    M_COUNTRY=
+    M_LANG=C
+    ;;
+  *)
+    M_MODIFIER=${MESSAGES#"${MESSAGES%%@*}"}
+    MESSAGES=${MESSAGES%%[.@]*}
 
-M_MODIFIER=${MESSAGES#"${MESSAGES%%@*}"}
-MESSAGES=${MESSAGES%%[.@]*}
+    M_COUNTRY=${MESSAGES##"${MESSAGES%_*}"}
+    MESSAGES=${MESSAGES%_*}
 
-M_COUNTRY=${MESSAGES##"${MESSAGES%_*}"}
-MESSAGES=${MESSAGES%_*}
-
-M_LANG=$MESSAGES
+    M_LANG=$MESSAGES
+    ;;
+esac
 
 dsk_match_locale() {
   if [ "$M_LANG$M_COUNTRY$M_MODIFIER" = "$1" ]; then

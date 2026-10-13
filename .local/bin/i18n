@@ -71,16 +71,25 @@ shift
 
 # Normalise encoding part in locale
 [ -z "$opt_locale" ] && opt_locale=${LC_ALL:-${LC_MESSAGES:-${LANG:-C}}}
-modifier=${opt_locale#"${opt_locale%@*}"}
-opt_locale=${opt_locale%"$modifier"}
-encoding=${opt_locale#"${opt_locale%.*}"}
-opt_locale=${opt_locale%"$encoding"}
-case $encoding in
-  .UTF-8|.utf-8|.UTF8|.utf8)
-    encoding=.UTF-8
+case $opt_locale in
+  /*)
+    # According to POSIX 7.1(Locale General), this should be interpreted as a
+    # pathname of a locale definition.
+    # We don't handle this case here, just let it pass and fail.
+    ;;
+  *)
+    modifier=${opt_locale#"${opt_locale%@*}"}
+    opt_locale=${opt_locale%"$modifier"}
+    encoding=${opt_locale#"${opt_locale%.*}"}
+    opt_locale=${opt_locale%"$encoding"}
+    case $encoding in
+      .UTF-8|.utf-8|.UTF8|.utf8)
+        encoding=.UTF-8
+        ;;
+    esac
+    opt_locale=$opt_locale$encoding$modifier
     ;;
 esac
-opt_locale=$opt_locale$encoding$modifier
 
 if [ -n "$opt_check" ]; then
   [ -z "$opt_namespace" ] && exit 1
