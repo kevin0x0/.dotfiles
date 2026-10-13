@@ -12,10 +12,6 @@ default_renderer_notify_header() {
 
 default_renderer_notify() {
   case $1 in
-    function_call|custom_tool_call)
-      default_renderer_notify_header "$1: "
-      jq --unbuffered -j '.name, (inputs | ", " + .name), "\n"'
-      ;;
     web_search_call|web_search_call@start)
       default_renderer_notify_header "$1: "
       echo
@@ -101,8 +97,37 @@ default_renderer_file_image() {
   printf "\n"
 }
 
+default_renderer_tool_call() {
+  if llm-tool-render -ctn "$1" -- "$opt_tooldir"; then
+    jq -j '.arguments // .input' | llm-tool-render -cn "$1" -l "$renderer_opt_tool_output_lines" -- "$opt_tooldir"
+  else
+    default_renderer_notify_header "calling $1"
+    echo
+  fi
+  cat >/dev/null
+}
+
+default_renderer_tool_output() {
+  if llm-tool-render -otn "$1" -- "$opt_tooldir"; then
+    jq -c '.output | if type == "string" then [{type:"input_text",text:.}] end | .[]' \
+      | llm-tool-render -on "$1" -l "$renderer_opt_tool_output_lines" -- "$opt_tooldir"
+  else
+    default_renderer_notify_header "called $1"
+    echo
+  fi
+  cat >/dev/null
+}
+
 default_renderer() {
   case "$1" in
+    tool-call)
+      default_renderer_tool_call "$2"
+      return
+      ;;
+    tool-output)
+      default_renderer_tool_output "$2"
+      return
+      ;;
     notify)
       default_renderer_notify "$2"
       return

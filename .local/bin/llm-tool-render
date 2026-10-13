@@ -1,0 +1,54 @@
+#!/bin/sh
+
+opt_test=
+opt_render_kind=
+opt_output_amount=
+opt_name=
+while getopts "tcol:n:" opt; do
+  case $opt in
+    t)
+      opt_test=1
+      ;;
+    c)
+      opt_render_kind=render-call
+      ;;
+    o)
+      opt_render_kind=render-output
+      ;;
+    l)
+      opt_output_amount=$OPTARG
+      ;;
+    n)
+      opt_name=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+[ -z "$opt_render_kind" ] && opt_render_kind=render-call
+
+if [ -z "$opt_name" ]; then
+  printf "tool name not given\n" >&2
+  exit 2
+fi
+
+for d; do
+  [ -n "$d" ] || continue
+
+  f=$d/$opt_name/$opt_render_kind
+  [ -f "$f" ] || continue
+
+  if [ -x "$f" ]; then
+    [ -n "$opt_test" ] && exit 0
+    "$f" -l "$opt_output_amount"
+    exit 0
+  elif [ -r "$f" ]; then
+    [ -n "$opt_test" ] && exit 0
+    sh -- "$f" -l "$opt_output_amount"
+    exit 0
+  fi
+done
+[ -n "$opt_test" ] && exit 1

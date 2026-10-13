@@ -1,0 +1,65 @@
+#!/bin/sh
+
+opt_output_amount=
+
+while getopts "l:" opt; do
+  case $opt in
+    l)
+      opt_output_amount=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+color_header_begin=
+color_has_more_begin=
+color_error_begin=
+color_stdout_begin=
+color_stderr_begin=
+color_end=
+if [ -t 1 ]; then
+  case $(termcolors) in
+    16777216|256)
+      color_header_begin='\033[36;1m'
+      color_has_more_begin='\033[91m'
+      color_error_begin='\033[31m'
+      color_stdout_begin='\033[33m'
+      color_stderr_begin='\033[35m'
+      color_end='\033[0m'
+      ;;
+  esac
+fi
+
+printf "$color_header_begin%s$color_end\n" "command output:"
+
+jq -j 'select(.type == "input_text") | .text' \
+  | jq -j 'def norm($prefix): rtrimstr("\n") | split("\n")[] | $prefix + " " + . + "\n";
+           if .error != null then
+             .error + if .reason != null then "\n  " + .reason else "" end | norm("error")
+           else
+             (.stdout | if . != null then norm("stdout") else empty end),
+             (.stderr | if . != null then norm("stderr") else empty end)
+           end' \
+  | {
+      count=0
+      while IFS= read -r line; do
+        count=$((count + 1))
+        if [ -n "$opt_output_amount" ] && [ "$count" -gt "$opt_output_amount" ]; then
+          printf "$color_has_more_begin›$color_end %s\n" "...has more"
+          break
+        fi
+        case $line in
+          "error "*)
+            printf "$color_error_begin┃$color_end %s\n" "${line#"error "}"
+            ;;
+          "stdout "*)
+            printf "$color_stdout_begin┃$color_end %s\n" "${line#"stdout "}"
+            ;;
+          "stderr "*)
+            printf "$color_stderr_begin┃$color_end %s\n" "${line#"stderr "}"
+            ;;
+        esac
+      done
+    }
