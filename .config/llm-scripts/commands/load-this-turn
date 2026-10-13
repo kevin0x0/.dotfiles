@@ -1,0 +1,23 @@
+# vim: ft=sh
+
+if [ -z "$2" ]; then
+  printf "provide a file pathname to load this-turn from\n" >&2
+  return 0
+fi
+
+case $1 in
+  */overwrite*)
+    cat -- "$2" >"$this_turn"
+    ;;
+  *)
+    cat -- "$2" >>"$this_turn"
+    ;;
+esac
+
+if [ "$?" -eq 0 ]; then
+  printf "successfully loaded this-turn from %s\n" "$2"
+else
+  printf "failed to load this-turn from %s\n" "$2" >&2
+fi
+
+return 0

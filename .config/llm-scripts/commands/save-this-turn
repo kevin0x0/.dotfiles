@@ -1,0 +1,15 @@
+# vim: ft=sh
+
+shift
+
+if [ -z "$1" ]; then
+  set -- "$(tmpfile)"
+fi
+
+if cat -- "$this_turn" >"$1"; then
+  printf "successfully saved this-turn as %s\n" "$1"
+else
+  printf "failed to save this-turn as %s\n" "$1" >&2
+fi
+
+return 0
