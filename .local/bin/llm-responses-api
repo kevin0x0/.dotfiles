@@ -249,6 +249,8 @@ preprocess_render_event() {
       else
         [ "reasoning-summary", .text ]
       end
+    elif .item.type == "function_call" or .item.type == "custom_tool_call" then
+      ["tool-call " + .item.name, (.item | @json)]
     else
       ["notify " + .item.type, (.item | @json)]
     end | . as [$render_event, $payload] |

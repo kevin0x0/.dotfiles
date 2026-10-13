@@ -1,0 +1,93 @@
+#!/bin/sh
+
+opt_output_amount=
+opt_intent_off=
+opt_code_off=
+opt_testfd=
+
+while getopts "l:ICT:" opt; do
+  case $opt in
+    l)
+      opt_output_amount=$OPTARG
+      ;;
+    I)
+      opt_intent_off=1
+      ;;
+    C)
+      opt_code_off=1
+      ;;
+    T)
+      opt_testfd=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+color=0
+if [ -t "${opt_testfd:-1}" ]; then
+  case $(termcolors) in
+    16777216)
+      color=2
+      ;;
+    256)
+      color=1
+      ;;
+  esac
+fi
+
+code_header='EXECUTE SHELL COMMAND(s):'
+intent_header='INTENT:'
+
+jq --unbuffered \
+  --argjson color "$color" \
+  --arg maxline "$opt_output_amount" \
+  --arg code_header "$code_header" \
+  --arg intent_header "$intent_header" \
+  --arg intent_off "$opt_intent_off" \
+  --arg code_off "$opt_code_off" \
+  -jr -- '
+def colored($s; $c):
+  if $color != 0 then
+    "\u001b[" + $c +"m" + $s + "\u001b[0m"
+  else
+    $s
+  end;
+
+def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
+
+if $code_off != "1" then
+  "printf \"%s\\n\" " + (colored($code_header; "31;1") | @sh) + "\n",
+  "{\n",
+  (.code | if endswith("\n") | not then . + "\n" end | chunk | "printf \"%s\" " + @sh + "\n"),
+  "} | ",
+  if $color == 0 then
+    "cat "
+  elif $color == 1 then
+    "highlight -S sh -O ansi "
+  else
+    "highlight -S sh -O truecolor "
+  end,
+  "| {\n",
+  "count=0\n",
+  "max=" + $maxline + "\n",
+  "while IFS= read -r line; do\n",
+  "count=$((count + 1))\n",
+  "if [ -n \"$max\" ] && [ \"$count\" -gt \"$max\" ]; then\n",
+  "printf \"%s\\n\" " + (colored("› "; "31;1") | @sh) + "\"...has more\"\n",
+  "break\n",
+  "fi\n",
+  "printf \"%s\\n\" " + (colored("┃ "; "32;1") | @sh) + "\"$line\"\n",
+  "done\n}\n"
+else
+  empty
+end,
+
+if $intent_off != "1" then
+  "printf \"%s\\n\" " + (colored($intent_header; "31;1") | @sh) + "\n",
+  (.intent | rtrimstr("\n") | split("\n")[] | colored("= "; "33;1") + colored(.; "33") | "printf \"%s\\n\" " + @sh + "\n")
+else
+  empty
+end
+' | sh
