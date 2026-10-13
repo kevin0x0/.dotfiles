@@ -437,6 +437,44 @@ my_read() {
   command eval " $1"='$('"$opt_repl_reader"')' 3>&1
 }
 
+read_loop() {
+  input_end_action=
+  input_message_role=${opt_default_role:-user}
+  : >"$text_input"
+  need_break_word=
+  while my_read line; do
+    case $line in
+      '')
+        need_break_word=
+        printf "\n" >>"$text_input"
+        ;;
+      [!@]*|@@*)
+        line=${line#@}
+        if [ -n "$need_break_word" ]; then
+          case $line in
+            [[:alnum:]]*) line=" $line" ;;
+          esac
+        fi
+        case $line in
+          *[[:alnum:]]) need_break_word=1 ;;
+          *)            need_break_word= ;;
+        esac
+        printf "%s" "$line" >>"$text_input"
+        ;;
+      *)
+        [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >&3
+        : >"$text_input"
+
+        if ! dispatch_command "$line"; then
+          break
+        fi
+        ;;
+    esac
+  done
+
+  [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >&3
+} 3>"$input_content"
+
 create_state_dir() {
   dirprefix=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/llm-chat-$$
   dir=$dirprefix
@@ -538,143 +576,108 @@ if [ -n "$opt_tooldir" ]; then
 fi
 
 # REPL
-while :; do
-  input_end_action=
-  input_message_role=${opt_default_role:-user}
-  # Read input
-  {
-    : >"$text_input"
-    need_break_word=
-    while my_read line; do
-      case $line in
-        '')
-          need_break_word=
-          printf "\n" >>"$text_input"
-          ;;
-        [!@]*|@@*)
-          line=${line#@}
-          if [ -n "$need_break_word" ]; then
-            case $line in
-              [[:alnum:]]*) line=" $line" ;;
-            esac
-          fi
-          case $line in
-            *[[:alnum:]]) need_break_word=1 ;;
-            *)            need_break_word= ;;
-          esac
-          printf "%s" "$line" >>"$text_input"
-          ;;
-        *)
-          [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >&3
-          : >"$text_input"
+error_to() {
+  last_error_state=$state
+  state=$1
+}
 
-          if ! dispatch_command "$line"; then
-            break
-          fi
+last_error_state=
+state=read-loop
+while :; do
+  case $state in
+    read-loop)
+      read_loop
+      if [ -z "$input_end_action" ]; then
+        [ -s "$input_content" ] && input_end_action=go || input_end_action=break
+      fi
+
+      case $input_end_action in
+        break)
+          state=end
+          continue
+          ;;
+        cancel)
+          continue
           ;;
       esac
-    done
-    [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >&3
-  } 3>"$input_content"
 
-  if [ -z "$input_end_action" ]; then
-    if [ -s "$input_content" ]; then
-      input_end_action=go
-    else
-      input_end_action=break
-    fi
-  fi
-
-  case $input_end_action in
-    break)
-      break
-      ;;
-    go)
-      if [ -s "$input_content" ]; then
+      if [ "$input_end_action" = go ] && [ -s "$input_content" ] || [ "$input_end_action" = add ]; then
         llm-make-message -r "$input_message_role" -p <"$input_content" \
           | tee -a "$this_turn" | llm-render-events | dispatch_render_event "$render_event_fifo"
       fi
+      [ "$input_end_action" = go ] && state=agent-loop-api-call
       ;;
-    add)
-      llm-make-message -r "$input_message_role" -p <"$input_content" \
-        | tee -a "$this_turn" | llm-render-events | dispatch_render_event "$render_event_fifo"
-      continue
+    agent-loop-api-call)
+      call "$@"
+      exitcode=$?
+      if [ ! -s "$output" ]; then
+        printf "agent loop failed but no error message given\n" >&2
+        error_to read-loop
+        continue
+      fi
+
+      case $exitcode in
+        0) # Append to input
+          llm-o2i "$output" >>"$this_turn"
+          state=agent-loop-tool-call
+          ;;
+        3) # response.incomplete
+          echo
+          if incomplete_reason=$(jq -jn 'limit(1; inputs) | .reason' "$output" 2>/dev/null); then
+            case $incomplete_reason in
+              max_output_tokens|steered)
+                # Skip the first item
+                jq -c -- 'inputs' "$output" >"$tmp"
+                cp -- "$tmp" "$output"
+                state=agent-loop-tool-call
+                ;;
+              *)
+                printf "response incomplete: %s\n" "$incomplete_reason" >&2
+                error_to read-loop
+                ;;
+            esac
+          else
+            printf "response incomplete but no reason given\n" >&2
+            error_to read-loop
+          fi
+          ;;
+        *)
+          [ -s "$output" ] && jq -n 'limit(1; inputs)' "$output" >&2
+          error_to read-loop
+          ;;
+      esac
       ;;
-    cancel)
-      continue
+    agent-loop-tool-call)
+      if [ -n "$opt_tooldir" ]; then
+        llm-tool-call -i "$output" -- "$opt_tooldir" "" \
+          "$opt_files_base_url" "$opt_files_default_purpose" "$opt_api_key" "$opt_cache_key" "$statedir" >"$tmp"
+      else
+        # No tool provided but the model still returned a tool call, give no tool
+        # directory to llm-tool-call and let it report missing tool to the model.
+        # I don't know whether this could ever happen, but writing defensively
+        # like this is always a good idea.
+        llm-tool-call -i "$output" -- >"$tmp"
+      fi
+
+      if [ "$?" -ne 0 ]; then
+        printf "failed to handle tool call\n" >&2
+        error_to read-loop
+      else
+        cat -- "$tmp" >>"$this_turn"
+        [ -s "$tmp" ] && state=agent-loop-api-call || state=agent-loop-end
+      fi
       ;;
-    *)
-      continue
+    agent-loop-end)
+      cat -- "$this_turn" >>"$conversation"
+      : >"$this_turn"
+      state=read-loop
+      ;;
+    end)
+      if [ -n "$opt_session_writeback" ]; then
+        save_session "@save" "$opt_session_conversation" "$opt_session_fileids"
+      fi
+      break
       ;;
   esac
 
-  # Agent loop
-  while :; do
-    # Call
-    call "$@"
-    exitcode=$?
-    if [ ! -s "$output" ]; then
-      printf "agent loop failed but no error message given\n" >&2
-      continue 2
-    fi
-
-    case $exitcode in
-      0)
-        ;;
-      3) # response.incomplete
-        echo
-        if incomplete_reason=$(jq -jn 'limit(1; inputs) | .reason' "$output" 2>/dev/null); then
-          case $incomplete_reason in
-            max_output_tokens|steered)
-              jq -c -- 'inputs' "$output" >"$tmp"
-              cp -- "$tmp" "$output"
-              # Then handle normally
-              ;;
-            *)
-              printf "response incomplete: %s\n" "$incomplete_reason" >&2
-              continue 2
-              ;;
-          esac
-        else
-          printf "response incomplete but no reason given\n" >&2
-          continue 2
-        fi
-        ;;
-      *)
-        [ -s "$output" ] && jq -n 'limit(1; inputs)' "$output" >&2
-        continue 2
-        ;;
-    esac
-
-    # Append to input
-    llm-o2i "$output" >>"$this_turn"
-
-    # Call tool
-    if [ -n "$opt_tooldir" ]; then
-      llm-tool-call -i "$output" -- "$opt_tooldir" "" "$opt_files_base_url" "$opt_files_default_purpose" "$opt_api_key" "$opt_cache_key" "$statedir" >"$tmp"
-    else
-      # No tool provided but the model still returned a tool call, give no tool
-      # directory to llm-tool-call and let it report missing tool to the model.
-      # I don't know whether this could ever happen, but writing defensively
-      # like this is always a good idea.
-      llm-tool-call -i "$output" -- >"$tmp"
-    fi
-
-    if [ "$?" -ne 0 ]; then
-      printf "failed to handle tool call\n" >&2
-      continue 2
-    fi
-
-    cat -- "$tmp" >>"$this_turn"
-    if [ ! -s "$tmp" ]; then
-      break
-    fi
-  done
-
-  cat -- "$this_turn" >>"$conversation"
-  : >"$this_turn"
 done
-
-if [ -n "$opt_session_writeback" ]; then
-  save_session "@save" "$opt_session_conversation" "$opt_session_fileids"
-fi
