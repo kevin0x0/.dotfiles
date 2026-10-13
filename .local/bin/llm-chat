@@ -296,11 +296,21 @@ dispatch_command() {
       return 1
       ;;
     retry)
-      if [ ! -s "$this_turn" ]; then
-        printf "there is no content to retry\n" >&2
+      shift
+      if [ -z "$last_error_state" ]; then
+        printf "there is no need to retry since no error occurred\n" >&2
         return 0
       fi
-      input_end_action=go
+      case $1 in
+        agent-loop-api-call|agent-loop-tool-call)
+          state=$1
+          ;;
+        *)
+          state=$last_error_state
+          ;;
+      esac
+      last_error_state=
+      input_end_action=retry
       return 1
       ;;
     drop)
@@ -592,6 +602,9 @@ while :; do
       fi
 
       case $input_end_action in
+        retry)
+          continue
+          ;;
         break)
           state=end
           continue
@@ -677,6 +690,10 @@ while :; do
         save_session "@save" "$opt_session_conversation" "$opt_session_fileids"
       fi
       break
+      ;;
+    *)
+      printf "Unknown state: %s\n" "$state" >&2
+      state=read-loop
       ;;
   esac
 
