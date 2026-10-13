@@ -598,7 +598,11 @@ while :; do
     read-loop)
       read_loop
       if [ -z "$input_end_action" ]; then
-        [ -s "$input_content" ] && input_end_action=go || input_end_action=break
+        if [ -s "$input_content" ] || [ -s "$this_turn" ]; then
+          input_end_action=go
+        else
+          input_end_action=break
+        fi
       fi
 
       case $input_end_action in
