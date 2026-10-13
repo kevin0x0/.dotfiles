@@ -36,7 +36,7 @@ if [ -z "$opt_target" ]; then
   lang=${locale%%[.@_]*}
   # Validate the language code heuristically
   case $lang in
-    C|POSIX)
+    /*|C|POSIX)
       ;;
     *)
       opt_target=$lang

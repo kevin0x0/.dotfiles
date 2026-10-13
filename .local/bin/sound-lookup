@@ -218,16 +218,25 @@ if [ "$#" -eq 0 ]; then
   exit 1
 fi
 
-modifier=${opt_locale#"${opt_locale%%@*}"}
-opt_locale=${opt_locale%%[.@]*}
+case $opt_locale in
+  /*)
+    REQUESTED_LOCALE1=C
+    REQUESTED_LOCALE2=C
+    REQUESTED_LOCALE3=C
+    ;;
+  *)
+    modifier=${opt_locale#"${opt_locale%%@*}"}
+    opt_locale=${opt_locale%%[.@]*}
 
-country=${opt_locale##"${opt_locale%_*}"}
-opt_locale=${opt_locale%_*}
+    country=${opt_locale##"${opt_locale%_*}"}
+    opt_locale=${opt_locale%_*}
 
-lang=$opt_locale
-REQUESTED_LOCALE1=$lang$country$modifier
-REQUESTED_LOCALE2=$lang$country
-REQUESTED_LOCALE3=$lang
+    lang=$opt_locale
+    REQUESTED_LOCALE1=$lang$country$modifier
+    REQUESTED_LOCALE2=$lang$country
+    REQUESTED_LOCALE3=$lang
+    ;;
+esac
 
 if ! sound_file=$(lookup_in_theme "$opt_theme" "$1" "$opt_profile"); then
   if ! sound_file=$(lookup_in_theme "freedesktop" "$1" "$opt_profile"); then
