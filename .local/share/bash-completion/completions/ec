@@ -1,4 +1,4 @@
-_comp_ec() {
+_ec() {
   local paths=${PATH:+$PATH:}
   local cur="${COMP_WORDS[COMP_CWORD]}"
 
@@ -18,6 +18,6 @@ _comp_ec() {
     )
 }
 
-complete -o nosort -o bashdefault -o default -F _comp_ec ec
+complete -o nosort -o bashdefault -o default -F _ec ec
 
 # vim: ft=bash
