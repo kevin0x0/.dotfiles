@@ -48,7 +48,8 @@ find_and_call() {
   type=$1
   id=$2
   name=$3
-  shift 3
+  tmpfile=$4
+  shift 4
 
   case $type in
     function_call)
@@ -92,7 +93,9 @@ find_and_call() {
         ;;
     esac
     printf "%s" "$argpart"
-  done | jq -sj '.[]' | call "${execpath%/*}" "$@" \
+  done >"$tmpfile"
+
+  jq -sj '.[]' <"$tmpfile" | call "${execpath%/*}" "$@" \
     | jq -cs --argjson call_id "$id" --arg type "$type" --arg name "$name" \
     '{"name":$name,"call_id":$call_id,"type":$type,"output":.}' 2>/dev/null
 
@@ -103,6 +106,12 @@ find_and_call() {
       '{"name":$name,"call_id":$call_id,"type":$type,"output":$err}'
   fi
 }
+
+tmpfile=$(tmpfile)
+trap 'rm -- "$tmpfile"' EXIT
+trap 'rm -- "$tmpfile"; trap - INT; kill -INT "$$"' INT
+trap 'rm -- "$tmpfile"; trap - TERM; kill -TERM "$$"' TERM
+trap 'rm -- "$tmpfile"; trap - QUIT; kill -QUIT "$$"' QUIT
 
 jq_program='
 def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
@@ -116,8 +125,7 @@ jq -rc "$jq_program" <&3 \
   | {
     exitcode=0
     while read -r type && read -r id && read -r toolname; do
-      find_and_call "$type" "$id" "$toolname" "$@" || exitcode=$?
+      find_and_call "$type" "$id" "$toolname" "$tmpfile" "$@" || exitcode=$?
     done
-
     exit "$exitcode"
   }
