@@ -1,0 +1,5 @@
+
+_comp_load llm-chat || return
+complete -o default -F _comp_cmd_llm_chat llm-oneshot
+
+# vim: ft=bash

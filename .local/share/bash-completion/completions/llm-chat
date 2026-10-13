@@ -1,0 +1,32 @@
+
+_comp_cmd_llm_chat() {
+  local cur prev
+  _comp_get_words cur prev
+
+  case $prev in
+    -*c)
+      case $cur in
+        @*)
+          _comp_compgen -P @ -C "${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts/" -- filedir
+          ;;
+        *)
+          _comp_compgen -- filedir
+          ;;
+      esac
+      ;;
+    -*o)
+      local llm_chat_path=$(command -v llm-chat 2>/dev/null) || return
+      _comp_compgen -- split -F $'\n' -- "$(sed -n -- '/^.*opt_.*$/{s/^.*opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/gp;}' "$llm_chat_path" | sort -u)"
+      compopt -o nospace
+      ;;
+    *)
+      local options=$(llm-chat -o print-options | tr -d ':')
+      options=${options//?/-& }
+      _comp_compgen -- split -F ' ' -- "$options"
+      ;;
+  esac
+}
+
+complete -o default -F _comp_cmd_llm_chat llm-chat
+
+# vim: ft=bash
