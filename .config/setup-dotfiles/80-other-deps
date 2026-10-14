@@ -1,7 +1,6 @@
 helper_check_deps warning "the following commands are required for lf:" <<'EOF'
 bash bourne-again shell
 xdg-open opens a file or URL
-highlight source code highlighter
 EOF
 
 helper_check_deps warning "the following commands are required for llm-* scripts:" <<'EOF'
@@ -28,6 +27,10 @@ swayimg image viewer
 brightnessctl brightness control tool
 xdg-user-dir XDG user directory getter
 pkill kill processes by name
+EOF
+
+helper_check_deps warning "the following commands are recommended for lf and llm-scripts:" <<'EOF'
+highlight source code highlighter
 EOF
 
 helper_check_any_deps warning "one of the following commands are required for running sway:" <<'EOF'
