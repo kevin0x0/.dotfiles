@@ -9,13 +9,17 @@ case "$mime_type" in
   application/json|\
   application/mbox|\
   text/*)
-    termcolor=$(termcolors)
-    if [ "$termcolor" -eq 16777216 ]; then
-      output_format=truecolor
+    if command -v highlight >/dev/null 2>&1; then
+      termcolor=$(termcolors)
+      if [ "$termcolor" -eq 16777216 ]; then
+        output_format=truecolor
+      else
+        output_format=ansi
+      fi
+      highlight -O "$output_format" -- "$file"
     else
-      output_format=ansi
+      cat
     fi
-    highlight -O "$output_format" -- "$file"
     ;;
   *)
     file --brief -- "$file" | fold -sw "$2"

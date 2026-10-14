@@ -41,6 +41,7 @@ code_header='EXECUTE SHELL COMMAND(s):'
 intent_header='INTENT:'
 
 jq --unbuffered \
+  --argjson hashighlight "$(command -v highlight >/dev/null 2>&1 && echo true || echo false)" \
   --argjson color "$color" \
   --arg maxline "$opt_output_amount" \
   --arg code_header "$code_header" \
@@ -62,7 +63,7 @@ if $code_off != "1" then
   "{\n",
   (.code | if endswith("\n") | not then . + "\n" end | chunk | "printf \"%s\" " + @sh + "\n"),
   "} | ",
-  if $color == 0 then
+  if $color == 0 or ($hashighlight | not) then
     "cat "
   elif $color == 1 then
     "highlight -S sh -O ansi "
