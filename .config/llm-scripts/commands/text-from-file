@@ -9,5 +9,3 @@ else
     llm-make-mcontent -ft -- "$f" >&3
   done
 fi
-
-return 0

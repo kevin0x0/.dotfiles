@@ -277,23 +277,18 @@ dispatch_command() {
   cmdname=${cmdname#@}
   case $cmdname in
     nop)
-      return 0
       ;;
     break)
       input_end_action=break
-      return 1
       ;;
     add)
       input_end_action=add
-      return 1
       ;;
     cancel)
       input_end_action=cancel
-      return 1
       ;;
     go)
       input_end_action=go
-      return 1
       ;;
     retry)
       shift
@@ -311,11 +306,9 @@ dispatch_command() {
       esac
       last_error_state=
       input_end_action=retry
-      return 1
       ;;
     drop)
       : >"$this_turn"
-      return 0
       ;;
     role)
       case $2 in
@@ -358,7 +351,6 @@ dispatch_command() {
       fi
       ;;
   esac
-  return 0
 }
 
 update_file_id() (

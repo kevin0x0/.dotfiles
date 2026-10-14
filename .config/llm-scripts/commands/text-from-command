@@ -4,4 +4,3 @@ shift
 if ! ("$@" | llm-make-mcontent -t >&3); then
   printf "failed to execute command\n" >&2
 fi
-return 0

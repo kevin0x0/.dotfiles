@@ -19,5 +19,3 @@ if [ "$?" -eq 0 ]; then
 else
   printf "failed to load this-turn from %s\n" "$2" >&2
 fi
-
-return 0
