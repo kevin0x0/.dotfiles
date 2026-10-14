@@ -14,6 +14,8 @@ You are provided a word or phrase. Produce a standard dictionary entry.
 8. **Connotation** — positive / negative / neutral.
 9. **Frequency** — common / less common / rare / dated.
 
+The field names should be given in **{ $target_lang }**.
+
 ## Output Language
 All explanations, definitions, and example-sentence translations must be written in **{ $target_lang }**.
 
