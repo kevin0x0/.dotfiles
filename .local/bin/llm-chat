@@ -229,7 +229,7 @@ file_input() {
 
   for file; do
     if ! path2uri -u -- "$file"; then
-      if fileid=$(llm-chat-get-fileid -F "$opt_files_base_url" -k "$opt_api_key" \
+      if fileid=$(trap - INT; llm-chat-get-fileid -F "$opt_files_base_url" -k "$opt_api_key" \
         -K "$opt_cache_key" -p "$opt_files_default_purpose" -S "$statedir" -- "$file" && echo x); then
         fileid=${fileid%$'\nx'}
         printf "file selected, file id: %s\n" "$fileid"
@@ -338,7 +338,9 @@ dispatch_command() {
       ;;
     command)
       shift
+      trap ':' INT
       command -- "$@" 3>&-
+      trap '' INT
       ;;
     *)
       if [ -f "$llm_configdir/commands/$cmdname" ]; then
@@ -369,9 +371,11 @@ update_file_id() (
     'if IN(.id; $changed[].id) then empty else . end' \
     "$volatile_fileids" "$persistent_fileids" >"$unchanged"
 
+  trap ':' INT
   jq --raw-output0 '.filename' -- "$changed" \
     | xargs -r0 -- llm-file-manager -u "$opt_files_base_url" -k "$opt_api_key" -K "$opt_cache_key" -p "$opt_files_default_purpose" -Ulm -- >"$new" \
     || return
+  trap '' INT
 
   jq -n --slurpfile new "$new" \
     'reduce (inputs | JOIN(INDEX($new[]; .filename); .; .filename; {(.[0].id): .[1].id})) as $o ({}; . + $o)' \
@@ -402,18 +406,32 @@ check_file_id() {
   printf "some file soon expires, update them\n"
   update_file_id "$changed"
 }
+
 call() (
   if ! check_file_id; then
     errmsg="some file ids expired and failed to retrieve a new one"
-    jq -n --arg err "$errmsg" >"$output" \
+    jq -n --arg err "$errmsg" >"$response_output" \
       '{"error":{"message":$err,"type":"__defined_by_me","code":"__defined_by_me"}}'
     return 1
   fi
+
+  trap ':' INT
   set -o pipefail
   cat -- "$conversation" "$this_turn" \
-    | llm-responses-api "$@" -- "$output" - \
+    | llm-responses-api "$@" -- "$response_output" - \
     | dispatch_render_event "$render_event_fifo"
 )
+
+call_tool() {
+  set -- "$@" -i "$response_output" -- "$opt_tooldir" \
+    "" "$opt_files_base_url" "$opt_files_default_purpose" \
+    "$opt_api_key" "$opt_cache_key" "$statedir"
+  trap ':' INT
+  llm-tool-call "$@" >"$tool_output"
+  set -- "$?"
+  trap '' INT
+  return "$1"
+}
 
 render_prompter() {
   case $opt_repl_prompt_template in
@@ -444,7 +462,7 @@ my_read() {
     return 0
   fi
   render_prompter cmdline_prompt # used in $opt_repl_reader
-  command eval " $1"='$('"$opt_repl_reader"')' 3>&1
+  command eval " $1"='$(trap - INT; '"$opt_repl_reader"')' 3>&1
 }
 
 read_loop() {
@@ -475,9 +493,8 @@ read_loop() {
         [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >&3
         : >"$text_input"
 
-        if ! dispatch_command "$line"; then
-          break
-        fi
+        dispatch_command "$line"
+        [ -n "$input_end_action" ] && break
         ;;
     esac
   done
@@ -501,7 +518,8 @@ state_init() {
   : >"$volatile_fileids"
   : >"$persistent_fileids"
   : >"$this_turn"
-  : >"$output"
+  : >"$response_output"
+  : >"$tool_output"
   : >"$input_content"
   : >"$text_input"
   : >"$tmp"
@@ -517,7 +535,8 @@ state_init() {
 
 state_init_from_session() {
   : >"$this_turn"
-  : >"$output"
+  : >"$response_output"
+  : >"$tool_output"
   : >"$input_content"
   : >"$text_input"
   : >"$tmp"
@@ -545,14 +564,15 @@ cleanup() {
 trap 'cleanup' EXIT
 trap 'cleanup' QUIT
 trap 'cleanup' TERM
-trap ':' INT
+trap '' INT
 
 statedir=$(create_state_dir)
 conversation=$statedir/conversation
 volatile_fileids=$statedir/volatile-file-ids
 persistent_fileids=$statedir/persistent-file-ids
 this_turn=$statedir/this-turn
-output=$statedir/output
+response_output=$statedir/response-output
+tool_output=$statedir/tool-output
 input_content=$statedir/input-content
 toollist=$statedir/tool-list
 text_input=$statedir/text-input
@@ -628,7 +648,7 @@ while :; do
     agent-loop-api-call)
       call "$@"
       exitcode=$?
-      if [ ! -s "$output" ]; then
+      if [ ! -s "$response_output" ]; then
         printf "agent loop failed but no error message given\n" >&2
         error_to read-loop
         continue
@@ -636,17 +656,17 @@ while :; do
 
       case $exitcode in
         0) # Append to input
-          llm-o2i "$output" >>"$this_turn"
+          llm-o2i "$response_output" >>"$this_turn"
           state=agent-loop-tool-call
           ;;
         3) # response.incomplete
           echo
-          if incomplete_reason=$(jq -jn 'limit(1; inputs) | .reason' "$output" 2>/dev/null); then
+          if incomplete_reason=$(jq -jn 'limit(1; inputs) | .reason' "$response_output" 2>/dev/null); then
             case $incomplete_reason in
               max_output_tokens|steered)
                 # Skip the first item
-                jq -c -- 'inputs' "$output" >"$tmp"
-                cp -- "$tmp" "$output"
+                jq -c -- 'inputs' "$response_output" >"$tmp"
+                cp -- "$tmp" "$response_output"
                 state=agent-loop-tool-call
                 ;;
               *)
@@ -660,30 +680,19 @@ while :; do
           fi
           ;;
         *)
-          [ -s "$output" ] && jq -n 'limit(1; inputs)' "$output" >&2
+          [ -s "$response_output" ] && jq -n 'limit(1; inputs)' "$response_output" >&2
           error_to read-loop
           ;;
       esac
       ;;
     agent-loop-tool-call)
-      if [ -n "$opt_tooldir" ]; then
-        llm-tool-call -i "$output" -- "$opt_tooldir" "" \
-          "$opt_files_base_url" "$opt_files_default_purpose" "$opt_api_key" "$opt_cache_key" "$statedir" >"$tmp"
+      if call_tool; then
+        llm-render-events <"$tool_output" | dispatch_render_event "$render_event_fifo"
+        cat -- "$tool_output" >>"$this_turn"
+        [ -s "$tool_output" ] && state=agent-loop-api-call || state=agent-loop-end
       else
-        # No tool provided but the model still returned a tool call, give no tool
-        # directory to llm-tool-call and let it report missing tool to the model.
-        # I don't know whether this could ever happen, but writing defensively
-        # like this is always a good idea.
-        llm-tool-call -i "$output" -- >"$tmp"
-      fi
-
-      if [ "$?" -ne 0 ]; then
         printf "failed to handle tool call\n" >&2
         error_to read-loop
-      else
-        llm-render-events <"$tmp" | dispatch_render_event "$render_event_fifo"
-        cat -- "$tmp" >>"$this_turn"
-        [ -s "$tmp" ] && state=agent-loop-api-call || state=agent-loop-end
       fi
       ;;
     agent-loop-end)

@@ -165,7 +165,7 @@ default_renderer() {
 }
 
 dispatch_render_event() (
-  trap '' PIPE
+  trap ':' INT PIPE
   exec 3>&1
   exec >/dev/null
   renderer_id=

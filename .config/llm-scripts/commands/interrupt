@@ -1,0 +1,27 @@
+# vim: ft=sh
+
+case $last_error_state in
+  agent-loop-tool-call)
+    if call_tool -f '{"error":"interrupted by user"}'; then
+      printf "interrupted tool call\n" >&2
+      cat -- "$tool_output" >>"$this_turn"
+      state=agent-loop-end
+      input_end_action=retry
+      last_error_state=
+    else
+      printf "failed to interrupt tool call\n" >&2
+    fi
+    ;;
+  agent-loop-api-call)
+      printf "all outputs during this api call were discarded\n" >&2
+      state=agent-loop-end
+      input_end_action=retry
+      last_error_state=
+    ;;
+  '')
+    printf "no need to interrupt since no error occurred" >&2
+    ;;
+  *)
+    printf "interrupting this state is not supported\n" >&2
+    ;;
+esac
