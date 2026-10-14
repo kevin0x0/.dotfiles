@@ -33,13 +33,19 @@ if [ -t 2 ]; then
   color_end='\033[0m'
 fi
 
-printf "$color_begin%s$color_end\n" "command execution requested:" >&2
+header_shown=
+show_header() {
+  [ -n "$header_shown" ] && return
+  header_shown=1
+  printf "$color_begin%s$color_end\n" "command execution requested:" >&2
+}
 
 while :; do
   if [ -n "$LLM_CHAT_SH_YES" ]; then
     reply=$LLM_CHAT_SH_YES
     LLM_CHAT_SH_YES=
   else
+    show_header
     sh -- "$1/render-call" -C <"$arg" >&2
     printf "$color_begin%s$color_end\n" \
       "Do you approve the request(Y/n/[r]eplace the original command(s)/[p]rint code)?" >&2
