@@ -18,6 +18,7 @@ bindsym {
   # Show the next scratchpad window or hide the focused scratchpad window.
   # If there are multiple scratchpad windows, this command cycles through them.
   $mod+Shift+Equal scratchpad show
+  $mod+Tab scratchpad show
 
   # Switch to workspace
   $mod+1 workspace 1
@@ -53,6 +54,7 @@ bindsym {
 
   # Move the currently focused window to the scratchpad
   $mod+Shift+Minus move scratchpad
+  $mod+Grave move scratchpad
 
   # Move focused container to workspace
   $mod+Shift+1 move container to workspace 1
