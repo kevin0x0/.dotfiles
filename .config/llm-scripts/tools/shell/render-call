@@ -61,7 +61,7 @@ def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
 if $code_off != "1" then
   "printf \"%s\\n\" " + (colored($code_header; "31;1") | @sh) + "\n",
   "{\n",
-  (.code | if endswith("\n") | not then . + "\n" end | chunk | "printf \"%s\" " + @sh + "\n"),
+  (.code // "" | if endswith("\n") | not then . + "\n" end | chunk | "printf \"%s\" " + @sh + "\n"),
   "} | ",
   if $color == 0 or ($hashighlight | not) then
     "cat "
@@ -87,7 +87,7 @@ end,
 
 if $intent_off != "1" then
   "printf \"%s\\n\" " + (colored($intent_header; "31;1") | @sh) + "\n",
-  (.intent | rtrimstr("\n") | split("\n")[] | colored("= "; "33;1") + colored(.; "33") | "printf \"%s\\n\" " + @sh + "\n")
+  (.intent // "" | rtrimstr("\n") | split("\n")[] | colored("= "; "33;1") + colored(.; "33") | "printf \"%s\\n\" " + @sh + "\n")
 else
   empty
 end
