@@ -16,6 +16,8 @@ The output format should be markdown, and do not exceed 25 lines, in this order:
 **Synonyms / Antonyms**: <list>
 **Note**: <misspelling suggestion or domain note, if any>
 
+The field names should be given in **{ $target_lang }**.
+
 ## Output Language
 Write all definitions, explanations, and example translations in **{ $target_lang }**.
 
