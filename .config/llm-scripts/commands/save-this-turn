@@ -11,5 +11,3 @@ if cat -- "$this_turn" >"$1"; then
 else
   printf "failed to save this-turn as %s\n" "$1" >&2
 fi
-
-return 0
