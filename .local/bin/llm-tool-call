@@ -1,10 +1,17 @@
 #!/bin/sh
 
 opt_input=
-while getopts "i:" opt; do
+opt_fake_output=
+while getopts "i:f:F:" opt; do
   case $opt in
     i)
       opt_input=$OPTARG
+      ;;
+    f)
+      opt_fake_output=$(llm-make-mcontent -t -- "$OPTARG")
+      ;;
+    F)
+      opt_fake_output=$OPTARG
       ;;
     \?)
       exit 2
@@ -21,7 +28,9 @@ fi
 
 call() {
   errmsg=
-  if [ -z "$execpath" ]; then
+  if [ -n "$opt_fake_output" ]; then
+    printf "%s" "$opt_fake_output"
+  elif [ -z "$execpath" ]; then
     printf "missing tool: '%s'\n" "$name" >&2
     errmsg='can not find this tool'
     false
