@@ -37,22 +37,24 @@ opt_print_options=
 llm_scriptname=llm-chat
 [ -f "$llm_configdir/chat-config" ] && . -- "$llm_configdir/chat-config"
 
-llm_chat_options="fnswSh:H:o:r:E:k:K:m:F:u:t:c:" 
+llm_chat_options="fnswSh:H:o:O:r:E:k:K:m:F:u:t:c:" 
 while getopts "$llm_chat_options" opt; do
   case $opt in
-    o)
+    [oO])
+      option_prefix=opt_
+      [ "$opt" = O ] && option_prefix=
       option_name=$(printf "%s" "${OPTARG%%=*}" | tr '-' '_')
       case $OPTARG in
         *=*)
           ;;
         *)
-          set_boolean_option "opt_$option_name"
+          set_boolean_option "$option_prefix$option_name"
           continue
           ;;
       esac
 
       option_value=${OPTARG#*=}
-      if [ "$option_name" = prompt ]; then
+      if [ "$option_prefix$option_name" = opt_prompt ]; then
         opt_prompt_file=
         opt_prompt=
         if [ -n "$opt_fromfile" ]; then
@@ -62,7 +64,7 @@ while getopts "$llm_chat_options" opt; do
           opt_prompt=$option_value
         fi
       else
-        getarg "opt_$option_name" "$option_value"
+        getarg "$option_prefix$option_name" "$option_value"
       fi
       ;;
     n)
