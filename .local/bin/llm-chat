@@ -448,7 +448,7 @@ render_prompter() {
 # For example, in dash, while the read detects EOF, it remembers this. It
 # will exit with status 1 and not actually read anything on next read from
 # the same file descriptor if the descriptor not redirected.
-my_read() {
+read_wrapper() {
   if [ -s "$cmdline_input" ]; then
     IFS= read -r "$1" <"$cmdline_input"
     tail -n +2 -- "$cmdline_input" >"$tmp"
@@ -464,7 +464,7 @@ read_loop() {
   input_message_role=${opt_default_role:-user}
   : >"$text_input"
   need_break_word=
-  while my_read line; do
+  while read_wrapper line; do
     case $line in
       '')
         need_break_word=
