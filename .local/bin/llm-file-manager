@@ -198,11 +198,11 @@ update_files() (
   cat -- "$tmp" >"$create"
 
   # Ensure the parent directories exist
-  xargs -r0 -- sh -c 'for f; do [ -d "${f%/*}" ] || mkdir -p -- "${f%/*}"; done' -- \
+  xargs -r0 -- sh -c 'for f; do [ -d "${f%/*}" ] || mkdir -p -- "${f%/*}"; done' sh \
     <"$create"
 
   # Upload files and create cache files
-  xargs -r0 -- sh -c 'p=$1; shift; for f; do printf "%s\0" "${f#"$p"}"; done' -- "$cachedir/" <"$create" \
+  xargs -r0 -- sh -c 'p=$1; shift; for f; do printf "%s\0" "${f#"$p"}"; done' sh "$cachedir/" <"$create" \
     | xargs -r0 -- llm-files-api -u "$opt_files_base_url" -k "$opt_api_key" -p "$opt_purpose" -U -- \
     | jq -r --arg cachedir "$cachedir/" '"printf \"%s\n\" "  + (@json | @sh) + " >" + (($cachedir + .filename) | @sh)' \
     | sh \

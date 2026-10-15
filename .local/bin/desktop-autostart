@@ -34,7 +34,7 @@ list_autostart_filename() {
   [ "$#" -eq 0 ] && return
 
   find "$@" -type f -name "*.desktop" -print0 \
-    | xargs -r0 -- sh -c 'for arg; do printf "%s\n" "${arg##*/}"; done' -- \
+    | xargs -r0 -- sh -c 'for arg; do printf "%s\n" "${arg##*/}"; done' sh \
     | sort -u
 }
 

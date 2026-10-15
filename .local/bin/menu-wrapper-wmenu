@@ -43,7 +43,7 @@ list_desktops() {
     printf "%s\0" "${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" \
       | tr ':' '\000' \
       | xargs -r0 -- printf "%s/applications\0" \
-      | xargs -r0 -- sh -c 'for arg; do [ -d "$arg" ] && find "$arg" -type f -name "*.desktop"; done' --
+      | xargs -r0 -- sh -c 'for arg; do [ -d "$arg" ] && find "$arg" -type f -name "*.desktop"; done' sh
   } | awk -F / '{print $NF}' \
     | sort -u
 }

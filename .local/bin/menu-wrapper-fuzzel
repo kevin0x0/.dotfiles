@@ -42,7 +42,7 @@ list_executables() {
       paths=${paths#*:}
     done
   ) \
-    | xargs -r0 -- sh -c 'find -L "$@" -type f' -- \
+    | xargs -r0 -- sh -c 'find -L "$@" -type f' sh \
     | while IFS= read -r f; do [ -x "$f" ] && printf "%s\n" "$f"; done \
     | awk -F / '{print $NF}' \
     | sort -u
