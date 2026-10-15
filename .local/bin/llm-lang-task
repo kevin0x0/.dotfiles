@@ -1,7 +1,7 @@
 #!/bin/sh
 
-opt_target_is_langcode=
-opt_source_is_langcode=
+opt_target_is_code=
+opt_source_is_code=
 opt_target=
 opt_source=
 opt_prompt_template=
@@ -11,14 +11,14 @@ while getopts "t:s:T:S:p:" opt; do
       opt_target=$OPTARG
       ;;
     t)
-      opt_target_is_langcode=1
+      opt_target_is_code=1
       opt_target=$OPTARG
       ;;
     S)
       opt_source=$OPTARG
       ;;
     s)
-      opt_source_is_langcode=1
+      opt_source_is_code=1
       opt_source=$OPTARG
       ;;
     p)
@@ -33,14 +33,14 @@ shift "$((OPTIND - 1))"
 
 if [ -z "$opt_target" ]; then
   locale=${LC_ALL:-${LC_MESSAGES:-${LANG:-C}}}
-  lang=${locale%%[.@_]*}
+  lang=${locale%%[.@]*}
   # Validate the language code heuristically
   case $lang in
     /*|C|POSIX)
       ;;
     *)
       opt_target=$lang
-      opt_target_is_langcode=1
+      opt_target_is_code=1
       ;;
   esac
 fi
@@ -57,19 +57,24 @@ case $opt_target$opt_source in
     ;;
 esac
 
-if [ -n "$opt_target_is_langcode" ]; then
-  target_lang="$opt_target(language code)"
-else
-  target_lang="$opt_target"
+target_parenthetical_note=
+if [ -n "$opt_target_is_code" ]; then
+  case "$opt_target" in
+    *_*) target_parenthetical_note="(language and territory code)" ;;
+    *)   target_parenthetical_note="(language code)" ;;
+  esac
 fi
 
-source_lang=
-if [ -n "$opt_source" ]; then
-  source_lang="$opt_source"
-  if [ -n "$opt_source_is_langcode" ]; then
-    source_lang="$source_lang(language code)"
-  fi
+source_parenthetical_note=
+if [ -n "$opt_source_is_code" ]; then
+  case "$opt_source" in
+    *_*) source_parenthetical_note="(language and territory code)" ;;
+    *)   source_parenthetical_note="(language code)" ;;
+  esac
 fi
+
+target_lang="$opt_target$target_parenthetical_note"
+source_lang="$opt_source$source_parenthetical_note"
 
 {
   stpl -v "source_lang=$source_lang" -v "target_lang=$target_lang" -- "$opt_prompt_template"
