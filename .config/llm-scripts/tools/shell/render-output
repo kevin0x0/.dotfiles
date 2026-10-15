@@ -24,9 +24,9 @@ if [ -t 1 ]; then
     16777216|256)
       color_header_begin='\033[36;1m'
       color_has_more_begin='\033[91m'
-      color_error_begin='\033[31m'
-      color_stdout_begin='\033[33m'
-      color_stderr_begin='\033[35m'
+      color_error_begin='\033[31;1m'
+      color_stdout_begin='\033[36m'
+      color_stderr_begin='\033[31m'
       color_end='\033[0m'
       ;;
   esac
@@ -51,7 +51,7 @@ jq -j 'select(.type == "input_text") | .text' \
             printf "$color_header_begin%s$color_end\n" "${line#"header "}"
             ;;
           "error "*)
-            printf "$color_error_begin┃$color_end %s\n" "${line#"error "}"
+            printf "$color_error_begin┃ %s$color_end\n" "${line#"error "}"
             ;;
           "stdout "*)
             printf "$color_stdout_begin┃$color_end %s\n" "${line#"stdout "}"
@@ -60,7 +60,7 @@ jq -j 'select(.type == "input_text") | .text' \
             printf "$color_stderr_begin┃$color_end %s\n" "${line#"stderr "}"
             ;;
           "more "*)
-            printf "$color_has_more_begin›$color_end %s\n" "${line#"more "}"
+            printf "$color_has_more_begin› %s$color_end\n" "${line#"more "}"
             ;;
         esac
       done
