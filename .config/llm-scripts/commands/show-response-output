@@ -1,0 +1,5 @@
+# vim: ft=sh
+
+shift
+
+llm-render-events <"$response_output" | dispatch_render_event "$render_event_fifo"
