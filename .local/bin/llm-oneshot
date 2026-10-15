@@ -1,5 +1,11 @@
 #!/bin/sh
 
+opt_enable_cmd=
+if [ "$1" = --enable-cmd ]; then
+  shift
+  opt_enable_cmd=1
+fi
+
 llm_chat_options=$(llm-chat -o print-options)
 while getopts "$llm_chat_options" opt; do
   case $opt in
@@ -9,6 +15,18 @@ while getopts "$llm_chat_options" opt; do
   esac
 done
 options_end=$OPTIND
+
+if [ -n "$opt_enable_cmd" ]; then
+  if [ "$((options_end - 1))" -ne "$#" ]; then
+    exec llm-chat "$@" @go @break
+  else
+    {
+      cat
+      printf "@go\n@break\n"
+    } | llm-chat "$@"
+  fi
+  exit
+fi
 
 content_provided=
 content=
