@@ -1,13 +1,13 @@
-if command -v xdg-user-dirs-update >/dev/null 2>&1; then
-  xdg-user-dirs-update
-  return
-fi
-
-info "xdg-user-dirs-update not available, create diretories directly"
-
 : "${XDG_CONFIG_HOME:=$HOME/.config}"
-if [ ! -r "$XDG_CONFIG_HOME/user-dirs.dirs" ]; then
-  error_exit "$XDG_CONFIG_HOME/user-dirs.dirs does not exist or is not readable"
+dirs=$XDG_CONFIG_HOME/user-dirs.dirs
+if [ ! -f "$dirs" ] || [ ! -r "$dirs" ]; then
+  if command -v xdg-user-dirs-update >/dev/null 2>&1; then
+    xdg-user-dirs-update
+    return
+  else
+    error_exit "$XDG_CONFIG_HOME/user-dirs.dirs does not exist or is not readable" \
+      "and xdg-user-dirs-update doesn't exist, can no create xdg user directories"
+  fi
 fi
 
 if ! . -- "$XDG_CONFIG_HOME/user-dirs.dirs"; then
@@ -16,7 +16,7 @@ fi
 
 for d in "$XDG_DESKTOP_DIR" "$XDG_MUSIC_DIR" "$XDG_TEMPLATES_DIR" \
   "$XDG_PUBLICSHARE_DIR" "$XDG_DOCUMENTS_DIR" "$XDG_PICTURES_DIR" \
-  "$XDG_VIDEOS_DIR" "$XDG_DOWNLOAD_DIR"; do
+  "$XDG_VIDEOS_DIR" "$XDG_DOWNLOAD_DIR" "$XDG_PROJECTS_DIR"; do
   [ -n "$d" ] || continue
   if ! mkdir -p -- "$d"; then
     error_exit "failed to create XDG directory $d"
