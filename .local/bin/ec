@@ -1,24 +1,29 @@
 #!/bin/sh
 
+find_in_path() {
+  paths=${PATH:+$PATH:}
+  while [ -n "$paths" ]; do
+    path=${paths%%:*}
+    if [ -f "${path:-$PWD}/$1" ]; then
+      printf "%s\n" "${path:-$PWD}/$1"
+      return 0
+    fi
+    paths=${paths#*:}
+  done
+  return 1
+}
+
 count=$#
 while [ "$count" -ne 0 ]; do
   count=$((count - 1))
   arg=$1
   shift
 
-  if ! f=$(command -v -- "$arg"); then
+  if ! f=$(find_in_path "$arg" && echo x); then
     i18n -n common '$1 does not exist' "$arg" >&2
     continue
   fi
-
-  case $f in
-    /*)
-      set -- "$@" "$f"
-      ;;
-    *)
-      i18n -n common '$1 does not exist' "$arg" >&2
-      ;;
-  esac
+  set -- "$@" "${f%$'\nx'}"
 done
 
 if [ "$#" -eq 0 ]; then
