@@ -31,6 +31,8 @@ opt_fromfile=
 
 opt_print_options=
 
+renderer_opt_tool_output_lines=15
+
 . llm-argparse-utils
 . llm-render-utils
 
@@ -574,6 +576,10 @@ cmdline_input=$statedir/cmdline-input
 render_event_fifo=$statedir/render-event-fifo
 tmp=$statedir/tmp
 
+[ "$#" -ne 0 ] && printf "%s\n" "$@" >"$cmdline_input"
+[ -n "$opt_tooldir" ] && llm-tool-list "$opt_tooldir" >"$toollist"
+mkfifo -- "$render_event_fifo" || exit
+
 if [ -n "$opt_session_conversation" ] && [ -f "$opt_session_conversation" ]; then
   state_init_from_session
   if [ -n "$opt_show_conversation_on_startup" ]; then
@@ -582,9 +588,6 @@ if [ -n "$opt_session_conversation" ] && [ -f "$opt_session_conversation" ]; the
 else
   state_init
 fi
-[ "$#" -ne 0 ] && printf "%s\n" "$@" >"$cmdline_input"
-[ -n "$opt_tooldir" ] && llm-tool-list "$opt_tooldir" >"$toollist"
-mkfifo -- "$render_event_fifo" || exit
 
 
 set -- \
@@ -600,7 +603,6 @@ if [ -n "$opt_tooldir" ]; then
 fi
 
 # REPL
-renderer_opt_tool_output_lines=15
 error_to() {
   last_error_state=$state
   state=$1
