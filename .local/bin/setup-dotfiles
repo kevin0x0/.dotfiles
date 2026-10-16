@@ -10,13 +10,13 @@ showmsg() {
 
 error() (
   for arg; do
-    showmsg 31 error "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
+    showmsg 31 error "${MSG_CONTEXT:-setup-dotfiles}" "$arg"
   done
 )
 
 warning() (
   for arg; do
-    showmsg 33 warning "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
+    showmsg 33 warning "${MSG_CONTEXT:-setup-dotfiles}" "$arg"
   done
 )
 
@@ -27,13 +27,13 @@ error_exit() {
 
 info() (
   for arg; do
-    showmsg 35 info "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
+    showmsg 35 info "${MSG_CONTEXT:-setup-dotfiles}" "$arg"
   done
 )
 
 msg() (
   for arg; do
-    showmsg 36 mesg "${MSG_CONTEXT:-"setup-dotfiles"}" "$arg"
+    showmsg 36 mesg "${MSG_CONTEXT:-setup-dotfiles}" "$arg"
   done
 )
 

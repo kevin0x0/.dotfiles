@@ -149,7 +149,7 @@ dsk_split_list='{
   fi
 }'
 
-MESSAGES=${LC_ALL:-"${LC_MESSAGES:-"${LANG:-C}"}"}
+MESSAGES=${LC_ALL:-${LC_MESSAGES:-${LANG:-C}}}
 case $MESSAGES in
   /*)
     M_MODIFIER=

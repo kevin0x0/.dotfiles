@@ -72,7 +72,7 @@ make_input() {
     --argjson tools "${opt_tools:-null}" \
     --arg reasoning "$opt_reasoning" \
     --arg model "$opt_model" \
-    --argjson extra "${opt_extra_request_args:-"{}"}" \
+    --argjson extra "${opt_extra_request_args:-{\}}" \
     '{"model":$model,"stream":$stream,"reasoning":{"effort":$reasoning},"input":.} + $extra
       | if $tools != null then .tools = $tools end'
 }
