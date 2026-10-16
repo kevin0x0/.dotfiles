@@ -4,10 +4,8 @@
 
 # appearance ---------------------------------------------------------------
 
-exec_always {
-  command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.desktop.interface gtk-theme "{ $gtk_theme }"
-  command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.desktop.interface color-scheme "prefer-{ $kind }"
-}
+exec_always command -v gsettings >/dev/null 2>&1 && gsettings set org.gnome.desktop.interface gtk-theme "{ $gtk_theme }" && gsettings set org.gnome.desktop.interface color-scheme "prefer-{ $kind }"
+
 
 # client windows -------------------------------------------------------------
 # border background text indicator child_border
