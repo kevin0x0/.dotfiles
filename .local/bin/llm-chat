@@ -528,6 +528,10 @@ create_state_dir() {
   while ! mkdir -- "$dir" >/dev/null 2>&1; do
     dir=$dirprefix.$i
     i=$((i + 1))
+    if [ "$i" -gt 30 ]; then
+      printf "failed to create state dir\n" >&2
+      return 1
+    fi
   done
   printf "%s" "$dir"
 }
@@ -585,7 +589,7 @@ trap 'cleanup' QUIT
 trap 'cleanup' TERM
 trap '' INT
 
-statedir=$(create_state_dir)
+statedir=$(create_state_dir) || exit
 conversation=$statedir/conversation
 volatile_fileids=$statedir/volatile-file-ids
 persistent_fileids=$statedir/persistent-file-ids
