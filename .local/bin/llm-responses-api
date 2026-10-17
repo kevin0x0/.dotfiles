@@ -92,7 +92,7 @@ curl_file_escape() {
 }
 
 call_curl() {
-  curl_file_escape escaped "$tmp_input_fifo"
+  curl_file_escape escaped "$tmp_input"
   opts=-sS${opt_stream:+N}
   curl "$opts" "$opt_responses_base_url" \
     -H 'Content-Type: application/json' \
@@ -548,44 +548,28 @@ make_stream_output() {
 }
 
 statedir=
-cleanup() {
-  [ -d "$statedir" ] && rm -rf -- "$statedir"
-}
-trap 'cleanup' EXIT
-trap 'cleanup; trap - INT; kill -INT "$$"' INT
-trap 'cleanup; trap - QUIT; kill -QUIT "$$"' QUIT
-trap 'cleanup; trap - TERM; kill -TERM "$$"' TERM
+trap '[ -n "$statedir" ] && rm -rf -- "$statedir"' EXIT
+trap '[ -n "$statedir" ] && rm -rf -- "$statedir"; trap - INT; kill -INT "$$"' INT
+trap '[ -n "$statedir" ] && rm -rf -- "$statedir"; trap - TERM; kill -TERM "$$"' TERM
+trap '[ -n "$statedir" ] && rm -rf -- "$statedir"; trap - QUIT; kill -QUIT "$$"' QUIT
+
 
 statedir=$(tmpfile -d) || exit 4
-tmp_input_fifo=$statedir/tmp.curl-input-fifo
-mkfifo -- "$tmp_input_fifo" || exit 4
-
-# We have to pipe input data via FIFO, since the stdin is already used by curl
-# for securely piping api key.
-trap '' TTOU
-{
-  if [ -z "$opt_stream" ]; then
-    call_curl | make_nonstream_output
-  else
-    call_curl | sse_to_jsons | stream_sort \
-      | preprocess_render_event | make_stream_output
-  fi
-  printf "%s\n" "$?" >"$statedir/exitcode"
-} &
+tmp_input=$statedir/tmp.curl-input
 
 if [ -n "$opt_input" ]; then
-  make_input >"$tmp_input_fifo" <"$opt_input"
+  make_input >"$tmp_input" <"$opt_input"
 else
-  make_input >"$tmp_input_fifo"
+  make_input >"$tmp_input"
 fi
 
-while ! wait; do
-  continue
-done
-
-exitcode=
-if [ -f "$statedir/exitcode" ]; then
-  exitcode=$(cat -- "$statedir/exitcode")
+if [ -z "$opt_stream" ]; then
+  call_curl | make_nonstream_output
+else
+  call_curl | sse_to_jsons | stream_sort \
+    | preprocess_render_event | make_stream_output
 fi
 
-exit "${exitcode:-4}"
+exitcode=$?
+rm -rf -- "$statedir"
+exit "$exitcode"
