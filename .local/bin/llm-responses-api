@@ -547,23 +547,17 @@ make_stream_output() {
   return "$exitcode"
 }
 
-statedir=
-cleanup() {
-  [ -d "$statedir" ] && rm -rf -- "$statedir"
-}
-trap 'cleanup' EXIT
-trap 'cleanup; trap - INT; kill -INT "$$"' INT
-trap 'cleanup; trap - QUIT; kill -QUIT "$$"' QUIT
-trap 'cleanup; trap - TERM; kill -TERM "$$"' TERM
+trap '' EXIT QUIT TERM INT
 
+statedir=
 statedir=$(tmpfile -d) || exit 4
 tmp_input_fifo=$statedir/tmp.curl-input-fifo
-mkfifo -- "$tmp_input_fifo" || exit 4
+mkfifo -- "$tmp_input_fifo" || { rm -rf -- "$statedir"; exit 4; }
 
 # We have to pipe input data via FIFO, since the stdin is already used by curl
 # for securely piping api key.
-trap '' TTOU
 {
+  trap '' TTOU
   if [ -z "$opt_stream" ]; then
     call_curl | make_nonstream_output
   else
@@ -572,6 +566,21 @@ trap '' TTOU
   fi
   printf "%s\n" "$?" >"$statedir/exitcode"
 } &
+pid=$!
+
+cleanup() {
+  kill "$pid"
+  while ! wait; do
+    continue
+  done
+
+  rm -rf -- "$statedir"
+}
+
+trap 'cleanup' EXIT
+trap 'cleanup; trap - INT; kill -INT "$$"' INT
+trap 'cleanup; trap - QUIT; kill -QUIT "$$"' QUIT
+trap 'cleanup; trap - TERM; kill -TERM "$$"' TERM
 
 if [ -n "$opt_input" ]; then
   make_input >"$tmp_input_fifo" <"$opt_input"
