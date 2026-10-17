@@ -381,7 +381,7 @@ EOF
        "llm-file-manager -u " + ($fburl | @sh) + " -K " + ($cachekey | @sh) + " -p " + ($purpose | @sh) + " -FNk 0 -Ulm -- "
        + (.[$n:$n+10] | join(" ")) + " <<EOF\n$opt_api_key\nEOF"' "$changed"
   } | sh >"$new" \
-    || return
+    || exit
   trap '' INT
 
   jq -n --slurpfile new "$new" \
@@ -419,7 +419,7 @@ call() (
     errmsg="some file ids expired and failed to retrieve a new one"
     jq -n --arg err "$errmsg" >"$response_output" \
       '{"error":{"message":$err,"type":"__defined_by_me","code":"__defined_by_me"}}'
-    return 1
+    exit 1
   fi
 
   trap ':' INT

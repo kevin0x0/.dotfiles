@@ -3,45 +3,45 @@
 llm_chat_get_fileid() (
   if [ -z "$1" ]; then
     printf "state directory not provided\n" >&2
-    return 1
+    exit 1
   fi
 
   if [ -z "$2" ]; then
     printf "base url for Files API not provided\n" >&2
-    return 1
+    exit 1
   fi
 
   if [ -z "$3" ]; then
     printf "api key not provided\n" >&2
-    return 1
+    exit 1
   fi
 
   if [ -z "$4" ]; then
     printf "cache key not provided\n" >&2
-    return 1
+    exit 1
   fi
 
   if [ -z "$5" ]; then
     printf "purpose not provided\n" >&2
-    return 1
+    exit 1
   fi
 
   if [ -z "$6" ]; then
     printf "file not provided\n" >&2
-    return 1
+    exit 1
   fi
 
   if [ "$#" -ne 6 ]; then
     printf "not exactly 6 arguments\n" >&2
-    return 1
+    exit 1
   fi
 
-  tmp=$(tmpfile) || return 1
+  tmp=$(tmpfile) || exit 1
   if ! llm-file-manager -u "$2" -FNk 0 -K "$4" -p "$5" -Ulm -- "$6" >"$tmp" <<EOF
 $3
 EOF
   then
-    return 1
+    exit 1
   fi
 
   add_to_file=

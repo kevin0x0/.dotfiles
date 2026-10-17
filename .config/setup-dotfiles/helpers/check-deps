@@ -42,7 +42,7 @@ helper_check_any_deps() (
     fi
   done <"$tmp"
 
-  [ -n "$satisfied" ] && { rm -- "$tmp"; return 0; }
+  [ -n "$satisfied" ] && { rm -- "$tmp"; exit 0; }
 
   "$1" "$2"
   while read -r cmd description; do
@@ -50,7 +50,7 @@ helper_check_any_deps() (
   done <"$tmp"
 
   rm -- "$tmp"
-  return 1
+  exit 1
 )
 
 # vim: ft=sh

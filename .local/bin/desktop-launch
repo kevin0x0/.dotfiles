@@ -125,7 +125,7 @@ start() {
       for a; do
         [ "$action" = "$a" ] && return 0
       done
-      return 1
+      exit 1
     )
     if ! is_valid_action; then
       printf "invalid action: %s\n" "$action" >&2
