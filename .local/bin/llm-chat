@@ -51,7 +51,7 @@ while getopts "$llm_chat_options" opt; do
     n)
       set_boolean_option opt_inverse_boolean_option
       ;;
-    n)
+    N)
       set_boolean_option opt_getarg_trim_newline
       ;;
     f)
