@@ -2,7 +2,8 @@
 
 opt_input=
 opt_fake_output=
-while getopts "i:f:F:" opt; do
+opt_trim_newline=
+while getopts "i:f:F:NS:" opt; do
   case $opt in
     i)
       opt_input=$OPTARG
@@ -12,6 +13,26 @@ while getopts "i:f:F:" opt; do
       ;;
     F)
       opt_fake_output=$OPTARG
+      ;;
+    N)
+      opt_trim_newline=1
+      ;;
+    S)
+      case $OPTARG in
+        *=*)
+          ;;
+        *)
+          printf "not in pattern: [[:alpha:]][[:alnum:]_]*=[[:digit:]]\n" >&2
+          exit 2
+          ;;
+      esac
+      option_key=${OPTARG%%=*}
+      option_value_src=${OPTARG#*=}
+      tmp=$(cat <&"$option_value_src" && echo x)
+      tmp=${tmp%x}
+      [ -n "$opt_trim_newline" ] && tmp=${tmp%$'\n'}
+      opt_trim_newline=
+      eval " $option_key"='$tmp'
       ;;
     \?)
       exit 2
@@ -34,14 +55,23 @@ call() {
     printf "missing tool: '%s'\n" "$name" >&2
     errmsg='can not find this tool'
     false
-  elif [ -x "$execpath" ]; then
-    "$execpath" "$@"
-  elif [ -r "$execpath" ]; then
-    sh -- "$execpath" "$@"
   else
-    printf "%s is neither executable nor readable\n" "$d/$name/call" >&2
-    errmsg='this tool neither executable nor readable'
-    false
+    case $execpath in
+      */source)
+        (. -- "$execpath")
+        ;;
+      */call)
+        if [ -x "$execpath" ]; then
+          "$execpath" "$@"
+        elif [ -r "$execpath" ]; then
+          sh -- "$execpath" "$@"
+        else
+          printf "%s is neither executable nor readable\n" "$d/$name/call" >&2
+          errmsg='this tool neither executable nor readable'
+          false
+        fi
+        ;;
+    esac
   fi
 
   if [ "$?" -ne 0 ]; then
@@ -84,8 +114,13 @@ find_and_call() {
     shift
     [ -z "$d" ] && break
 
-    [ -f "$d/$name/call" ] || continue
-    execpath=$d/$name/call
+    if [ -f "$d/$name/call" ]; then
+      execpath=$d/$name/call
+    elif [ -f "$d/$name/source" ]; then
+      execpath=$d/$name/source
+    else
+      continue
+    fi
 
     while [ "$#" -ne 0 ]; do
       d=$1

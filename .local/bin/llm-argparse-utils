@@ -2,14 +2,25 @@
 
 . llm-common
 
+opt_fromfile=
+opt_fromfd=
+opt_getarg_trim_newline=
+opt_inverse_boolean_option=
+
 getarg() {
-  if [ -n "$opt_fromfile" ]; then
+  if [ -n "$opt_fromfd" ]; then
+    arg=$(cat <&"$2"; echo x)
+    arg=${arg%x}
+    opt_fromfd=
+  elif [ -n "$opt_fromfile" ]; then
     arg=$(cat -- "$2"; echo x)
     arg=${arg%x}
     opt_fromfile=
   else
     arg=$2
   fi
+  [ -n "$opt_getarg_trim_newline" ] && arg=${arg%$'\n'}
+  opt_getarg_trim_newline=
   eval "$1"='$arg'
 }
 
@@ -35,4 +46,30 @@ source_configfile() {
     /*) . -- "$1" ;;
     *) . -- "./$1" ;;
   esac
+}
+
+evaluate_option() {
+  option_name=$(printf "%s" "${1%%=*}" | tr '-' '_')
+  case $1 in
+    *=*)
+      ;;
+    *)
+      set_boolean_option "$option_name"
+      return
+      ;;
+  esac
+
+  option_value=${1#*=}
+  if [ "$option_name" = opt_prompt ]; then
+    opt_prompt_file=
+    opt_prompt=
+    if [ -n "$opt_fromfile" ]; then
+      opt_prompt_file=$option_value
+      opt_fromfile=
+    else
+      opt_prompt=$option_value
+    fi
+  else
+    getarg "$option_name" "$option_value"
+  fi
 }
