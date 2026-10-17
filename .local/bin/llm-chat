@@ -40,7 +40,7 @@ renderer_opt_tool_output_lines=15
 llm_scriptname=llm-chat
 [ -f "$llm_configdir/chat-config" ] && . -- "$llm_configdir/chat-config"
 
-llm_chat_options="fFnswSh:H:o:O:r:E:k:K:m:u:t:c:" 
+llm_chat_options="fFnNswSh:H:o:O:r:E:k:K:m:u:t:c:" 
 while getopts "$llm_chat_options" opt; do
   case $opt in
     [oO])
@@ -50,6 +50,9 @@ while getopts "$llm_chat_options" opt; do
       ;;
     n)
       set_boolean_option opt_inverse_boolean_option
+      ;;
+    n)
+      set_boolean_option opt_getarg_trim_newline
       ;;
     f)
       set_boolean_option opt_fromfile
