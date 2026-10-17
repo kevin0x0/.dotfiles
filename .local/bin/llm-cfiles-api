@@ -31,4 +31,6 @@ fi
 
 eval_api_key
 
-exec llm-files-api -u "$opt_files_base_url" -k "$opt_api_key" -p "$opt_files_default_purpose" "$@"
+llm-files-api -u "$opt_files_base_url" -FNk 0 -p "$opt_files_default_purpose" "$@" <<EOF
+$opt_api_key
+EOF

@@ -12,34 +12,48 @@ opt_retrieve=
 
 opt_expire=
 
-while getopts "u:k:p:e:cUdlr" opt; do
+. llm-argparse-utils
+
+while getopts "u:k:p:e:fFnNcUdlr" opt; do
   case $opt in
     u)
-      opt_files_base_url=$OPTARG
+      getarg opt_files_base_url "$OPTARG"
       ;;
     k)
-      opt_api_key=$OPTARG
+      getarg opt_api_key "$OPTARG"
       ;;
     p)
-      opt_purpose=$OPTARG
+      getarg opt_purpose "$OPTARG"
       ;;
     e)
-      opt_expire=$OPTARG
+      getarg opt_expire "$OPTARG"
+      ;;
+    f)
+      set_boolean_option opt_fromfile
+      ;;
+    F)
+      set_boolean_option opt_fromfd
+      ;;
+    n)
+      set_boolean_option opt_inverse_boolean_option
+      ;;
+    N)
+      set_boolean_option opt_getarg_trim_newline
       ;;
     c)
-      opt_getcontent=1
+      set_boolean_option opt_getcontent
       ;;
     U)
-      opt_upload=1
+      set_boolean_option opt_upload
       ;;
     d)
-      opt_delete=1
+      set_boolean_option opt_delete
       ;;
     l)
-      opt_list=1
+      set_boolean_option opt_list
       ;;
     r)
-      opt_retrieve=1
+      set_boolean_option opt_retrieve
       ;;
     \?)
       exit 2
@@ -69,14 +83,18 @@ curl_file_escape() {
 
 set -o pipefail
 
+call_curl() {
+  curl -H @- "$@" <<EOF
+Authorization: Bearer $opt_api_key
+EOF
+}
+
 if [ -n "$opt_getcontent" ]; then
   if [ "$#" -eq 0 ]; then
     printf "provide a file id\n" >&2
     exit 1
   fi
-  curl -sS -X GET -H "Authorization: Bearer $opt_api_key" \
-    -- "$opt_files_base_url/$1/content" \
-    | jq 'if has("error") then halt_error else . end'
+  call_curl -sS -X GET "$opt_files_base_url/$1/content" | jq 'if has("error") then halt_error else . end'
 elif [ -n "$opt_upload" ]; then
   [ "$#" -eq 0 ] && exit 0
   count=$#
@@ -92,7 +110,7 @@ elif [ -n "$opt_upload" ]; then
     [ -n "$multiple_files" ] && set -- "$@" --next
     multiple_files=1
     curl_file_escape escaped "$f"
-    set -- "$@" -s -X POST -H "Authorization: Bearer $opt_api_key" \
+    set -- "$@" -s -X POST \
       -F "purpose=$opt_purpose" -F "file=@\"$escaped\";filename=\"$escaped\""
     if [ -n "$opt_expire" ]; then
       set -- "$@" -F "expires_after[anchor]=created_at" \
@@ -101,30 +119,29 @@ elif [ -n "$opt_upload" ]; then
     set -- "$@" "$opt_files_base_url"
   done
   set -- -S "$@" # -S is a global option of curl
-  [ -n "$multiple_files" ] && curl "$@" \
-    | jq 'if has("error") then halt_error else . end'
+  [ -n "$multiple_files" ] && call_curl "$@" | jq 'if has("error") then halt_error else . end'
 elif [ -n "$opt_delete" ]; then
   [ "$#" -eq 0 ] && exit 0
   count=$#
-  set -- "$@" -sS -X DELETE -H "Authorization: Bearer $opt_api_key" --
+  set -- "$@" -sS -X DELETE --
   while [ "$count" -ne 0 ]; do
     count=$((count - 1))
     id=$1
     shift
     set -- "$@" "$opt_files_base_url/$id"
   done
-  curl "$@" | jq 'if has("error") then halt_error else . end'
+  call_curl "$@" | jq 'if has("error") then halt_error else . end'
 elif [ -n "$opt_list" ]; then
   tmp=$(tmpfile) || exit 1
   after=
   exitcode=0
   while :; do
-    set -- -sS -G -H "Authorization: Bearer $opt_api_key"
+    set -- -sS -G
     if [ -n "$after" ]; then
       set -- "$@" --data-urlencode after="$after"
     fi
 
-    if ! curl "$@" -- "$opt_files_base_url" >"$tmp"; then
+    if ! call_curl "$@" -- "$opt_files_base_url" >"$tmp"; then
       exitcode=1
       break
     fi
@@ -146,12 +163,12 @@ elif [ -n "$opt_list" ]; then
 elif [ -n "$opt_retrieve" ]; then
   [ "$#" -eq 0 ] && exit 0
   count=$#
-  set -- "$@" -sS -X GET -H "Authorization: Bearer $opt_api_key" --
+  set -- "$@" -sS -X GET --
   while [ "$count" -ne 0 ]; do
     count=$((count - 1))
     id=$1
     shift
     set -- "$@" "$opt_files_base_url/$id"
   done
-  curl "$@" | jq 'if has("error") then halt_error else . end'
+  call_curl "$@" | jq 'if has("error") then halt_error else . end'
 fi

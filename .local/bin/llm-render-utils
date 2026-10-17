@@ -177,6 +177,7 @@ dispatch_render_event() (
       done
 
       (
+        trap '' TTOU
         exec >&3
         exec <"$1"
         command eval render_cmd='$opt_render_cmd_'$(printf "%s" "$event" | tr '-' '_')

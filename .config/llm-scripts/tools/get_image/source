@@ -15,7 +15,16 @@ fi
 tmp=$(tmpfile) || exit
 trap 'rm "$tmp"' EXIT
 
-if ! output=$(llm-chat-get-fileid -F "$2" -p "$3" -k "$4" -K "$5" -S "$6" -- "$url" 2>"$tmp" && echo x); then
+statedir=$2
+# llm_chat_opt_api_key should be pass via llm-tool-call -[N]S opt_api_key=<n> and
+# llm-tool-call reads the value form the file descriptor <n>.
+api_key=$llm_chat_opt_api_key
+files_base_url=$3
+cache_key=$4
+purpose=$5
+
+. llm-chat-fileid-utils
+if ! output=$(llm_chat_get_fileid "$statedir" "$files_base_url" "$api_key" "$cache_key" "$purpose" "$url" 2>"$tmp" && echo x); then
   jq -n --rawfile err "$tmp" '{"error":"failed to get file id: " + $err}' \
     | llm-make-mcontent -t
   exit 0

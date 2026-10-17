@@ -7,14 +7,23 @@ opt_reasoning=none
 opt_model=
 opt_tools=
 
-opt_fromfile=
+opt_input=
 
 . llm-argparse-utils
 
-while getopts "fu:k:sr:m:t:A:" opt; do
+while getopts "i:fFNu:k:sr:m:t:A:" opt; do
   case $opt in
+    i)
+      getarg opt_input "$OPTARG"
+      ;;
     f)
-      opt_fromfile=1
+      set_boolean_option opt_fromfile
+      ;;
+    F)
+      set_boolean_option opt_fromfd
+      ;;
+    N)
+      set_boolean_option opt_getarg_trim_newline
       ;;
     u)
       getarg opt_responses_base_url "$OPTARG"
@@ -23,7 +32,7 @@ while getopts "fu:k:sr:m:t:A:" opt; do
       getarg opt_api_key "$OPTARG"
       ;;
     s)
-      opt_stream=1
+      set_boolean_option opt_stream
       ;;
     r)
       getarg opt_reasoning "$OPTARG"
@@ -67,7 +76,7 @@ fi
 make_input() {
   stream=false
   [ -n "$opt_stream" ] && stream=true
-  jq -cs --unbuffered \
+  jq -cs \
     --argjson stream "$stream" \
     --argjson tools "${opt_tools:-null}" \
     --arg reasoning "$opt_reasoning" \
@@ -77,31 +86,46 @@ make_input() {
       | if $tools != null then .tools = $tools end'
 }
 
+curl_file_escape() {
+  tmp=$(printf "%sx\n" "$2" | sed 's/["\]/\\&/g')
+  eval " $1"='${tmp%x}'
+}
+
 call_curl() {
+  curl_file_escape escaped "$tmp_input_fifo"
   opts=-sS${opt_stream:+N}
   curl "$opts" "$opt_responses_base_url" \
     -H 'Content-Type: application/json' \
     -H 'Accept: application/json' \
-    -H "Authorization: Bearer $opt_api_key" \
-    -d '@-'
+    -H @- \
+    -d "@$escaped" <<EOF
+Authorization: Bearer $opt_api_key
+EOF
 
   # print extra newline
   echo
 }
 
 make_nonstream_output() {
-  tmp=$(tmpfile) || exit 1
-  jq -c 'if .status == "completed" then
-           .output[], ("" | halt_error(0))
-         elif .status == "failed" then
-           .error, ("" | halt_error(5))
-         elif .status == "incomplete" then
-           .incomplete_details, .output[], ("" | halt_error(5))
-         else
-           if has("error") | not then
-             {"error":{"message":.,"type":"__defined_by_me","code":"__defined_by_me"}}
-           end, ("" | halt_error(5))
-         end' >"$tmp"
+  tmp=$statedir/tmp.output
+
+  jq -Rsc '
+    . as $input | try (
+      fromjson |
+      if .status == "completed" then
+        .output[], ("" | halt_error(0))
+      elif .status == "failed" then
+        .error, ("" | halt_error(5))
+      elif .status == "incomplete" then
+        .incomplete_details, .output[], ("" | halt_error(6))
+      else
+        if has("error") | not then
+          {"error":{"message":.,"type":"__defined_by_me","code":"__defined_by_me"}}
+        end, ("" | halt_error(4))
+      end
+    ) catch (
+      {"error":{"message":$input,"type":"__defined_by_me","code":"__defined_by_me"}}, ("" | halt_error(4))
+    )' >"$tmp"
   exitcode=$?
 
   case $response_output in
@@ -119,14 +143,22 @@ make_nonstream_output() {
     0)
       llm-render-events <"$tmp" >&3
       ;;
-    5)
+    6)
+      # Incomplete
       # `jq 'inputs'` skips the first value
       jq 'inputs' "$tmp" | llm-render-events >&3
+      exitcode=3
+      ;;
+    5)
+      # Failed
+      exitcode=1
+      ;;
+    *)
+      exitcode=4
       ;;
   esac
 
-  rm -f -- "$tmp"
-  exit "$exitcode"
+  return "$exitcode"
 }
 
 sse_to_jsons() {
@@ -280,7 +312,8 @@ preprocess_render_event() {
 }
 
 make_stream_output() {
-  statedir=$(tmpfile -d) || exit 1
+  buffer_statedir=$statedir/buffer
+  mkdir -- "$buffer_statedir" || return
   set --
   case $event_output in
     "") exec 3>&1 ;;
@@ -296,17 +329,17 @@ make_stream_output() {
   }
 
   emit_on_advance() {
-    if [ ! -e "$statedir/$current_item_index/$prefix$current_content_index" ]; then
-      if [ -e "$statedir/$current_item_index/${prefix}0" ]; then
+    if [ ! -e "$buffer_statedir/$current_item_index/$prefix$current_content_index" ]; then
+      if [ -e "$buffer_statedir/$current_item_index/${prefix}0" ]; then
         # There is a content part in this output item, which is already output, skip.
         return
       fi
 
-      cat -- "$statedir/$current_item_index/done"
+      cat -- "$buffer_statedir/$current_item_index/done"
       return
     fi
       
-    dir="$statedir/$current_item_index/$prefix$current_content_index"
+    dir="$buffer_statedir/$current_item_index/$prefix$current_content_index"
     part_file=$dir/part
     if [ -e "$part_file" ]; then
       cat -- "$part_file"
@@ -316,23 +349,23 @@ make_stream_output() {
 
   emit_and_advance_index() {
     prefix=
-    [ -e "$statedir/$current_item_index/is_summary" ] && prefix=summary-
+    [ -e "$buffer_statedir/$current_item_index/is_summary" ] && prefix=summary-
     while :; do
-      if [ -e "$statedir/$current_item_index/$prefix$current_content_index/done" ]; then
+      if [ -e "$buffer_statedir/$current_item_index/$prefix$current_content_index/done" ]; then
         emit_on_advance
         current_content_index=$((current_content_index + 1))
         continue
       fi
-      if [ -e "$statedir/$current_item_index/done" ]; then
-        if [ ! -e "$statedir/$current_item_index/0" ] \
-          && [ ! -e "$statedir/$current_item_index/summary-0" ]; then
+      if [ -e "$buffer_statedir/$current_item_index/done" ]; then
+        if [ ! -e "$buffer_statedir/$current_item_index/0" ] \
+          && [ ! -e "$buffer_statedir/$current_item_index/summary-0" ]; then
           # For output item that not contains content array, alway emit an event
           emit_on_advance
         fi
         current_item_index=$((current_item_index + 1))
         current_content_index=0
         prefix=
-        [ -e "$statedir/$current_item_index/is_summary" ] && prefix=summary-
+        [ -e "$buffer_statedir/$current_item_index/is_summary" ] && prefix=summary-
         continue
       fi
 
@@ -351,7 +384,7 @@ make_stream_output() {
   }
 
   should_set_output_kind() {
-    [ ! -e "$statedir/$output_index/is_nonsummary" ] && [ ! -e "$statedir/$output_index/is_summary" ]
+    [ ! -e "$buffer_statedir/$output_index/is_nonsummary" ] && [ ! -e "$buffer_statedir/$output_index/is_summary" ]
   }
 
   done_pending=
@@ -377,10 +410,10 @@ make_stream_output() {
         break
         ;;
       response.content_part.added)
-        d=$statedir/$output_index/$content_index
+        d=$buffer_statedir/$output_index/$content_index
         [ ! -d "$d" ] && mkdir -p -- "$d"
         should_set_current_output_kind && current_is_nonsummary=1
-        should_set_output_kind && : >"$statedir/$output_index/is_nonsummary"
+        should_set_output_kind && : >"$buffer_statedir/$output_index/is_nonsummary"
         if is_current && [ -n "$current_is_nonsummary" ]; then
           emit_render_event "$render_event" "$payload"
         else
@@ -388,21 +421,21 @@ make_stream_output() {
         fi
         ;;
       response.content_part.done)
-        f=$statedir/$output_index/$content_index/done
+        f=$buffer_statedir/$output_index/$content_index/done
         if [ ! -f "$f" ]; then
           : >"$f"
           done_pending=${output_index}-${content_index}-null
         fi
         ;;
       response.output_item.added)
-        d=$statedir/$output_index
+        d=$buffer_statedir/$output_index
         [ ! -d "$d" ] && mkdir -- "$d"
         if [ -n "$render_event" ] && [ "$output_index" -eq "$current_item_index" ]; then
           emit_render_event "$render_event" "$payload"
         fi
         ;;
       response.output_item.done)
-        f=$statedir/$output_index/done
+        f=$buffer_statedir/$output_index/done
         emit_render_event "$render_event" "$payload" >>"$f"
         done_pending=${output_index}-null-null
         if [ "$output_index" -eq "$current_item_index" ]; then
@@ -411,10 +444,10 @@ make_stream_output() {
         fi
         ;;
       response.reasoning_summary_part.added)
-        d=$statedir/$output_index/summary-$summary_index
+        d=$buffer_statedir/$output_index/summary-$summary_index
         [ ! -d "$d" ] && mkdir -- "$d"
         should_set_current_output_kind && current_is_summary=1
-        should_set_output_kind && : >"$statedir/$output_index/is_summary"
+        should_set_output_kind && : >"$buffer_statedir/$output_index/is_summary"
         if is_current && [ -n "$current_is_summary" ]; then
           emit_render_event "$render_event" "$payload"
         else
@@ -422,7 +455,7 @@ make_stream_output() {
         fi
         ;;
       response.reasoning_summary_part.done)
-        f=$statedir/$output_index/summary-$summary_index/done
+        f=$buffer_statedir/$output_index/summary-$summary_index/done
         if [ ! -f "$f" ]; then
           : >"$f"
           done_pending=${output_index}-null-$summary_index
@@ -432,7 +465,7 @@ make_stream_output() {
         if is_current && [ -n "$current_is_summary" ]; then
           emit_render_event "$render_event" "$payload"
         else
-          f=$statedir/$output_index/summary-$summary_index/part
+          f=$buffer_statedir/$output_index/summary-$summary_index/part
           emit_render_event "$render_event" "$payload" >>"$f"
         fi
         ;;
@@ -443,14 +476,14 @@ make_stream_output() {
         # or misuse some events(for example, qwen) and make this happen.
         if should_set_current_output_kind; then
           current_is_nonsummary=1
-          d=$statedir/$output_index/$content_index
+          d=$buffer_statedir/$output_index/$content_index
           [ ! -d "$d" ] && mkdir -p -- "$d"
         fi
 
         if is_current && [ -z "$current_is_summary" ]; then
           emit_render_event "$render_event" "$payload"
         else
-          d=$statedir/$output_index/$content_index
+          d=$buffer_statedir/$output_index/$content_index
           emit_render_event "$render_event" "$payload" >>"$d/part"
         fi
         ;;
@@ -458,7 +491,7 @@ make_stream_output() {
         if is_current && [ -z "$current_is_summary" ]; then
           emit_render_event "$render_event" "$payload"
         else
-          d=$statedir/$output_index/$content_index
+          d=$buffer_statedir/$output_index/$content_index
           [ ! -d "$d" ] && mkdir -p -- "$d"
           emit_render_event "$render_event" "$payload" >>"$d/part"
         fi
@@ -467,7 +500,7 @@ make_stream_output() {
         if is_current && [ -z "$current_is_summary" ]; then
           emit_render_event "$render_event" "$payload"
         else
-          d=$statedir/$output_index/$content_index
+          d=$buffer_statedir/$output_index/$content_index
           [ ! -d "$d" ] && mkdir -p -- "$d"
           emit_render_event "$render_event" "$payload" >>"$d/part"
         fi
@@ -511,13 +544,48 @@ make_stream_output() {
     done
   fi | jq -j '.' | jq -c '.[]' >&3
 
-  rm -rf -- "$statedir"
-  exit "$exitcode"
+  return "$exitcode"
 }
 
-if [ -z "$opt_stream" ]; then
-  make_input | call_curl | make_nonstream_output
+statedir=
+cleanup() {
+  [ -d "$statedir" ] && rm -rf -- "$statedir"
+}
+trap 'cleanup' EXIT
+trap 'cleanup; trap - INT; kill -INT "$$"' INT
+trap 'cleanup; trap - QUIT; kill -QUIT "$$"' QUIT
+trap 'cleanup; trap - TERM; kill -TERM "$$"' TERM
+
+statedir=$(tmpfile -d) || exit 4
+tmp_input_fifo=$statedir/tmp.curl-input-fifo
+mkfifo -- "$tmp_input_fifo" || exit 4
+
+# We have to pipe input data via FIFO, since the stdin is already used by curl
+# for securely piping api key.
+trap '' TTOU
+{
+  if [ -z "$opt_stream" ]; then
+    call_curl | make_nonstream_output
+  else
+    call_curl | sse_to_jsons | stream_sort \
+      | preprocess_render_event | make_stream_output
+  fi
+  printf "%s\n" "$?" >"$statedir/exitcode"
+} &
+
+if [ -n "$opt_input" ]; then
+  make_input >"$tmp_input_fifo" <"$opt_input"
 else
-  make_input | call_curl | sse_to_jsons | stream_sort \
-    | preprocess_render_event | make_stream_output
+  make_input >"$tmp_input_fifo"
 fi
+
+while ! wait; do
+  continue
+done
+
+exitcode=
+if [ -f "$statedir/exitcode" ]; then
+  exitcode=$(cat -- "$statedir/exitcode")
+fi
+
+exit "${exitcode:-4}"
