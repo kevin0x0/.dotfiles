@@ -588,8 +588,8 @@ cleanup() {
 }
 
 trap 'cleanup' EXIT
-trap 'cleanup' QUIT
-trap 'cleanup' TERM
+trap 'cleanup; trap - QUIT; kill -QUIT "$$"' QUIT
+trap 'cleanup; trap - TERM; kill -TERM "$$"' TERM
 trap '' INT
 
 statedir=$(create_state_dir) || exit
