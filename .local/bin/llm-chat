@@ -428,6 +428,10 @@ call() (
   trap ':' INT
   set -o pipefail
 
+  if [ -n "$opt_tool_hot_reload" ] && [ -n "$opt_tooldir" ]; then
+    llm-tool-list "$opt_tooldir" >"$toollist"
+  fi
+
   cat -- "$conversation" "$this_turn" >"$tmp_conversation_fifo" &
 
   llm-responses-api -FNk 0 "$@" -- "$response_output" - <<EOF \
@@ -607,8 +611,11 @@ render_event_fifo=$statedir/render-event-fifo
 tmp_conversation_fifo=$statedir/tmp.conversation-fifo
 tmp=$statedir/tmp
 
+# If opt_tool_hot_reload is not set, generate the tool list only once here.
+if [ -z "$opt_tool_hot_reload" ] && [ -n "$opt_tooldir" ]; then
+  llm-tool-list "$opt_tooldir" >"$toollist"
+fi
 [ "$#" -ne 0 ] && printf "%s\n" "$@" >"$cmdline_input"
-[ -n "$opt_tooldir" ] && llm-tool-list "$opt_tooldir" >"$toollist"
 mkfifo -- "$render_event_fifo" || exit
 mkfifo -- "$tmp_conversation_fifo" || exit
 
