@@ -60,16 +60,5 @@ evaluate_option() {
   esac
 
   option_value=${1#*=}
-  if [ "$option_name" = opt_prompt ]; then
-    opt_prompt_file=
-    opt_prompt=
-    if [ -n "$opt_fromfile" ]; then
-      opt_prompt_file=$option_value
-      opt_fromfile=
-    else
-      opt_prompt=$option_value
-    fi
-  else
-    getarg "$option_name" "$option_value"
-  fi
+  getarg "$option_name" "$option_value"
 }
