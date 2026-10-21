@@ -1,0 +1,54 @@
+# invalid REPL read wrapper
+> 无效的 REPL 读取包装器
+# did you forget to prefix your REPL reader wrapper command with exec?
+> 你是否忘记在 REPL 读取器包装命令前加上 exec？
+# API key not provided
+> 未提供 API 密钥
+# base URL not provided
+> 未提供基础 URL
+# model not provided
+> 未提供模型
+# detail level 'original' is only available for images, ignored
+> detail 级别 'original' 仅适用于图片，已忽略
+# file selected, file id: $1
+> 已选择文件，文件 id：$1
+# failed to get a file id for $1, skipping
+> 获取 $1 的文件 id 失败，跳过
+# please provide a filename to save as
+> 请提供要保存的文件名
+# failed to save as $1 and $2
+> 保存为 $1 和 $2 失败
+# there is no need to retry since no error occurred
+> 未发生错误，无需重试
+# invalid role: $1
+> 无效的角色：$1
+# unrecognized command: $1
+> 无法识别的命令：$1
+# some files soon expire, updating them
+> 部分文件即将过期，正在更新
+# failed to create state directory
+> 创建状态目录失败
+# $1 does not exist or is not a readable file
+> $1 不存在或不是可读文件
+# failed to extract file ids from $1
+> 从 $1 提取文件 id 失败
+# agent loop failed but no error message given
+> agent 循环失败，但未给出错误信息
+# response incomplete: $1
+> 响应不完整：$1
+# response incomplete but no reason given
+> 响应不完整，但未给出原因
+# failed to handle tool call
+> 处理工具调用失败
+# unknown state: $1
+> 未知状态：$1
+# target language (-t) not specified
+> 未指定目标语言（-t）
+# invalid language name or code
+> 无效的语言名称或代码
+# Files API base URL not provided
+> 未提供 Files API 基础 URL
+# cache key not provided
+> 未提供缓存键
+# failed to create cache directory: $1
+> 创建缓存目录失败：$1
