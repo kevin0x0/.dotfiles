@@ -123,10 +123,10 @@ fi
 
 if [ -n "$opt_repl_read_wrapper" ] && [ -z "$opt_repl_reader_ignore" ]; then
   if ! command eval " $opt_repl_read_wrapper"' "$0" -o repl-reader-ignore=1 "$@"'; then
-    printf "invalid repl read wrapper, exit\n" >&2
+    i18n -n llm-scripts 'invalid REPL read wrapper' >&2
     exit 1
   else
-    printf "maybe you forget to prefix your repl reader wrapper command with exec?" >&2
+    i18n -n llm-scripts 'did you forget to prefix your REPL reader wrapper command with exec?' >&2
     exit 0
   fi
 fi
@@ -163,17 +163,17 @@ fi
 eval_api_key
 
 if [ -z "$opt_api_key" ]; then
-  printf "api key not provided\n" >&2
+  i18n -n llm-scripts 'API key not provided' >&2
   exit 1
 fi
 
 if [ -z "$opt_responses_base_url" ]; then
-  printf "base url not provided\n" >&2
+  i18n -n llm-scripts 'base URL not provided' >&2
   exit 1
 fi
 
 if [ -z "$opt_model" ]; then
-  printf "model not provided\n" >&2
+  i18n -n llm-scripts 'model not provided' >&2
   exit 1
 fi
 
@@ -205,7 +205,7 @@ file_input() {
       if [ -n "$is_image" ]; then
         file_detail=original
       else
-        printf "detail level 'original' is only available for image, ignored\n" >&2
+        i18n -n llm-scripts "detail level 'original' is only available for images, ignored" >&2
       fi
       ;;
   esac
@@ -225,10 +225,10 @@ file_input() {
     if ! path2uri -u -- "$file"; then
       if fileid=$(trap - INT; llm_chat_get_fileid "$statedir" "$opt_files_base_url" "$opt_api_key" "$opt_cache_key" "$opt_files_default_purpose" "$file" && echo x); then
         fileid=${fileid%$'\nx'}
-        printf "file selected, file id: %s\n" "$fileid"
+        i18n -n llm-scripts 'file selected, file id: $1' "$fileid"
         llm-make-mcontent -e "$file_detail" "$mkcontent_id_opt" -- "$fileid" >&3
       else
-        printf "failed to get a file id for '%s', skip\n" "$file" >&2
+        i18n -n llm-scripts 'failed to get a file id for $1, skipping' "$file" >&2
       fi
       continue
     fi
@@ -251,7 +251,7 @@ save_session() {
     set -- "$opt_session_conversation" "$opt_session_fileids"
   fi
   if [ -z "$1" ]; then
-    printf "please provide filename to save as\n" >&2
+    i18n -n llm-scripts 'please provide a filename to save as' >&2
     return 0
   fi
 
@@ -261,7 +261,7 @@ save_session() {
 
   if ! cp -- "$conversation" "$1" || \
     ! cat -- "$persistent_fileids" "$volatile_fileids" >"$2"; then
-  printf "failed to save as %s and %s\n" "$1" "$2" >&2
+  i18n -n llm-scripts 'failed to save as $1 and $2' "$1" "$2" >&2
   fi
 }
 
@@ -307,7 +307,7 @@ dispatch_command() {
     retry)
       shift
       if [ -z "$last_error_state" ]; then
-        printf "there is no need to retry since no error occurred\n" >&2
+        i18n -n llm-scripts 'there is no need to retry since no error occurred' >&2
         return 0
       fi
       case $1 in
@@ -330,7 +330,7 @@ dispatch_command() {
           input_message_role=$2
           ;;
         *)
-          printf "invalid role: %s\n" "$2" >&2
+          i18n -n llm-scripts 'invalid role: $1' "$2" >&2
           ;;
       esac
       ;;
@@ -364,7 +364,7 @@ dispatch_command() {
           command . -- "$llm_configdir/commands/$cmdname"
         fi
       else
-        printf "unrecognized command: %s\n" "$cmdname" >&2
+        i18n -n llm-scripts 'unrecognized command: $1' "$cmdname" >&2
       fi
       ;;
   esac
@@ -419,7 +419,7 @@ check_file_id() {
 
   [ ! -s "$changed" ] && return 0
 
-  printf "some file soon expires, update them\n"
+  i18n -n llm-scripts 'some files soon expire, updating them'
   update_file_id "$changed"
 }
 
@@ -542,7 +542,7 @@ create_state_dir() {
     dir=$dirprefix.$i
     i=$((i + 1))
     if [ "$i" -gt 30 ]; then
-      printf "failed to create state dir\n" >&2
+      i18n -n llm-scripts 'failed to create state directory' >&2
       return 1
     fi
   done
@@ -580,7 +580,7 @@ state_init_from_session() {
   [ -z "$opt_session_fileids" ] && opt_session_fileids=${opt_session_conversation}.fileids
   for f in "$opt_session_conversation" "$opt_session_fileids"; do
     if [ ! -f "$f" ] || [ ! -r "$f" ]; then
-      printf "'%s' does not exist or is not a readable file\n" "$f" >&2
+      i18n -n llm-scripts '$1 does not exist or is not a readable file' "$f" >&2
       exit 1
     fi
   done
@@ -588,7 +588,7 @@ state_init_from_session() {
 
   if ! jq -c -- '[select(has("expires_at"))] | unique_by(.id)[]' "$opt_session_fileids" >"$volatile_fileids" ||
     ! jq -c -- '[select(has("expires_at") | not)] | unique_by(.id)[]' "$opt_session_fileids" >"$persistent_fileids"; then
-    printf "failed to extract file ids from '%s'\n" "$opt_session_fileids" >&2
+    i18n -n llm-scripts 'failed to extract file ids from $1' "$opt_session_fileids" >&2
     exit 1
   fi
 }
@@ -690,7 +690,7 @@ while :; do
       call "$@"
       exitcode=$?
       if [ ! -s "$response_output" ]; then
-        printf "agent loop failed but no error message given\n" >&2
+        i18n -n llm-scripts 'agent loop failed but no error message given' >&2
         error_to read-loop
         continue
       fi
@@ -711,12 +711,12 @@ while :; do
                 state=agent-loop-tool-call
                 ;;
               *)
-                printf "response incomplete: %s\n" "$incomplete_reason" >&2
+                i18n -n llm-scripts 'response incomplete: $1' "$incomplete_reason" >&2
                 error_to read-loop
                 ;;
             esac
           else
-            printf "response incomplete but no reason given\n" >&2
+            i18n -n llm-scripts 'response incomplete but no reason given' >&2
             error_to read-loop
           fi
           ;;
@@ -732,7 +732,7 @@ while :; do
         cat -- "$tool_output" >>"$this_turn"
         [ -s "$tool_output" ] && state=agent-loop-api-call || state=agent-loop-end
       else
-        printf "failed to handle tool call\n" >&2
+        i18n -n llm-scripts 'failed to handle tool call' >&2
         error_to read-loop
       fi
       ;;
@@ -748,7 +748,7 @@ while :; do
       break
       ;;
     *)
-      printf "Unknown state: %s\n" "$state" >&2
+      i18n -n llm-scripts 'unknown state: $1' "$state" >&2
       state=read-loop
       ;;
   esac
