@@ -240,14 +240,14 @@ delete_trash() {
 
   tmp=$(tmpfile)
 
-  jq --args -- 'if IN(.filename; $ARGS.positional[]) then . else empty end' "$@" \
+  jq --args -- 'select(any(.filename | startswith($ARGS.positional[] + "/"); .))' "$@" \
     <"$trashfile" >"$tmp"
 
-  jq -- 'if .expires_at == null or .expires_at >= now + 600 then .id else empty end' "$tmp" \
+  jq -- 'select(.expires_at == null or .expires_at >= now + 600) | .id' "$tmp" \
     | call_api -d \
-    | jq -r 'if .deleted | not then "not deleted: " + .id else empty end'
+    | jq -r 'select(.deleted | not) | "not deleted: " + .id'
 
-  jq --args -- 'if IN(.filename; $ARGS.positional[]) then empty else . end' "$@" \
+  jq --args -- 'select(all(.filename | startswith($ARGS.positional[] + "/"); not))' "$@" \
     <"$trashfile" >"$tmp"
   cp -- "$tmp" "$trashfile"
 
@@ -264,50 +264,27 @@ if [ -n "$opt_list" ]; then
     if [ -n "$opt_all" ]; then
       cat <&3
     else
-      jq --args -- 'select(IN(.filename; $ARGS.positional[]))' \
+      jq --args -- 'select(any(.filename | startswith($ARGS.positional[] + "/"); .))' \
         "$@" <&3
     fi
   else
     if [ -n "$opt_all" ]; then
-      find "$cachedir" -type f -print0
+      find "$cachedir" -type f -exec cat -- {} +
     else
       for f; do
-        [ -f "$cachedir/$f" ] && printf "%s\0" "$cachedir/$f"
+        [ -f "$cachedir/$f" ] && cat -- "$cachedir/$f"
+        [ -d "$cachedir/$f" ] && find "$cachedir/$f" -type f -exec cat -- {} +
       done
     fi
   fi | {
     if [ -n "$opt_metadata" ]; then
-      xargs -r0 -- cat --
+      cat
     else
       out_opt=-r
       [ -n "$opt_nul_terminated" ] && out_opt=--raw-output0
-      xargs -r0 -- jq "$out_opt" -- '.filename'
+      jq "$out_opt" -- '.filename'
     fi
   }
-
-  # if [ -n "$opt_trash" ]; then
-  #   if [ -n "$opt_metadata" ]; then
-  #     [ -f "$trashfile" ] && cat -- "$trashfile"
-  #   else
-  #     if [ -f "$trashfile" ]; then
-  #       out_opt=-r
-  #       [ -n "$opt_nul_terminated" ] && out_opt=--raw-output0
-  #       jq "$out_opt" -- '.filename' "$trashfile"
-  #     fi
-  #   fi
-  # else
-  #   for f; do
-  #     [ -f "$cachedir/$f" ] && printf "%s\0" "$cachedir/$f"
-  #   done | {
-  #     if [ -n "$opt_metadata" ]; then
-  #       xargs -r0 -- cat --
-  #     else
-  #       out_opt=-r
-  #       [ -n "$opt_nul_terminated" ] && out_opt=--raw-output0
-  #       xargs -r0 -- jq "$out_opt" -- '.filename'
-  #     fi
-  #   }
-  # fi
 fi
 
 if [ -n "$opt_delete" ]; then
