@@ -47,6 +47,12 @@ while getopts "$llm_chat_options" opt; do
       option_prefix=opt_
       [ "$opt" = O ] && option_prefix=
       evaluate_option "$option_prefix$OPTARG"
+      case $option_prefix$OPTARG in
+        opt_api-key=*)      opt_api_key_cmd= ;;
+        opt_api-key-cmd=*)  opt_api_key= ;;
+        opt_prompt=*)       opt_prompt_file= ;;
+        opt_prompt-file=*)  opt_prompt= ;;
+      esac
       ;;
     n)
       set_boolean_option opt_inverse_boolean_option
