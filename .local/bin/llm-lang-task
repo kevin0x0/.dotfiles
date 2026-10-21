@@ -46,13 +46,13 @@ if [ -z "$opt_target" ]; then
 fi
 
 if [ -z "$opt_target" ]; then
-  printf "target language(-t) not specified\n" >&2
+  i18n -n llm-scripts 'target language (-t) not specified' >&2
   exit 2
 fi
 
 case $opt_target$opt_source in
   *[![:alpha:]_]*)
-    printf "invalid language name or code\n" >&2
+    i18n -n llm-scripts 'invalid language name or code' >&2
     exit 2
     ;;
 esac
