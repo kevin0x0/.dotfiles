@@ -33,9 +33,9 @@ elif .type == "reasoning" then
     ["notify unknown-" + .type, @json]
   end
 elif .type == "function_call" or .type == "custom_tool_call" then
-  ["tool-call " + .name, @json]
+  ["tool-call " + .name, @json], ["nop", ""]
 elif .type == "function_call_output" or .type == "custom_tool_call_output" then
-  ["tool-output " + .name, @json]
+  ["tool-output " + .name, @json], ["nop", ""]
 else
   ["notify " + .type, @json]
 end |
