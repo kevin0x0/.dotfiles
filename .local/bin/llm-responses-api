@@ -361,6 +361,10 @@ make_stream_output() {
           && [ ! -e "$buffer_statedir/$current_item_index/summary-0" ]; then
           # For output item that not contains content array, alway emit an event
           emit_on_advance
+          # If an event associated with an item is emitted, a nop event
+          # should also be emitted to separate item events with the same
+          # header.
+          emit_render_event "nop" "\"\""
         fi
         current_item_index=$((current_item_index + 1))
         current_content_index=0

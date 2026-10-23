@@ -132,6 +132,10 @@ default_renderer() {
       default_renderer_notify "$2"
       return
       ;;
+    nop)
+      cat -u >/dev/null
+      return
+      ;;
     message-text)
       ansi_color=$(ansi_role_color "$2")
       ansi_escape "$ansi_color;1"
