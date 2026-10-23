@@ -359,7 +359,8 @@ make_stream_output() {
       if [ -e "$buffer_statedir/$current_item_index/done" ]; then
         if [ ! -e "$buffer_statedir/$current_item_index/0" ] \
           && [ ! -e "$buffer_statedir/$current_item_index/summary-0" ]; then
-          # For output item that not contains content array, alway emit an event
+          # For output item that contains no content array, always emit an
+          # event.
           emit_on_advance
           # If an event associated with an item is emitted, a nop event
           # should also be emitted to separate item events with the same
