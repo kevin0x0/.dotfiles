@@ -1,0 +1,44 @@
+#!/bin/sh
+
+opt_base_dir=
+opt_reject=
+opt_initial_line_number=
+while getopts "n:d:r" opt; do
+  case $opt in
+    n)
+      opt_initial_line_number=$OPTARG
+      ;;
+    d)
+      opt_base_dir=$OPTARG
+      ;;
+    r)
+      opt_reject=1
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+statedir=$(tmpfile -d) || exit
+tmp=$statedir/tmp
+err=$statedir/stderr
+trap 'rm -rf -- "$statedir"' EXIT
+trap 'rm -rf -- "$statedir"; trap - INT; kill -INT "$$"' INT
+trap 'rm -rf -- "$statedir"; trap - QUIT; kill -QUIT "$$"' QUIT
+trap 'rm -rf -- "$statedir"; trap - TERM; kill -TERM "$$"' TERM
+
+if [ -n "$opt_initial_line_number" ]; then
+  v4a-parse -d "${opt_base_dir:-./}" -n "$opt_initial_line_number"
+else
+  v4a-parse -d "${opt_base_dir:-./}"
+fi >"$tmp" 2>"$err"
+
+if [ "$?" -ne 0 ]; then
+  cat -- "$err"
+  exit 1
+fi
+
+[ -n "$opt_reject" ] && set -- -r -- "$@"
+v4a-apply "$@" <"$tmp"

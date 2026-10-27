@@ -1,0 +1,226 @@
+#!/bin/sh
+
+opt_reject=
+while getopts "r" opt; do
+  case $opt in
+    r)
+      opt_reject=1
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+count=$#
+while [ "$count" -ne 0 ]; do
+  count=$((count - 1))
+  arg=$1
+  shift
+
+  arg=$(normpath -t x -- "$arg") || exit
+  arg=${arg%x}
+  set -- "$@" "${arg%/}"
+done
+
+apply() {
+  show_diff=$2
+  current_line=1
+  while read line_offset count; do
+    line_offset=${line_offset#+}
+
+    while [ "$current_line" -lt "$line_offset" ]; do
+      if ! IFS= read -r file_line; then
+        break 2
+      fi
+      printf "%s%s\n" "${show_diff:+ }" "$file_line"
+      current_line=$((current_line + 1))
+    done <&3
+
+    current_line=$((current_line + count))
+    while [ "$count" -ne 0 ]; do
+      IFS= read -r file_line
+      if [ -n "$show_diff" ]; then
+        printf "%s%s\n" - "$file_line"
+      fi
+      count=$((count - 1))
+    done <&3
+
+    while IFS= read -r change_line && [ "$change_line" != "." ]; do
+      printf "%s%s\n" "${show_diff:++}" "${change_line# }"
+    done
+  done
+
+  while IFS= read -r file_line; do
+    printf "%s%s\n" "${show_diff:+ }" "$file_line"
+  done <&3
+} 3<"$1"
+
+is_allowed() {
+  f=$1
+  shift
+  for allowed; do
+    case $f/ in
+      "$allowed/"*)
+        return 0
+        ;;
+    esac
+  done
+
+  if [ "$opt_reject" ]; then
+    return 1
+  fi
+
+  while :; do
+    printf "request to operate on file: %s\n" "$f" >/dev/tty
+    printf "approve?(Y/n/[p]rint modification)\n" >/dev/tty
+
+    if ! read -r reply </dev/tty; then
+      return 1
+    fi
+
+    case $reply in
+      [nN])
+        return 1
+        ;;
+      [pP])
+        case $(head -n 1 -- "$current_operation") in
+          "@Update:"*)
+            tail -n +2 -- "$current_operation" | apply "$f" diff
+            ;;
+          *)
+            cat -- "$current_operation"
+            ;;
+        esac \
+          | if command -v less >/dev/null 2>&1; then
+              less --
+            else
+              more --
+            fi >/dev/tty
+        ;;
+      [yY]|'')
+        return 0
+        ;;
+    esac
+  done
+}
+
+exitcode=0
+error() {
+  printf "%s\n" "$1"
+  exitcode=1
+}
+
+statedir=$(tmpfile -d) || exit 1
+current_operation=$statedir/current-operation
+stderrfile=$statedir/stderr
+tmp=$statedir/tmp
+trap 'rm -rf -- "$statedir"' EXIT
+trap 'rm -rf -- "$statedir"; trap - INT; kill -INT "$$"' INT
+trap 'rm -rf -- "$statedir"; trap - QUIT; kill -QUIT "$$"' QUIT
+trap 'rm -rf -- "$statedir"; trap - TERM; kill -TERM "$$"' TERM
+
+line=
+while IFS= read -r line; do
+  case $line in
+    "@Delete: "*)
+      current_file=${line#*: }
+      eval "current_file=$current_file"
+      printf "%s\n" "$line" >"$current_operation"
+
+      if ! is_allowed "$current_file" "$@"; then
+        error "failed to delete file: $current_file: rejected by user" 
+        continue
+      fi
+      set -- "$@" "$current_file"
+
+      if ! rm -f -- "$current_file" 2>"$stderrfile"; then
+        error "failed to delete file: $current_file: $(cat -- "$stderrfile")" 
+      else
+        printf "deleted: %s\n" "$current_file"
+      fi
+      ;;
+    "@Create: "*)
+      current_file=${line#*: }
+      eval "current_file=$current_file"
+      printf "%s\n" "$line" >"$current_operation"
+      while IFS= read -r line; do
+        if [ "$line" = "." ]; then
+          break
+        else
+          printf "%s\n" "$line"
+        fi
+      done >>"$current_operation"
+
+      if ! is_allowed "$current_file" "$@"; then
+        error "failed to create file: $current_file: rejected by user" 
+        continue
+      fi
+      set -- "$@" "$current_file"
+
+      if ! mkdir -p -- "${current_file%/*}" 2>"$stderrfile"; then
+        error "failed to create file: $current_file: $(cat -- "$stderrfile")" 
+        continue
+      fi
+
+      if ! tail -n +2 "$current_operation" | sed -n 's/^ //p' >"$current_file" 2>"$stderrfile"; then
+        error "failed to create file: $current_file: $(cat -- "$stderrfile")" 
+      else
+        printf "created: %s\n" "$current_file"
+      fi
+      ;;
+    "@Move: "*)
+      eval "set -- ${line#*: } \"\$@\""
+      current_file=$1
+      move_to_file=$2
+      shift 2
+      printf "%s\n" "$line" >"$current_operation"
+
+      if ! is_allowed "$current_file" "$@"; then
+        error "failed to move from file: $current_file: rejected by user" 
+        continue
+      fi
+      set -- "$@" "$current_file"
+      if ! is_allowed "$move_to_file" "$@"; then
+        error "failed to move to file: $move_to_file: rejected by user" 
+        continue
+      fi
+      set -- "$@" "$move_to_file"
+
+      if ! mv -- "$current_file" "$move_to_file" 2>"$stderrfile"; then
+        error "failed to move '$current_file' to '$move_to_file': $(cat -- "$stderrfile")" 
+      else
+        printf "moved '%s' to '%s'\n" "$current_file" "$move_to_file"
+      fi
+      ;;
+    "@Update: "*)
+      current_file=${line#*: }
+      eval "current_file=$current_file"
+      printf "%s\n" "$line" >"$current_operation"
+      while IFS= read -r line; do
+        if [ "$line" = "@EndUpdate" ]; then
+          break
+        else
+          printf "%s\n" "$line"
+        fi
+      done >>"$current_operation"
+
+      if ! is_allowed "$current_file" "$@"; then
+        error "failed to update file: $current_file: rejected by user" 
+        continue
+      fi
+      set -- "$@" "$current_file"
+
+      tail -n +2 -- "$current_operation" | apply "$current_file" >"$tmp"
+
+      if ! cp -f -- "$tmp" "$current_file" 2>"$stderrfile"; then
+        error "failed to copy updated version to '$current_file': $(cat -- "$stderrfile")" 
+      else
+        printf "updated '%s'\n" "$current_file"
+      fi
+      ;;
+  esac
+done
+
+exit "$exitcode"
