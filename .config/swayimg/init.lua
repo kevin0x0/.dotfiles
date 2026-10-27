@@ -31,7 +31,7 @@ swayimg.viewer.drag_button = "MouseLeft"         -- mouse button to drag image
 -- swayimg.viewer.set_window_background(0x00000000) -- window background color
 -- swayimg.viewer.set_image_chessboard(20, 0xff333333, 0xff4c4c4c) -- chessboard
 -- swayimg.viewer.mark_color = 0xff808080           -- mark icon color
-swayimg.viewer.autocenter = true                 -- enable automatic centering
+swayimg.viewer.autopos = "center"                -- automatic image positioning
 swayimg.viewer.loop = true                       -- enable image list loop mode
 swayimg.viewer.preload = 1                       -- number of images to preload
 swayimg.viewer.history = 1                       -- number of the history cache
@@ -82,13 +82,6 @@ local function zoom(step)
   local scale = swayimg.viewer.scale
   scale = scale + step * scale
   swayimg.viewer.set_abs_scale(scale);
-end
-
-local function zoom_at_mouse(step)
-  local pos = swayimg.get_mouse_pos()
-  local scale = swayimg.viewer.scale
-  scale = scale + step * scale
-  swayimg.viewer.set_abs_scale(scale, pos.x, pos.y);
 end
 
 local toggle_anti_aliasing = function()
@@ -221,13 +214,22 @@ swayimg.viewer.on_key("Escape", swayimg.exit)
 swayimg.viewer.on_key("q", swayimg.exit)
 
 -- bind mouse vertical scroll button with pressed Ctrl to zoom in the image at mouse pointer coordinates
-swayimg.viewer.on_mouse("Ctrl-ScrollUp", function()
-  zoom_at_mouse(0.1)
+swayimg.viewer.on_scroll(function(kmods, horizontal, vertical)
+  if kmods == "Ctrl" then
+    if vertical then
+      local pos = swayimg.get_mouse_pos()
+      local scale = swayimg.viewer.scale
+      scale = scale + scale * vertical / 10.0
+      swayimg.viewer.set_abs_scale(scale, pos.x, pos.y);
+    end
+  else
+    -- move image across the window
+    local pos = swayimg.viewer.get_position()
+    local x = pos.x + math.floor(horizontal * 50)
+    local y = pos.y + math.floor(vertical * 50)
+    swayimg.viewer.set_abs_position(x, y)
+  end
 end)
-swayimg.viewer.on_mouse("Ctrl-ScrollDown", function()
-  zoom_at_mouse(-0.1)
-end)
-
 
 -- Slide show mode, same config as for viewer mode with the following defaults:
 swayimg.slideshow.timeout = 5                       -- timeout to switch image
