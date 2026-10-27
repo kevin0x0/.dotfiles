@@ -43,11 +43,11 @@ for d; do
 
   if [ -x "$f" ]; then
     [ -n "$opt_test" ] && exit 0
-    "$f" -l "$opt_output_amount"
+    "$f" -l "$opt_output_amount" -- "${f%/*}"
     exit 0
   elif [ -r "$f" ]; then
     [ -n "$opt_test" ] && exit 0
-    sh -- "$f" -l "$opt_output_amount"
+    sh -- "$f" -l "$opt_output_amount" -- "${f%/*}"
     exit 0
   fi
 done
