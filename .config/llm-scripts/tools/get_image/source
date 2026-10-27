@@ -14,6 +14,7 @@ fi
 
 tmp=$(tmpfile) || exit
 trap 'rm "$tmp"' EXIT
+trap 'rm -f -- "$tmp"; trap - INT; kill -INT "$$"' INT
 
 statedir=$2
 # llm_chat_opt_api_key should be pass via llm-tool-call -[N]S opt_api_key=<n> and
