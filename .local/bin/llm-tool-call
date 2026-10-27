@@ -48,6 +48,7 @@ else
 fi
 
 call() {
+  set -- "${execpath%/*}" "$@"
   errmsg=
   if [ -n "$opt_fake_output" ]; then
     printf "%s" "$opt_fake_output"
@@ -73,14 +74,29 @@ call() {
         ;;
     esac
   fi
+}
 
-  if [ "$?" -ne 0 ]; then
+call_normal() {
+  if ! call "$@"; then
     if [ -n "$errmsg" ]; then
       jq --arg err "$errmsg" '{"error": $err}' | llm-make-mcontent -t
     else
       llm-make-mcontent -t -- '{"error": "failed to execute this tool"}'
     fi
+  fi \
+    | jq -cs --argjson call_id "$id" --arg type "$type" --arg name "$name" \
+      '{"name":$name,"call_id":$call_id,"type":$type,"output":.}' 2>/dev/null
+
+  if [ "$?" -ne 0 ]; then
+    err='{"error":"this tool generated broken json(can not parsed as StringOutput or OutputContentList)"}'
+    jq -cs --argjson call_id "$id" --arg type "$type" --arg name "$name" \
+      --arg err "$err" \
+      '{"name":$name,"call_id":$call_id,"type":$type,"output":$err}'
   fi
+}
+
+call_builtin() {
+  call "$@"
 }
 
 find_and_call() {
@@ -96,6 +112,9 @@ find_and_call() {
       ;;
     custom_tool_call)
       type=custom_tool_call_output
+      ;;
+    api_builtin)
+      type=
       ;;
     *)
       while IFS= read -r argpart; do
@@ -139,15 +158,11 @@ find_and_call() {
     printf "%s" "$argpart"
   done >"$tmpfile"
 
-  jq -sj '.[]' <"$tmpfile" | call "${execpath%/*}" "$@" \
-    | jq -cs --argjson call_id "$id" --arg type "$type" --arg name "$name" \
-    '{"name":$name,"call_id":$call_id,"type":$type,"output":.}' 2>/dev/null
-
-  if [ "$?" -ne 0 ]; then
-    err='{"error":"this tool generated broken json(can not parsed as StringOutput or OutputContentList)"}'
-    jq -cs --argjson call_id "$id" --arg type "$type" --arg name "$name" \
-      --arg err "$err" \
-      '{"name":$name,"call_id":$call_id,"type":$type,"output":$err}'
+  if [ -z "$type" ]; then
+    # built-in tool
+    call_builtin "$@" <"$tmpfile"
+  else
+    jq -sj '.[]' <"$tmpfile" | call_normal "$@"
   fi
 }
 
@@ -161,11 +176,23 @@ jq_program='
 def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
 if .type == "function_call" or .type == "custom_tool_call" then
   .type, (.call_id | @json), .name, (.arguments // .input | chunk | @json), "__END__"
+elif .type | endswith("_call") then
+  select($filterout[.type] == null) |
+  "api_builtin", null, "_builtin_" + (.type | rtrimstr("_call")), @json, "__END__"
 else
   empty
 end
 '
-jq -rc "$jq_program" <&3 \
+filterout='{
+  "file_search_call":true,
+  "computer_call":true,
+  "web_search_call":true,
+  "image_generation_call":true,
+  "code_interpreter_call":true,
+  "mcp_call":true
+}'
+
+jq -rc --argjson filterout "$filterout" "$jq_program" <&3 \
   | {
     exitcode=0
     while read -r type && read -r id && read -r toolname; do
