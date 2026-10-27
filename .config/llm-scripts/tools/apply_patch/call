@@ -1,0 +1,5 @@
+#!/bin/sh
+
+shift
+llm-v4a-patch 1 "$@" | llm-make-mcontent -t
+exit 0

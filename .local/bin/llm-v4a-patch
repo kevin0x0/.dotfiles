@@ -1,0 +1,23 @@
+#!/bin/sh
+
+if [ -f "$2/tool-config/apply_patch" ]; then
+  command . -- "$2/tool-config/apply_patch" >/dev/null 2>&1
+fi
+
+initial_line_number=$1
+
+set --
+[ -n "$opt_allowed_dir" ] && set -- "$@" "$opt_allowed_dir"
+[ -z "$opt_exclude_cwd" ] && set -- "$@" "./"
+if [ -n "$opt_allowed_dir_list" ]; then
+  if ! command eval 'set -- "$@" '"$opt_allowed_dir_list" >/dev/null 2>&1; then
+    printf "user configuration error: invalid value for \$opt_allowed_dir_list: %s\n" "$opt_allowed_dir_list"
+    exit 1
+  fi
+fi
+set -- -- "$@"
+
+[ -n "$opt_base_dir" ] && set -- -d "$opt_base_dir" "$@"
+[ -n "$opt_reject" ] && set -- -r "$@"
+
+exec v4a-patch -n "$initial_line_number" "$@"
