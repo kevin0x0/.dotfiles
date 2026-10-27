@@ -1,0 +1,394 @@
+#!/bin/sh
+
+# Reference implementation: https://github.com/openai/codex/blob/main/codex-rs/apply-patch/src/*.rs
+# This script doesn't guarantee the exactly same behaviour as the
+# implementation metioned above.
+
+opt_directory=$PWD
+opt_initial_line_number=0
+while getopts "d:n:" opt; do
+  case $opt in
+    d)
+      opt_directory=$OPTARG
+      ;;
+    n)
+      opt_initial_line_number=$((OPTARG - 1))
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+statedir=$(tmpfile -d) || exit 1
+trap 'rm -rf -- "$statedir"' EXIT
+
+context_file=$statedir/context
+old_lines=$statedir/old-lines
+new_lines=$statedir/new-lines
+tmp=$statedir/tmp
+touched_files=$statedir/touched-files
+curr_tokkind=
+curr_pathname=
+curr_line_content=
+curr_context_line=
+curr_line_number=$opt_initial_line_number
+next_token() {
+  if ! IFS= read -r line && [ -z "$line" ]; then
+    curr_tokkind=END
+    return
+  fi
+  line=${line%$'\r'}
+
+  curr_line_number=$((curr_line_number + 1))
+  case $line in
+    " "*|'')
+      curr_tokkind=KEEP-LINE
+      curr_line_content=${line#" "}
+      ;;
+    "+"*)
+      curr_tokkind=ADD-LINE
+      curr_line_content=${line#"+"}
+      ;;
+    "-"*)
+      curr_tokkind=DELETE-LINE
+      curr_line_content=${line#"-"}
+      ;;
+    "@@ "*)
+      curr_tokkind=CONTEXT-LINE
+      curr_context_line=${line#"@@ "}
+      ;;
+    "@@")
+      curr_tokkind=CONTEXT-LINE-EMPTY
+      ;;
+    "*** Begin Patch")
+      curr_tokkind=PATCH-BEGIN
+      ;;
+    "*** End Patch")
+      curr_tokkind=PATCH-END
+      ;;
+    "*** Update File: "*)
+      curr_tokkind=UPDATE
+      curr_pathname=${line#*": "}
+      ;;
+    "*** Move to: "*)
+      curr_tokkind=MOVE
+      curr_pathname=${line#*": "}
+      ;;
+    "*** Delete File: "*)
+      curr_tokkind=DELETE
+      curr_pathname=${line#*": "}
+      ;;
+    "*** Add File: "*)
+      curr_tokkind=ADD
+      curr_pathname=${line#*": "}
+      ;;
+    "*** End of File")
+      curr_tokkind=EOF
+      ;;
+    "*** Environment ID: "*)
+      curr_tokkind=ENV-ID
+      curr_pathname=${line#*": "}
+      ;;
+    *)
+      printf "invalid line at line %u: %s\n" "$curr_line_number" "$line" >&2
+      exit 1
+      ;;
+  esac
+}
+
+tokdesc() {
+  case $1 in
+    CONTEXT-LINE)
+      printf "@@ <context line>"
+      ;;
+    CONTEXT-LINE-EMPTY)
+      printf "@@"
+      ;;
+    PATCH-BEGIN)
+      printf "*** Begin Patch"
+      ;;
+    PATCH-END)
+      printf "*** End Patch"
+      ;;
+    UPDATE)
+      printf "*** Update File: <curr_pathname>"
+      ;;
+    MOVE)
+      printf "*** Move to: <curr_pathname>"
+      ;;
+    DELETE)
+      printf "*** Delete File: <curr_pathname>"
+      ;;
+    ADD)
+      printf "*** Add File: <curr_pathname>"
+      ;;
+    EOF)
+      printf "*** End of File"
+      ;;
+    ENV-ID)
+      printf "*** Environment ID: <curr_pathname>"
+      ;;
+  esac
+}
+
+error() {
+  printf "error at line %u: %s\n" "$curr_line_number" "$line"
+  printf "%8s%s\n" "" "$1"
+  exit 1
+} >&2
+
+expected() {
+  printf "syntax error at line %u: %s\n" "$curr_line_number" "$line"
+  header="expected: "
+  for tok; do
+    printf "%12s" "$header"
+    tokdesc "$tok"
+    echo
+    header="or: "
+  done
+  exit 1
+} >&2
+
+check_token() {
+  [ "$1" = "$curr_tokkind" ]
+}
+
+match_token() {
+  if ! check_token "$1"; then
+    expected "$@"
+  fi
+  next_token
+}
+
+touch_file() {
+  encoded_filename=$(idencode -- "$1")
+  if [ -f "$touched_files" ] && grep -qFxe "$encoded_filename" -- "$touched_files"; then
+    error "'$1' has already been operated on"
+  else
+    printf "%s\n" "$encoded_filename" >>"$touched_files"
+  fi
+}
+
+awk_program='
+BEGIN {
+  n = 0
+  offset = 0
+}
+
+NR == FNR {
+  pattern[n++] = $0
+}
+
+NR != FNR {
+  if (n == 0) {
+    print 1
+    exit
+  }
+
+  ringbuf[offset++ % n] = $0
+
+  if (offset < n)
+    next
+
+  matched = 1
+  for (i = 0; i < n; ++i) {
+    if (pattern[i] != ringbuf[(offset + i) % n]) {
+      matched = 0
+      break
+    }
+  }
+
+  if (matched == 1) {
+    print offset - n + 1
+    exit
+  }
+}
+
+END {
+  if (matched)
+    exit 0
+  else
+    exit 1
+}
+'
+
+find_context() {
+  sed_cmd=${2:+$2\;}p
+  if [ -n "$2" ]; then
+    sed -n "$sed_cmd" <"$1" >"$tmp"
+    set -- "$tmp" "$2"
+  fi
+  if ! offset=$(sed -n "$file_line_offset,\${$sed_cmd}" <"$filename" | awk -- "$awk_program" "$1" -); then
+    return 1
+  fi
+  file_line_offset=$((file_line_offset + offset - 1))
+}
+
+find_context_with_filter() {
+  context_lines_file=$1
+  set -- '' 's/[[:space:]]*$//' 's/[[:space:]]*$//;s/^[[:space:]]*//;'
+  case ${LC_ALL:-${LC_CTYPE:-${LANG}}} in
+    *utf-8*|*UTF-8*|*UTF8*|*utf8*)
+      set -- "$@" 's/[‐‑‒–—―−]/-/g;s/[‘’‚‛]/'\''/g;s/[“”„‟]/"/g;s/[            　]/ /g'
+      ;;
+  esac
+
+  for filter; do
+    if find_context "$context_lines_file" "$filter"; then
+      return 0
+    fi
+  done
+
+  error "can not locate the context from line $file_line_offset: $(echo; sed 's/^/========> /' <"$context_lines_file")"
+}
+
+generate_change() {
+  if [ ! -s "$old_lines" ] && [ ! -s "$new_lines" ]; then
+    return 0
+  fi
+
+  if [ -z "$update_header_printed" ]; then
+    update_header_printed=1
+    printf "@Update: %s\n" "$(shell-escape -- "$filename")"
+  fi
+
+  # FreeBSD's `wc -l` has leading blank, so use $((...)) to trim them.
+  if [ -s "$old_lines" ]; then
+    find_context_with_filter "$old_lines"
+  else
+    file_line_offset=$(($(wc -l -- <"$filename") + 1))
+  fi
+
+  lines=$(($(wc -l -- <"$old_lines")))
+  printf "+%u %u\n" "$file_line_offset" "$lines"
+  sed 's/^/ /' <"$new_lines"
+  printf ".\n"
+  file_line_offset=$((file_line_offset + lines))
+
+  : >"$old_lines" >"$new_lines"
+}
+
+parse_changes() {
+  : >"$old_lines" >"$new_lines"
+
+  while :; do
+    case $curr_tokkind in
+      CONTEXT-LINE-EMPTY)
+        generate_change
+        ;;
+      CONTEXT-LINE)
+        generate_change
+        printf "%s\n" "$curr_context_line" >"$context_file"
+        find_context_with_filter "$context_file"
+        file_line_offset=$((file_line_offset + 1))
+        ;;
+      ADD-LINE)
+        printf "%s\n" "$curr_line_content" >>"$new_lines"
+        ;;
+      DELETE-LINE)
+        printf "%s\n" "$curr_line_content" >>"$old_lines"
+        ;;
+      KEEP-LINE)
+        printf "%s\n" "$curr_line_content" >>"$new_lines"
+        printf "%s\n" "$curr_line_content" >>"$old_lines"
+        ;;
+      EOF)
+        file_line_offset=$(($(wc -l -- <"$filename") - $(wc -l -- <"$old_lines") + 1))
+        generate_change
+        ;;
+      *)
+        generate_change
+        return
+        ;;
+    esac
+    next_token
+  done
+}
+
+parse_update_hunk() {
+  if ! filename=$(normpath -d "$opt_directory" -- "$curr_pathname"); then
+    error "bad pathname: '$curr_pathname'"
+  fi
+  [ -f "$filename" ] || error "'$filename' doesn't exist or is not a regular file"
+  touch_file "$filename"
+  next_token
+
+  move_to_filename=
+  if [ "$curr_tokkind" = MOVE ]; then
+    if ! move_to_filename=$(normpath -d "$opt_directory" -- "$curr_pathname"); then
+      error "bad pathname: '$curr_pathname'"
+    fi
+    [ -e "$move_to_filename" ] && error "'$move_to_filename' already exists"
+    touch_file "$move_to_filename"
+    next_token
+  fi
+
+  update_header_printed=
+  file_line_offset=1
+  parse_changes
+  [ -n "$update_header_printed" ] && printf "@EndUpdate\n"
+
+  if [ -n "$move_to_filename" ]; then
+    printf "@Move: %s\n" "$(shell-escape -- "$filename" "$move_to_filename")"
+  fi
+}
+
+parse_add_hunk() {
+  if ! filename=$(normpath -d "$opt_directory" -- "$curr_pathname"); then
+    error "bad pathname: '$curr_pathname'"
+  fi
+  [ -e "$filename" ] && error "'$filename' already exists"
+  touch_file "$filename"
+  next_token
+
+  printf "@Create: %s\n" "$(shell-escape -t '' -- "$filename")"
+  while [ "$curr_tokkind" = "ADD-LINE" ]; do
+    printf " %s\n" "$curr_line_content"
+    next_token
+  done
+  printf ".\n"
+}
+
+parse_delete_hunk() {
+  if ! filename=$(normpath -d "$opt_directory" -- "$curr_pathname"); then
+    error "bad pathname: '$curr_pathname'"
+  fi
+  [ -f "$filename" ] || error "'$filename' doesn't exist or is not a regular file"
+  touch_file "$filename"
+  next_token
+
+  printf "@Delete: %s\n" "$(shell-escape -t '' -- "$filename")"
+}
+
+parse_patch() {
+  match_token PATCH-BEGIN
+  if check_token ENV-ID; then
+    # Currently ignore environment id
+    next_token
+  fi
+
+  while :; do
+    case "$curr_tokkind" in
+      UPDATE)
+        parse_update_hunk
+        ;;
+      ADD)
+        parse_add_hunk
+        ;;
+      DELETE)
+        parse_delete_hunk
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+
+  match_token PATCH-END UPDATE ADD DELETE
+  match_token END
+}
+
+next_token
+parse_patch
