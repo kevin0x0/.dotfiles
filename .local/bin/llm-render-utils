@@ -10,45 +10,6 @@ default_renderer_notify_header() {
   ansi_escape "0;32"
 }
 
-default_renderer_notify() {
-  case $1 in
-    web_search_call|web_search_call@start)
-      default_renderer_notify_header "$1: "
-      echo
-      suffix=
-      case $1 in
-        *@start)
-          suffix="ing "
-          ;;
-        *)
-          suffix="ed "
-          ;;
-      esac
-      jq_program='
-      .action |
-      if .type == "search" then
-        .queries // [.query // empty] | .[] | "search" + $suffix + .
-      elif .type == "open_page" then
-        .url // empty | "open" + $suffix + .
-      elif .type == "find_in_page" then
-        "search" + $suffix + .pattern + "\nin page " + .url
-      else
-        empty
-      end
-      '
-      jq --unbuffered -r --arg suffix "$suffix" -- "$jq_program"
-      ;;
-    *@start)
-      ;;
-    *)
-      default_renderer_notify_header "$1"
-      echo
-      ;;
-  esac
-  cat >/dev/null
-  ansi_escape "0"
-}
-
 ansi_role_color() {
   ansi_color=
   case $1 in
@@ -99,7 +60,8 @@ default_renderer_file_image() {
 
 default_renderer_tool_call() {
   if llm-tool-render -ctn "$1" -- "$opt_tooldir"; then
-    jq -j '.arguments // .input' | llm-tool-render -cn "$1" -l "$renderer_opt_tool_output_lines" -- "$opt_tooldir"
+    jq -j '.arguments // .input // @json' \
+      | llm-tool-render -cn "$1" -l "$renderer_opt_tool_output_lines" -- "$opt_tooldir"
   else
     default_renderer_notify_header "calling $1"
     echo
@@ -109,13 +71,61 @@ default_renderer_tool_call() {
 
 default_renderer_tool_output() {
   if llm-tool-render -otn "$1" -- "$opt_tooldir"; then
-    jq -c '.output | if type == "string" then [{type:"input_text",text:.}] end | .[]' \
-      | llm-tool-render -on "$1" -l "$renderer_opt_tool_output_lines" -- "$opt_tooldir"
+    if [ "$2" != is_builtin ]; then
+      jq -c '.output | if type == "string" then [{type:"input_text",text:.}] end | .[]'
+    else
+      cat -u
+    fi | llm-tool-render -on "$1" -l "$renderer_opt_tool_output_lines" -- "$opt_tooldir"
   else
     default_renderer_notify_header "called $1"
     echo
   fi
   cat >/dev/null
+}
+
+default_renderer_notify() {
+  case $1 in
+    web_search_call|web_search_call@start)
+      default_renderer_notify_header "$1: "
+      echo
+      suffix=
+      case $1 in
+        *@start)
+          suffix="ing "
+          ;;
+        *)
+          suffix="ed "
+          ;;
+      esac
+      jq_program='
+      .action |
+      if .type == "search" then
+        .queries // [.query // empty] | .[] | "search" + $suffix + .
+      elif .type == "open_page" then
+        .url // empty | "open" + $suffix + .
+      elif .type == "find_in_page" then
+        "search" + $suffix + .pattern + "\nin page " + .url
+      else
+        empty
+      end
+      '
+      jq --unbuffered -r --arg suffix "$suffix" -- "$jq_program"
+      ;;
+    *_call)
+      default_renderer_tool_call "_builtin_${1%_call}" is_builtin
+      ;;
+    *_call_output)
+      default_renderer_tool_output "_builtin_${1%_call_output}" is_builtin
+      ;;
+    *@start)
+      ;;
+    *)
+      default_renderer_notify_header "$1"
+      echo
+      ;;
+  esac
+  cat >/dev/null
+  ansi_escape "0"
 }
 
 default_renderer() {
