@@ -240,14 +240,14 @@ delete_trash() {
 
   tmp=$(tmpfile)
 
-  jq --args -- 'select(any(.filename | startswith($ARGS.positional[] + "/"); .))' "$@" \
+  jq --args -- 'select(any(.filename + "/" | startswith($ARGS.positional[] + "/"); .))' "$@" \
     <"$trashfile" >"$tmp"
 
   jq -- 'select(.expires_at == null or .expires_at >= now + 600) | .id' "$tmp" \
     | call_api -d \
     | jq -r 'select(.deleted | not) | "not deleted: " + .id'
 
-  jq --args -- 'select(all(.filename | startswith($ARGS.positional[] + "/"); not))' "$@" \
+  jq --args -- 'select(all(.filename + "/" | startswith($ARGS.positional[] + "/"); not))' "$@" \
     <"$trashfile" >"$tmp"
   cp -- "$tmp" "$trashfile"
 
@@ -264,7 +264,7 @@ if [ -n "$opt_list" ]; then
     if [ -n "$opt_all" ]; then
       cat <&3
     else
-      jq --args -- 'select(any(.filename | startswith($ARGS.positional[] + "/"); .))' \
+      jq --args -- 'select(any(.filename + "/" | startswith($ARGS.positional[] + "/"); .))' \
         "$@" <&3
     fi
   else
