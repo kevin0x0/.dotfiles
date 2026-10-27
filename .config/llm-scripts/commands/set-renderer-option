@@ -14,7 +14,7 @@ if [ "$#" -eq 0 ]; then
     fi
   done
   if [ -n "$my_render_utils_path" ]; then
-    sed -n -- '/renderer_opt_/{s/^.*renderer_opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p}' "$my_render_utils_path" | sort -u
+    sed -n -- '/renderer_opt_/{s/^.*renderer_opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p;}' "$my_render_utils_path" | sort -u
   fi
   return 0
 fi
