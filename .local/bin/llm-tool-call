@@ -160,7 +160,7 @@ trap 'rm -- "$tmpfile"; trap - QUIT; kill -QUIT "$$"' QUIT
 jq_program='
 def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
 if .type == "function_call" or .type == "custom_tool_call" then
-  .type, (.call_id | @json), .name, (.arguments | chunk | @json), "__END__"
+  .type, (.call_id | @json), .name, (.arguments // .input | chunk | @json), "__END__"
 else
   empty
 end
