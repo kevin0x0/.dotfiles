@@ -220,7 +220,7 @@ find_context() {
     sed -n "$sed_cmd" <"$1" >"$tmp"
     set -- "$tmp" "$2"
   fi
-  if ! offset=$(sed -n "$file_line_offset,\${$sed_cmd}" <"$filename" | awk -- "$awk_program" "$1" -); then
+  if ! offset=$(sed -n "$file_line_offset,\${$sed_cmd;}" <"$filename" | awk -- "$awk_program" "$1" -); then
     return 1
   fi
   file_line_offset=$((file_line_offset + offset - 1))
