@@ -184,7 +184,7 @@ dispatch_render_event() (
         trap '' TTOU
         exec >&3
         exec <"$1"
-        command eval render_cmd='$opt_render_cmd_'$(printf "%s" "$event" | tr '-' '_')
+        command eval render_cmd='$opt_render_cmd_'$(printf "%s" "$event" | tr -- '-' '_')
         render_cmd=${render_cmd:-'default_renderer "$event" "$argument"'}
         jq --unbuffered -j '.' | command eval " $render_cmd"
       )&

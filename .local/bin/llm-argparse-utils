@@ -49,7 +49,7 @@ source_configfile() {
 }
 
 evaluate_option() {
-  option_name=$(printf "%s" "${1%%=*}" | tr '-' '_')
+  option_name=$(printf "%s" "${1%%=*}" | tr -- '-' '_')
   case $1 in
     *=*)
       ;;
