@@ -1,0 +1,30 @@
+#!/bin/sh
+
+opt_output_amount=
+
+while getopts "l:" opt; do
+  case $opt in
+    l)
+      opt_output_amount=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+
+color_begin=
+color_end=
+if [ -t 1 ]; then
+  case $(termcolors) in
+    16777216|256)
+      color_begin='\033[36;1m'
+      color_end='\033[0m'
+      ;;
+  esac
+fi
+
+printf "${color_begin}patch application result: $color_end\n"
+while IFS= read -r line; do
+  printf "$color_begin┃$color_end %s\n" "$line"
+done

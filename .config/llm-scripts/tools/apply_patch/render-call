@@ -1,0 +1,4 @@
+#!/bin/sh
+
+llm-v4a-render-patch "$@"
+cat >/dev/null
