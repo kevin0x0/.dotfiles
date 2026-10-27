@@ -13,6 +13,15 @@ while getopts "r" opt; do
 done
 shift "$((OPTIND - 1))"
 
+# Probe whether the controlling terminal is available.  The stderr
+# redirection must precede the /dev/tty one so that the diagnostic of a
+# failed open (no controlling terminal) is suppressed.  Do not use the
+# special builtin ':' as the probe command: a redirection error on it
+# makes a non-interactive shell exit.
+if printf "" 2>/dev/null >/dev/tty; then
+  opt_have_tty=1
+fi
+
 count=$#
 while [ "$count" -ne 0 ]; do
   count=$((count - 1))
@@ -68,7 +77,7 @@ is_allowed() {
     esac
   done
 
-  if [ "$opt_reject" ]; then
+  if [ "$opt_reject" ] || [ -z "$opt_have_tty" ]; then
     return 1
   fi
 
