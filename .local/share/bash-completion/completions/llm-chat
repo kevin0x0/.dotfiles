@@ -16,7 +16,7 @@ _comp_cmd_llm_chat() {
       ;;
     -*o)
       local llm_chat_path=$(command -v llm-chat 2>/dev/null) || return
-      _comp_compgen -- split -F $'\n' -- "$(sed -n -- '/^.*opt_.*$/{s/^.*opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/gp;}' "$llm_chat_path" | sort -u)"
+      _comp_compgen -- split -F $'\n' -- "$(sed -n -- '/opt_/{s/^.*opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p;}' "$llm_chat_path" | sort -u)"
       compopt -o nospace
       ;;
     *)
