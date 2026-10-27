@@ -1,11 +1,18 @@
 #!/bin/sh
 
 opt_terminator='\n'
+opt_directory=$PWD
 
-while getopts "t:n" opt; do
+while getopts "t:d:n" opt; do
   case $opt in
     t)
       opt_terminator=$OPTARG
+      ;;
+    d)
+      case $OPTARG in
+        /*) opt_directory=$OPTARG ;;
+        *)  opt_directory=$PWD/$OPTARG ;;
+      esac
       ;;
     n)
       opt_terminator='\0000'
@@ -20,7 +27,7 @@ shift "$((OPTIND - 1))"
 for path; do
   case $path in
     [!/]*)
-      components=$PWD/$path
+      components=$opt_directory/$path
       ;;
     *)
       components=$path
