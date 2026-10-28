@@ -30,6 +30,23 @@ if ! jq -e 'has("code") and has("intent")' "$arg" >/dev/null 2>&1; then
   exit 0
 fi
 
+interpreter=$(jq -j '.interpreter // ""' <"$arg")
+[ -z  "$interpreter" ] && interpreter=$opt_interpreter
+
+if [ -z "$interpreter" ]; then
+  if command -v bash >/dev/null 2>&1; then
+    interpreter=bash
+  else
+    interpreter=sh
+  fi
+fi
+
+if ! command -v -- "$interpreter" >/dev/null 2>&1; then
+  jq -cn --arg interpreter "$interpreter" -- '{error:"interpreter not found: " + $interpreter}' \
+    | llm-make-mcontent -t
+  exit 0
+fi
+
 color_begin=
 color_end=
 if [ -t 2 ]; then
@@ -50,7 +67,7 @@ header_shown=
 show_header() {
   [ -n "$header_shown" ] && return
   header_shown=1
-  printf "$color_begin%s$color_end\n" "command execution requested:" >&2
+  printf "$color_begin%s$color_end\n" "script execution requested($interpreter):" >&2
 }
 
 while :; do
@@ -66,7 +83,7 @@ while :; do
     show_header
     sh -- "$1/render-call" -C <"$arg" >&2
     printf "$color_begin%s$color_end\n" \
-      "Do you approve the request(Y/n/[r]eplace the original command(s)/[p]rint code)?" >&2
+      "Do you approve the request(Y/n/[r]eplace the original script(s)/[p]rint code)?" >&2
     IFS= read -r reply </dev/tty
   fi
 
@@ -85,7 +102,7 @@ while :; do
       continue
       ;;
     y|"")
-      jq -r -- '.code' "$arg" | sh >"$stdout" 2>"$stderr"
+      jq -r -- '.code' "$arg" | "$interpreter" >"$stdout" 2>"$stderr"
       exitcode=$?
       break
       ;;
@@ -99,12 +116,12 @@ while :; do
       ;;
     r)
       if [ -n "$opt_have_tty" ]; then
-        printf "\033[1;36mEnter your replacing command(type ctrl+D to end your commands):\033[0m\n" >&2
-        sh </dev/tty >"$stdout" 2>"$stderr"
+        printf "\033[1;36mEnter your replacing script(type ctrl+D to send EOF):\033[0m\n" >&2
+        "$interpreter" </dev/tty >"$stdout" 2>"$stderr"
         exitcode=$?
       else
         rejected=1
-        reason='no controlling terminal to read the replacing command'
+        reason='no controlling terminal to read the replacing script'
       fi
       break
       ;;

@@ -37,7 +37,7 @@ if [ -t "${opt_testfd:-1}" ]; then
   esac
 fi
 
-code_header='EXECUTE SHELL COMMAND(s):'
+code_header='EXECUTE SCRIPT:'
 intent_header='INTENT:'
 
 jq --unbuffered \
