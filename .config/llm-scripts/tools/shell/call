@@ -31,7 +31,7 @@ if ! jq -e 'has("code") and has("intent")' "$arg" >/dev/null 2>&1; then
 fi
 
 interpreter=$(jq -j '.interpreter // ""' <"$arg")
-[ -z  "$interpreter" ] && interpreter=$opt_interpreter
+[ -z "$interpreter" ] && interpreter=$opt_interpreter
 
 if [ -z "$interpreter" ]; then
   if command -v bash >/dev/null 2>&1; then
