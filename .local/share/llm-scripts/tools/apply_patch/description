@@ -1,0 +1,44 @@
+# Synopsis
+
+Apply a patch to files under the working directory using the V4A patch format
+(the "apply_patch" format used by OpenAI Codex).
+
+The tool input is the patch text itself, not JSON.
+
+# Format
+
+    *** Begin Patch
+    *** Update File: <path>
+    @@ <optional anchor line>
+     <context line>
+    -<removed line>
+    +<added line>
+    *** Move to: <new path>
+    *** Add File: <path>
+    +<content line>
+    *** Delete File: <path>
+    *** End of File
+    *** End Patch
+
+- Every hunk line starts with exactly one of: " " (keep), "+" (add),
+  "-" (delete). A blank added line is "+"; a blank context line is " ".
+- "@@ <line>" starts the next hunk at that line; the anchor line itself is
+  not modified. "@@" alone only separates hunks.
+- "*** End of File" anchors a hunk to the end of the file.
+- Each path may appear in at most one section per patch.
+- Update/Delete require an existing file; Add and Move destinations must not
+  exist.
+- The patch is all-or-nothing at parse time: an unknown line or an unmatched
+  hunk means nothing is applied.
+
+# Returns
+
+One line per applied operation: "created: <path>", "updated '<path>'",
+"deleted: <path>", "moved '<from>' to '<to>'", or
+"failed to <operation> <path>: <reason>". On a parse failure:
+"error at line <n>: ...".
+
+# Notes
+
+Prefer this tool for precise edits to existing files; use the shell tool for
+generated files, formatting, or bulk replacements.
