@@ -1,0 +1,22 @@
+#!/bin/sh
+
+opt_output_amount=
+while getopts "l:" opt; do
+  case $opt in
+    l)
+      opt_output_amount=$OPTARG
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+tmp=$(tmpfile) || exit 1
+cat >"$tmp"
+jq -jf -- "$1/lib/assemble.jq" <"$tmp" \
+  | {
+      llm-v4a-render-patch -l "$opt_output_amount" -- "$@"
+      cat >/dev/null
+    }

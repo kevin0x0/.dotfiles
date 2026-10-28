@@ -1,0 +1,25 @@
+#!/bin/sh
+
+statedir=$(tmpfile -d) || exit 1
+trap 'rm -rf -- "$statedir"' EXIT
+trap 'rm -rf -- "$statedir"; trap - INT; kill -INT "$$"' INT
+arg=$statedir/arg
+output=$statedir/output
+cat >"$arg"
+jq -jf -- "$1/lib/assemble.jq" <"$arg" \
+  | {
+      shift
+      llm-v4a-patch -1 "$@"
+    } >"$output"
+
+if [ "$?" -eq 0 ]; then
+  status=completed
+else
+  status=failed
+fi
+
+jq -Rs --slurpfile call "$arg" --arg status "$status"  -- '
+$call[0] as {$call_id} |
+{call_id: $call_id, status: $status, type: "apply_patch_call_output", output: .}
+' <"$output"
+exit 0
