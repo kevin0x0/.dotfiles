@@ -302,3 +302,5 @@ if [ -n "$opt_clean" ]; then
   find "$cachedir" -depth -type d -exec rmdir {} \; 2>/dev/null
   [ ! -s "$trashfile" ] && rm -f -- "$trashfile"
 fi
+
+exit 0
