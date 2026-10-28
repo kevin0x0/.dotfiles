@@ -12,7 +12,7 @@ opt_files_default_purpose=user_data
 opt_default_role=user
 opt_prompt=
 opt_prompt_file=
-opt_tooldir=
+opt_toolspec=
 opt_show_conversation_on_startup=1
 opt_color=auto
 opt_color_ansi=
@@ -34,7 +34,7 @@ opt_print_options=
 
 renderer_opt_tool_output_lines=15
 
-. llm-argparse-utils
+. llm-config-utils
 . llm-render-utils
 
 llm_scriptname=llm-chat
@@ -102,7 +102,7 @@ while getopts "$llm_chat_options" opt; do
       getarg opt_responses_base_url "$OPTARG"
       ;;
     t)
-      getarg opt_tooldir "$OPTARG"
+      getarg opt_toolspec "$OPTARG"
       ;;
     c)
       # Additional config
@@ -143,7 +143,12 @@ if [ -z "$opt_repl_reader" ] && [ -z "$opt_repl_reader_ignore" ]; then
     fi
     builtin_completion=${XDG_DATA_HOME:-$HOME/.local/share}/llm-scripts/chat/completion
     if [ ! -e "$statedir/tmp.completions" ]; then
-      (cd -- "$llm_configdir/commands" && printf "@%s\n" * >"$statedir/tmp.completions")
+      print_cmdname() {
+        set -- "${1%"${1##*[!/]}"}"
+        printf "@%s\n" "${1##*/}"
+        return 1
+      }
+      match_config_item "commands/*" print_cmdname >"$statedir/tmp.completions"
     fi
     rlwrap -C llm-chat -H "$historyfile" -b "$break_chars" -f "$builtin_completion" -f "$statedir/tmp.completions" -ca -S "$cmdline_prompt" -- sh -c '\''IFS= read -r line && printf "%s" "$line"'\'
   fi
@@ -353,15 +358,17 @@ dispatch_command() {
       trap '' INT
       ;;
     *)
-      if [ -f "$llm_configdir/commands/$cmdname" ]; then
-        if [ -x "$llm_configdir/commands/$cmdname" ]; then
+      cmdpath=
+      locate_config_item cmdpath "commands/$cmdname"
+      if [ -f "$cmdpath" ]; then
+        if [ -x "$cmdpath" ]; then
           shift
           (
             export conversation volatile_fileids persistent_fileids this_turn toollist
-            "$llm_configdir/commands/$cmdname" "$@"
+            "$cmdpath" "$@"
           )
-        elif [ -r "$llm_configdir/commands/$cmdname" ]; then
-          command . -- "$llm_configdir/commands/$cmdname"
+        elif [ -r "$cmdpath" ]; then
+          command . -- "$cmdpath"
         fi
       else
         i18n -n llm-scripts 'unrecognized command: $1' "$cmdname" >&2
@@ -434,12 +441,9 @@ call() (
   trap ':' INT
   set -o pipefail
 
-  if [ -n "$opt_tool_hot_reload" ] && [ -n "$opt_tooldir" ]; then
-    llm-tool-list "$opt_tooldir" >"$toollist"
-  fi
-
   cat -- "$conversation" "$this_turn" >"$tmp_conversation_fifo" &
 
+  [ -s "$toollist" ] && set -- "$@" -T "$toollist"
   llm-responses-api -FNk 0 "$@" -- "$response_output" - <<EOF \
     | dispatch_render_event "$render_event_fifo"
 $opt_api_key
@@ -453,8 +457,8 @@ EOF
 )
 
 call_tool() {
-  set -- "$@" -i "$response_output" -- "$opt_tooldir" \
-    "" "$statedir" "$opt_files_base_url" \
+  set -- "$@" -i "$response_output" -- \
+    "$statedir" "$opt_files_base_url" \
     "$opt_cache_key" "$opt_files_default_purpose"
   trap ':' INT
   llm-tool-call -NS llm_chat_opt_api_key=0 "$@" >"$tool_output" <<EOF
@@ -463,6 +467,27 @@ EOF
   set -- "$?"
   trap '' INT
   return "$1"
+}
+
+expand_toolspec() {
+  print_toolname() {
+    set -- "${1%"${1##*[!/]}"}"
+    printf "%s\n" "${1##*/}"
+    return 1
+  }
+  patterns=$1
+  while [ -n "$patterns" ]; do
+    case $patterns in
+      [[:space:]]*)
+        patterns=${patterns#[[:space:]]}
+        ;;
+      *)
+        pattern=${patterns%%[[:space:]]*}
+        patterns=${patterns#"$pattern"}
+        match_config_item "tools/$pattern" print_toolname
+        ;;
+    esac
+  done | sort -u
 }
 
 render_prompter() {
@@ -617,10 +642,10 @@ render_event_fifo=$statedir/render-event-fifo
 tmp_conversation_fifo=$statedir/tmp.conversation-fifo
 tmp=$statedir/tmp
 
-# If opt_tool_hot_reload is not set, generate the tool list only once here.
-if [ -z "$opt_tool_hot_reload" ] && [ -n "$opt_tooldir" ]; then
-  llm-tool-list "$opt_tooldir" >"$toollist"
-fi
+expand_toolspec "$opt_toolspec" \
+  | tr '\n' '\000' \
+  | xargs -r0 -- llm-tool-list \
+  | jq -cs 'select(length != 0)' >"$toollist"
 [ "$#" -ne 0 ] && printf "%s\n" "$@" >"$cmdline_input"
 mkfifo -- "$render_event_fifo" || exit
 mkfifo -- "$tmp_conversation_fifo" || exit
@@ -642,10 +667,6 @@ set -- \
   -m "$opt_model"
 [ -n "$opt_stream" ] && set -- "$@" -s
 [ -n "$opt_extra_request_args" ] && set -- "$@" -A "$opt_extra_request_args"
-
-if [ -n "$opt_tooldir" ]; then
-  set -- "$@" -ft "$toollist"
-fi
 
 # REPL
 error_to() {

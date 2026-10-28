@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. llm-config-utils
+
 opt_input=
 opt_fake_output=
 opt_trim_newline=
@@ -67,7 +69,7 @@ call() {
         elif [ -r "$execpath" ]; then
           sh -- "$execpath" "$@"
         else
-          printf "%s is neither executable nor readable\n" "$d/$name/call" >&2
+          printf "%s is neither executable nor readable\n" "$execpath" >&2
           errmsg='this tool neither executable nor readable'
           false
         fi
@@ -128,26 +130,16 @@ find_and_call() {
   esac
 
   execpath=
-  while [ "$#" -ne 0 ]; do
-    d=$1
-    shift
-    [ -z "$d" ] && break
-
-    if [ -f "$d/$name/call" ]; then
-      execpath=$d/$name/call
-    elif [ -f "$d/$name/source" ]; then
-      execpath=$d/$name/source
-    else
-      continue
-    fi
-
-    while [ "$#" -ne 0 ]; do
-      d=$1
-      shift
-      [ -z "$d" ] && break
+  set_execpath() {
+    for path in "$1/call" "$1/source"; do
+      [ -f "$path" ] || continue
+      execpath=$path
+      return 0
     done
-    break
-  done
+    return 1
+  }
+
+  for_config_item "tools/$name" set_execpath
 
   while IFS= read -r argpart; do
     case $argpart in

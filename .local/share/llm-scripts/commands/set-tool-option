@@ -1,0 +1,60 @@
+# vim: ft=sh
+
+shift
+if [ "$#" -eq 0 ]; then
+  expand_toolspec "$opt_toolspec"
+  return 0
+fi
+
+list_options() {
+  for f in "$1/call" "$1/source"; do
+    [ -f "$f" ] || continue
+    sed -n '/opt_/{s/^.*opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p;}' <"$f" \
+      | sort -u
+    return 0
+  done
+  return 1
+}
+
+if [ "$#" -eq 1 ]; then
+  (
+    list_options "$llm_configdir/tools/$1" && exit 0
+    list_options "$llm_datadir/tools/$1" && exit 0
+    for_config_item "tools/$1" list_options
+    exit 0
+  )
+fi
+
+mkdir -p "$statedir/tool-config" || return
+(
+  tool_config_file=$statedir/tool-config/$1
+  shift
+  for kv; do
+    case $kv in
+      *=*)
+        ;;
+      *)
+        printf "expected a option assignment, got: %s\n" "$kv" >&2
+        continue
+        ;;
+    esac
+    k=${kv%%=*}
+    case $k in
+      [[:digit:]]*|*[![:alnum:]-]*)
+        printf "bad option name: %s\n" "$k" >&2
+        continue
+        ;;
+    esac
+    v=${kv#*=}
+    k=opt_$(printf "%s" "$k" | tr -- '-' '_')
+    if [ -e "$tool_config_file" ]; then
+      grep -v "^$k=" <"$tool_config_file" >"$tmp"
+      cp -- "$tmp" "$tool_config_file"
+    fi
+    {
+      printf "%s=" "$k"
+      shell-escape -- "$v"
+      printf ";\n"
+    } >>"$tool_config_file"
+  done
+)

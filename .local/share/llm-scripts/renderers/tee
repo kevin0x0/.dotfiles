@@ -1,0 +1,12 @@
+#!/bin/sh
+
+my_tee() {
+  if [ "$argument" != assistant ]; then
+    default_renderer "$event" "$argument"
+    return
+  fi
+  tee -a "$renderer_opt_tee_file"
+  echo
+}
+
+opt_render_cmd_message_text=my_tee

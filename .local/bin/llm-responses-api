@@ -6,12 +6,13 @@ opt_stream=
 opt_reasoning=none
 opt_model=
 opt_tools=
+opt_tools_file=
 
 opt_input=
 
-. llm-argparse-utils
+. llm-config-utils
 
-while getopts "i:fFNu:k:sr:m:t:A:" opt; do
+while getopts "i:fFNu:k:sr:m:t:T:A:" opt; do
   case $opt in
     i)
       getarg opt_input "$OPTARG"
@@ -42,6 +43,11 @@ while getopts "i:fFNu:k:sr:m:t:A:" opt; do
       ;;
     t)
       getarg opt_tools "$OPTARG"
+      opt_tools_file=
+      ;;
+    T)
+      getarg opt_tools_file "$OPTARG"
+      opt_tools=
       ;;
     A)
       getarg opt_extra_request_args "$OPTARG"
@@ -76,14 +82,17 @@ fi
 make_input() {
   stream=false
   [ -n "$opt_stream" ] && stream=true
+  if [ -z "$opt_tools_file$opt_tools" ]; then
+    opt_tools=null
+  fi
   jq -cs \
     --argjson stream "$stream" \
-    --argjson tools "${opt_tools:-null}" \
+    --"${opt_tools:+argjson}${opt_tools_file:+slurpfile}" tools "${opt_tools_file:-[$opt_tools]}" \
     --arg reasoning "$opt_reasoning" \
     --arg model "$opt_model" \
     --argjson extra "${opt_extra_request_args:-{\}}" \
     '{"model":$model,"stream":$stream,"reasoning":{"effort":$reasoning},"input":.} + $extra
-      | if $tools != null then .tools = $tools end'
+      | if $tools[0] != null then .tools = $tools[0] end'
 }
 
 curl_file_escape() {

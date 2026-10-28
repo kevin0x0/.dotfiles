@@ -7,7 +7,23 @@ _comp_cmd_llm_chat() {
     -*c)
       case $cur in
         @*)
-          _comp_compgen -P @ -C "${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts/" -- filedir
+          COMPREPLY=()
+          local path=
+          for path in "${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts" "${XDG_DATA_HOME:-$HOME/.local/share}/llm-scripts"; do
+            [ -d "$path" ] || continue
+            _comp_compgen -aP @ -C "$path" -- filedir
+          done
+
+          local paths=${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}
+          paths=${paths:+$paths:}
+          while [ -n "$paths" ]; do
+            path=${paths%%:*}
+            paths=${paths#*:}
+
+            path=${path:-.}/llm-scripts
+            [ -d "$path" ] || continue
+            _comp_compgen -aP @ -C "$path" -- filedir
+          done
           ;;
         *)
           _comp_compgen -- filedir

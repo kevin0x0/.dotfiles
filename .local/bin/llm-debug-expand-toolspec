@@ -1,0 +1,28 @@
+#!/bin/sh
+
+. llm-config-utils
+
+expand_toolspec() {
+  print_toolname() {
+    set -- "${1%"${1##*[!/]}"}"
+    printf "%s\n" "${1##*/}"
+    return 1
+  }
+  patterns=$1
+  while [ -n "$patterns" ]; do
+    case $patterns in
+      [[:space:]]*)
+        patterns=${patterns#[[:space:]]}
+        ;;
+      *)
+        pattern=${patterns%%[[:space:]]*}
+        patterns=${patterns#"$pattern"}
+        match_config_item "tools/$pattern" print_toolname
+        ;;
+    esac
+  done | sort -u
+}
+
+for arg; do
+  expand_toolspec "$arg"
+done

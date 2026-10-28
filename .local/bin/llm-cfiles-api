@@ -20,14 +20,10 @@ opt_files_base_url=
 opt_api_key=
 opt_files_default_purpose=user_data
 
-. llm-argparse-utils
+. llm-config-utils
 
 llm_scriptname=llm-cfiles-api
-if [ ! -f "$llm_configdir/instances/$instance" ]; then
-  printf "no such instance: %s\n" "$instance" >&2
-  exit 1
-fi
-. -- "$llm_configdir/instances/$instance"
+source_configfile "@instances/$instance" || exit
 
 eval_api_key
 
