@@ -1,0 +1,3 @@
+#!/bin/sh
+
+jq -j '.output // ""' | llm-v4a-render-result "$@"
