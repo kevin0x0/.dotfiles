@@ -1,6 +1,10 @@
 {
   "type": "object",
     "properties": {
+      "interpreter": {
+        "type": "string",
+        "description": "The code interpreter, can be command name or a pathname that resolves to an executable."
+      },
       "code": {
         "type": "string",
         "description": "The code to be executed."
@@ -9,5 +13,6 @@
         "type": "string",
         "description": "Your intent to execute this script, in user-preferred language."
       }
-    }
+    },
+  "required": ["code", "intent"]
 }

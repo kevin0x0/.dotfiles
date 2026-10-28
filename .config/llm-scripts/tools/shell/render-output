@@ -37,7 +37,7 @@ jq -j 'select(.type == "input_text") | .text' \
       'def norm($prefix): rtrimstr("\n") | split("\n") | map($prefix + " " + . + "\n");
        def head($lines): if $lines == -1 then .[] else .[0:$lines][], if $lines < length then ("...has more" | norm("more")[]) else empty end end;
 
-       ("command output:" | norm("header")[]),
+       ("script output:" | norm("header")[]),
        if .error != null then
          .error + if .reason != null then "\n  " + .reason else "" end | norm("error")[]
        else

@@ -1,10 +1,24 @@
-Request to execute given POSIX shell script. Output:
-  {"error":null,"exitcode":<int>,"stdout":<string>,"stderr":<string>} on execution,
-  {"error":<string>} on failure,
-  or {"error": "rejected", "reason":<string>} on rejection.
+# Synopsis
 
-Note:
-  - The request may be rejected.
-  - The script should terminate.
-  - Don't change system's state unless it is exactly what user wants or
-    is necessary to achieve user's request.
+Request to execute a script through a specified interpreter.
+
+Returns:
+- On success: `{"error": null, "exitcode": <int>, "stdout": <string>, "stder
+r": <string>}`
+- On failure: `{"error": <string>}`
+- On rejection: `{"error": "rejected", "reason": <string>}`
+
+# Interpreter Resolution
+
+The interpreter is selected according to the following priority order:
+1. An interpreter explicitly specified in the arguments.
+2. An interpreter specified by the user.
+3. `bash`, if available.
+4. `sh`.
+
+# Notes
+
+- The request may be rejected.
+- The script must terminate.
+- Do not modify system state unless it is explicitly what the user wants or 
+is strictly necessary to fulfill the request.
