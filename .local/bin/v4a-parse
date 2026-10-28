@@ -228,7 +228,7 @@ find_context() {
 
 find_context_with_filter() {
   context_lines_file=$1
-  set -- '' 's/[[:space:]]*$//' 's/[[:space:]]*$//;s/^[[:space:]]*//;'
+  set -- '' 's/[[:space:]]*$//' 's/[[:space:]]*$//;s/^[[:space:]]*//'
   case ${LC_ALL:-${LC_CTYPE:-${LANG}}} in
     *utf-8*|*UTF-8*|*UTF8*|*utf8*)
       set -- "$@" 's/[‐‑‒–—―−]/-/g;s/[‘’‚‛]/'\''/g;s/[“”„‟]/"/g;s/[            　]/ /g'
