@@ -3,8 +3,7 @@
 Request to execute a script through a specified interpreter.
 
 Returns:
-- On success: `{"error": null, "exitcode": <int>, "stdout": <string>, "stder
-r": <string>}`
+- On success: `{"error": null, "exitcode": <int>, "stdout": <string>, "stderr": <string>}`
 - On failure: `{"error": <string>}`
 - On rejection: `{"error": "rejected", "reason": <string>}`
 
