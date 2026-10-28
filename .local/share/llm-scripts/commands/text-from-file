@@ -1,6 +1,5 @@
 # vim: ft=sh
 
-
 shift
 if [ "$#" -eq 0 ]; then
   llm-make-mcontent -t >&3

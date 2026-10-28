@@ -1,0 +1,4 @@
+# vim: ft=sh
+
+source_configfile @providers/deepseek/config
+opt_model=deepseek-v4-pro

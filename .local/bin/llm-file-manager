@@ -16,7 +16,7 @@ opt_deleteboth=
 
 opt_nul_terminated=
 
-. llm-argparse-utils
+. llm-config-utils
 
 llm_scriptname=llm-file-manager
 [ -f "$llm_configdir/file-manager-config" ] && . -- "$llm_configdir/file-manager-config"

@@ -1,3 +1,0 @@
-#!/bin/sh
-
-llm_configdir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts

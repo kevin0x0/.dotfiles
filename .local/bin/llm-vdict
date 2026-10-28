@@ -1,5 +1,5 @@
 #!/bin/sh
 
-. llm-common
-prompt_template=$llm_configdir/prompts/dict-verbose-template
+. llm-config-utils
+locate_config_item prompt_template prompts/dict-verbose-template || exit
 exec llm-lang-task -p "$prompt_template" "$@"

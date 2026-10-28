@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. llm-config-utils
+
 opt_test=
 opt_render_kind=
 opt_output_amount=
@@ -35,20 +37,18 @@ if [ -z "$opt_name" ]; then
   exit 2
 fi
 
-for d; do
-  [ -n "$d" ] || continue
-
-  f=$d/$opt_name/$opt_render_kind
-  [ -f "$f" ] || continue
-
-  if [ -x "$f" ]; then
+render_tool() {
+  if [ -x "$1" ]; then
     [ -n "$opt_test" ] && exit 0
-    "$f" -l "$opt_output_amount" -- "${f%/*}"
+    "$1" -l "$opt_output_amount" -- "${1%/*}"
     exit 0
-  elif [ -r "$f" ]; then
+  elif [ -r "$1" ]; then
     [ -n "$opt_test" ] && exit 0
-    sh -- "$f" -l "$opt_output_amount" -- "${f%/*}"
+    sh -- "$1" -l "$opt_output_amount" -- "${1%/*}"
     exit 0
   fi
-done
-[ -n "$opt_test" ] && exit 1
+}
+
+for_config_item "tools/$opt_name/$opt_render_kind" render_tool
+
+[ -z "$opt_test" ]

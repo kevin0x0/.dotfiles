@@ -4,6 +4,4 @@ opt_reasoning=high
 opt_stream=1
 opt_repl_prompt_template='$(ansi_escape "33;1")llm> $(ansi_escape "0")'
 
-if [ -f "$llm_configdir/instances/default" ]; then
-  . -- "$llm_configdir/instances/default"
-fi
+source_configfile @instances/default 2>/dev/null

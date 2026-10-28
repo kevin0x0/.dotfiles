@@ -59,9 +59,9 @@ default_renderer_file_image() {
 }
 
 default_renderer_tool_call() {
-  if llm-tool-render -ctn "$1" -- "$opt_tooldir"; then
+  if llm-tool-render -ctn "$1"; then
     jq -j '.arguments // .input // @json' \
-      | llm-tool-render -cn "$1" -l "$renderer_opt_tool_output_lines" -- "$opt_tooldir"
+      | llm-tool-render -cn "$1" -l "$renderer_opt_tool_output_lines"
   else
     default_renderer_notify_header "calling $1"
     echo
@@ -70,12 +70,12 @@ default_renderer_tool_call() {
 }
 
 default_renderer_tool_output() {
-  if llm-tool-render -otn "$1" -- "$opt_tooldir"; then
+  if llm-tool-render -otn "$1"; then
     if [ "$2" != is_builtin ]; then
       jq -c '.output | if type == "string" then [{type:"input_text",text:.}] end | .[]'
     else
       cat -u
-    fi | llm-tool-render -on "$1" -l "$renderer_opt_tool_output_lines" -- "$opt_tooldir"
+    fi | llm-tool-render -on "$1" -l "$renderer_opt_tool_output_lines"
   else
     default_renderer_notify_header "called $1"
     echo

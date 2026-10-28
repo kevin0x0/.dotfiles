@@ -12,7 +12,7 @@ opt_retrieve=
 
 opt_expire=
 
-. llm-argparse-utils
+. llm-config-utils
 
 while getopts "u:k:p:e:fFnNcUdlr" opt; do
   case $opt in

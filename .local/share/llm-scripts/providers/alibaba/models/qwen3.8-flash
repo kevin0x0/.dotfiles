@@ -1,0 +1,4 @@
+# vim: ft=sh
+
+source_configfile @providers/alibaba/config
+opt_model=qwen3.8-flash

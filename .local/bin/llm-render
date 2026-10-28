@@ -1,17 +1,16 @@
 #!/bin/sh
 
-. llm-argparse-utils
+. llm-config-utils
 . llm-render-utils
 
 opt_color=auto
 opt_color_ansi=
 opt_fromfile=
-opt_tooldir=
 
 llm_scriptname=llm-render
 [ -f "$llm_configdir/llm-render" ] && . -- "$llm_configdir/llm-render"
 
-while getopts "f:o:O:c:t:" opt; do
+while getopts "f:o:O:c:" opt; do
   case $opt in
     f)
       opt_fromfile=1
@@ -19,15 +18,10 @@ while getopts "f:o:O:c:t:" opt; do
     [oO])
       option_prefix=opt_
       [ "$opt" = O ] && option_prefix=
-      option_name=${OPTARG%%=*}
-      option_value=${OPTARG#*=}
-      getarg "$option_prefix$(printf "%s" "$option_name" | tr -- '-' '_')" "$option_value"
+      evaluate_option "$option_prefix$OPTARG"
       ;;
     c)
       source_configfile "$OPTARG"
-      ;;
-    t)
-      opt_tooldir=$OPTARG
       ;;
     \?)
       exit 2
