@@ -32,14 +32,16 @@
 > $1 不存在或不是可读文件
 # failed to extract file ids from $1
 > 从 $1 提取文件 id 失败
-# agent loop failed but no error message given
-> agent 循环失败，但未给出错误信息
+# The API call exit code is 0, but the returned response output is empty.
+> API 调用退出码为 0，但返回的响应输出为空
 # response incomplete: $1
 > 响应不完整：$1
 # response incomplete but no reason given
 > 响应不完整，但未给出原因
 # failed to handle tool call
 > 处理工具调用失败
+# interrupted
+> 已中断
 # unknown state: $1
 > 未知状态：$1
 # target language (-t) not specified

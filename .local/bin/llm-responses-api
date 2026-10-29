@@ -100,8 +100,9 @@ curl_file_escape() {
   eval " $1"='${tmp%x}'
 }
 
-call_curl() {
+call_curl() (
   curl_file_escape escaped "$tmp_input"
+  trap ':' INT
   opts=-sS${opt_stream:+N}
   curl "$opts" "$opt_responses_base_url" \
     -H 'Content-Type: application/json' \
@@ -111,9 +112,13 @@ call_curl() {
 Authorization: Bearer $opt_api_key
 EOF
 
-  # print extra newline
-  echo
-}
+  if [ "$?" -gt 128 ]; then
+    printf "\n\0INTERRUPTED\n"
+  else
+    # print extra newline
+    echo
+  fi
+)
 
 make_nonstream_output() {
   tmp=$statedir/tmp.output
@@ -133,15 +138,13 @@ make_nonstream_output() {
         end, ("" | halt_error(4))
       end
     ) catch (
-      {"error":{"message":$input,"type":"__defined_by_me","code":"__defined_by_me"}}, ("" | halt_error(4))
-    )' >"$tmp"
+      if $input | endswith("\u0000INTERRUPTED\n") then
+        halt_error(7)
+      else
+        {"error":{"message":$input,"type":"__defined_by_me","code":"__defined_by_me"}}, ("" | halt_error(4))
+      end
+    )' >"$tmp" 2>/dev/null
   exitcode=$?
-
-  case $response_output in
-    "") exec 3>&1 ;;
-    *)  exec 3>"$response_output" ;;
-  esac
-  cat "$tmp" >&3
 
   case $event_output in
     "") exec 3>&1 ;;
@@ -160,31 +163,58 @@ make_nonstream_output() {
       ;;
     5)
       # Failed
-      exitcode=1
-      ;;
-    *)
       exitcode=4
       ;;
+    7)
+      : >"$tmp"
+      exitcode=5
+      ;;
+    *)
+      exitcode=1
+      ;;
   esac
+
+  case $response_output in
+    "") exec 3>&1 ;;
+    *)  exec 3>"$response_output" ;;
+  esac
+  cat "$tmp" >&3
 
   return "$exitcode"
 }
 
 sse_to_jsons() {
   sse_to_json_program='
-  if startswith("data:") then
-    if contains("[DONE]") then
-      halt
+  def object_prefix_len:
+    if . == "" then
+      0
+    elif try (fromjson | true) catch false then
+      length
     else
-      trimstr("data:") | trimstr(" ")
-    end
-  elif startswith("id:") or startswith("event:") or
-    startswith("retry:") or startswith(":") or . == "" then
-    empty
-  else
-    (try fromjson) // {"error":{"message":([., inputs] | add),"type":"__defined_by_me","code":"__defined_by_me"}} |
-      {"type":"response.failed","sequence_number","sequence_number":0,"response":.} | @json
-  end'
+      sub("[^}]*.$"; "") | object_prefix_len
+    end;
+
+  foreach (., inputs) as $input (
+    ["", ""];
+    . as [$str, $_] | $input |
+    if startswith("data:") then
+      ltrimstr("data:") | ltrimstr(" ") |
+      if . == "[DONE]" then
+        halt
+      end | $str + . + "\n" | object_prefix_len as $len | [.[$len:], .[:$len]]
+    elif startswith("id:") or startswith("event:") or
+      startswith("retry:") or startswith(":") or . == "" then
+      [$str, ""]
+    else
+      if endswith("\u0000INTERRUPTED") then
+        [$str, {type:"_my_interrupted",sequence_number:infinite,response:null} | @json]
+      else
+        (try fromjson) // {error:{message:([., inputs] | add),type:"__defined_by_me",code:"__defined_by_me"}} |
+          [$str, {type:"response.failed",sequence_number:infinite,response:.} | @json]
+      end
+    end;
+    .[1] | select(. != "") | rtrimstr("\n")
+  )'
 
   jq --unbuffered -Rr "$sse_to_json_program"
 }
@@ -241,7 +271,7 @@ stream_sort() {
 preprocess_render_event() {
   preprocess_program='
   def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
-  . as { type:$type } |
+  . as { $type } |
   if .type == "response.reasoning_text.delta" then
     [.output_index, .content_index, null, "reasoning", .delta]
   elif .type == "response.reasoning_summary_text.delta" then
@@ -306,6 +336,8 @@ preprocess_render_event() {
     [null, null, null, "", ([.response.error] | @json)]
   elif .type == "response.incomplete" then
     [null, null, null, "", ([.response.incomplete_details] + .response.output | @json)]
+  elif .type == "_my_interrupted" then
+    [null, null, null, "", ""]
   else
     empty
   end | . as [$output_index, $content_index, $summary_index, $render_event] | .[4] | chunk |
@@ -321,8 +353,7 @@ preprocess_render_event() {
 }
 
 make_stream_output() {
-  buffer_statedir=$statedir/buffer
-  mkdir -- "$buffer_statedir" || return
+  mkdir -- "$buffer_statedir" || return 1
   set --
   case $event_output in
     "") exec 3>&1 ;;
@@ -420,54 +451,6 @@ make_stream_output() {
     fi
 
     case $type in
-      response.completed|response.failed|response.incomplete)
-        break
-        ;;
-      response.content_part.added)
-        d=$buffer_statedir/$output_index/$content_index
-        [ ! -d "$d" ] && mkdir -p -- "$d"
-        should_set_current_output_kind && current_is_nonsummary=1
-        should_set_output_kind && : >"$buffer_statedir/$output_index/is_nonsummary"
-        if is_current && [ -n "$current_is_nonsummary" ]; then
-          emit_render_event "$render_event" "$payload"
-        else
-          emit_render_event "$render_event" "$payload" >>"$d/part"
-        fi
-        ;;
-      response.content_part.done)
-        f=$buffer_statedir/$output_index/$content_index/done
-        if [ ! -f "$f" ]; then
-          : >"$f"
-          done_pending=${output_index}-${content_index}-null
-        fi
-        ;;
-      response.output_item.added)
-        d=$buffer_statedir/$output_index
-        [ ! -d "$d" ] && mkdir -- "$d"
-        if [ -n "$render_event" ] && [ "$output_index" -eq "$current_item_index" ]; then
-          emit_render_event "$render_event" "$payload"
-        fi
-        ;;
-      response.output_item.done)
-        f=$buffer_statedir/$output_index/done
-        emit_render_event "$render_event" "$payload" >>"$f"
-        done_pending=${output_index}-null-null
-        if [ "$output_index" -eq "$current_item_index" ]; then
-          current_is_summary=
-          current_is_nonsummary=
-        fi
-        ;;
-      response.reasoning_summary_part.added)
-        d=$buffer_statedir/$output_index/summary-$summary_index
-        [ ! -d "$d" ] && mkdir -- "$d"
-        should_set_current_output_kind && current_is_summary=1
-        should_set_output_kind && : >"$buffer_statedir/$output_index/is_summary"
-        if is_current && [ -n "$current_is_summary" ]; then
-          emit_render_event "$render_event" "$payload"
-        else
-          emit_render_event "$render_event" "$payload" >>"$d/part"
-        fi
-        ;;
       response.reasoning_summary_part.done)
         f=$buffer_statedir/$output_index/summary-$summary_index/done
         if [ ! -f "$f" ]; then
@@ -519,6 +502,54 @@ make_stream_output() {
           emit_render_event "$render_event" "$payload" >>"$d/part"
         fi
         ;;
+      response.content_part.added)
+        d=$buffer_statedir/$output_index/$content_index
+        [ ! -d "$d" ] && mkdir -p -- "$d"
+        should_set_current_output_kind && current_is_nonsummary=1
+        should_set_output_kind && : >"$buffer_statedir/$output_index/is_nonsummary"
+        if is_current && [ -n "$current_is_nonsummary" ]; then
+          emit_render_event "$render_event" "$payload"
+        else
+          emit_render_event "$render_event" "$payload" >>"$d/part"
+        fi
+        ;;
+      response.content_part.done)
+        f=$buffer_statedir/$output_index/$content_index/done
+        if [ ! -f "$f" ]; then
+          : >"$f"
+          done_pending=${output_index}-${content_index}-null
+        fi
+        ;;
+      response.output_item.added)
+        d=$buffer_statedir/$output_index
+        [ ! -d "$d" ] && mkdir -- "$d"
+        if [ -n "$render_event" ] && [ "$output_index" -eq "$current_item_index" ]; then
+          emit_render_event "$render_event" "$payload"
+        fi
+        ;;
+      response.output_item.done)
+        f=$buffer_statedir/$output_index/done
+        emit_render_event "$render_event" "$payload" >>"$f"
+        done_pending=${output_index}-null-null
+        if [ "$output_index" -eq "$current_item_index" ]; then
+          current_is_summary=
+          current_is_nonsummary=
+        fi
+        ;;
+      response.reasoning_summary_part.added)
+        d=$buffer_statedir/$output_index/summary-$summary_index
+        [ ! -d "$d" ] && mkdir -- "$d"
+        should_set_current_output_kind && current_is_summary=1
+        should_set_output_kind && : >"$buffer_statedir/$output_index/is_summary"
+        if is_current && [ -n "$current_is_summary" ]; then
+          emit_render_event "$render_event" "$payload"
+        else
+          emit_render_event "$render_event" "$payload" >>"$d/part"
+        fi
+        ;;
+      response.completed|response.failed|response.incomplete|_my_interrupted)
+        break
+        ;;
       # response.reasoning_text.done)
       #   ;;
       # response.output_text.done)
@@ -537,39 +568,105 @@ make_stream_output() {
   esac
 
   exitcode=0
+  drain=1
   case $type in
     response.completed)
-      ;;
-    response.failed)
-      exitcode=1
       ;;
     response.incomplete)
       exitcode=3
       ;;
-    *)
+    response.failed)
       exitcode=4
       ;;
+    _my_interrupted)
+      drain=
+      exitcode=5
+      ;;
+    *)
+      jq -n '{
+        error: {
+        message:"the stream terminated abnormally",
+        type:"__defined_by_me",
+        code:"__defined_by_me"
+        }
+      }' >&3
+      drain=
+      exitcode=1
+      ;;
   esac
-  if [ "$exitcode" -ne 4 ]; then
-    printf "%s" "$payload"
-    while read -r unused && read -r unused && read -r unused \
-      && read -r unused && read -r unused && read -r payload; do
+  if [ -n "$drain" ]; then
+    {
       printf "%s" "$payload"
-    done
-  fi | jq -j '.' | jq -c '.[]' >&3
-
+      while read -r unused && read -r unused && read -r unused \
+        && read -r unused && read -r unused && read -r payload; do
+        printf "%s" "$payload"
+      done
+    } | jq -j '.' | jq -c '.[]' >&3
+  fi
   return "$exitcode"
 }
 
+make_interrupted_output() {
+  build_interruted_output_program='
+  reduce (., inputs) as $event ([];
+  if $event.type == "response.reasoning_text.delta" then
+    if .[$event.output_index].content[$event.content_index] | not then
+      .[$event.output_index].content[$event.content_index].type = "reasoning_text"
+    end | .[$event.output_index].content[$event.content_index].text += $event.delta
+  elif $event.type == "response.output_text.delta" then
+    if .[$event.output_index].content[$event.content_index] | not then
+      .[$event.output_index].content[$event.content_index].type = "output_text"
+    end |
+    .[$event.output_index].content[$event.content_index].text += $event.delta |
+    if $event.logprobs != null then
+      .[$event.output_index].content[$event.content_index].logprobs += $event.logprobs
+    end
+  elif $event.type == "response.refusal.delta" then
+    if .[$event.output_index].content[$event.content_index] | not then
+      .[$event.output_index].content[$event.content_index].type = "refusal"
+    end |
+    .[$event.output_index].content[$event.content_index].refusal += $event.delta
+  elif $event.type == "response.reasoning_summary_text.delta" then
+    if .[$event.output_index].summary[$event.summary_index] | not then
+      .[$event.output_index].summary[$event.summary_index].type = "summary_text"
+    end |
+    .[$event.output_index].summary[$event.summary_index].text += $event.delta
+  elif $event.type == "response.reasoning_summary_part.added" then
+    .[$event.output_index].summary[$event.summary_index] = $event.part
+  elif $event.type == "response.reasoning_summary_part.done" then
+    .[$event.output_index].summary[$event.summary_index] = $event.part
+  elif $event.type == "response.content_part.added" then
+    .[$event.output_index].content[$event.content_index] = $event.part
+  elif $event.type == "response.content_part.done" then
+    .[$event.output_index].content[$event.content_index] = $event.part
+  elif $event.type == "response.output_item.added" then
+    .[$event.output_index] = $event.item
+  elif $event.type == "response.output_item.done" then
+    .[$event.output_index] = $event.item
+  end)[] | select(. != null) |
+    if .type == "message" or .type == "reasoning" then .status = "completed" end'
+  jq -c -- "$build_interruted_output_program"
+}
+
 statedir=
-trap '[ -n "$statedir" ] && rm -rf -- "$statedir"' EXIT
-trap '[ -n "$statedir" ] && rm -rf -- "$statedir"; trap - INT; kill -INT "$$"' INT
-trap '[ -n "$statedir" ] && rm -rf -- "$statedir"; trap - TERM; kill -TERM "$$"' TERM
-trap '[ -n "$statedir" ] && rm -rf -- "$statedir"; trap - QUIT; kill -QUIT "$$"' QUIT
+cleanup() {
+  [ -n "$statedir" ] && rm -rf -- "$statedir"
+  if [ -n "$1" ]; then
+    trap - "$1"
+    kill -"$1" "$$"
+  fi
+}
+
+trap 'cleanup' EXIT
+trap '' INT
+trap 'cleanup TERM' TERM
+trap 'cleanup QUIT' QUIT
 
 
-statedir=$(tmpfile -d) || exit 4
+statedir=$(tmpfile -d) || exit 1
 tmp_input=$statedir/tmp.curl-input
+tmp_sorted_stream=$statedir/tmp.stream
+buffer_statedir=$statedir/buffer
 
 if [ -n "$opt_input" ]; then
   make_input >"$tmp_input" <"$opt_input"
@@ -581,9 +678,15 @@ if [ -z "$opt_stream" ]; then
   call_curl | make_nonstream_output
 else
   call_curl | sse_to_jsons | stream_sort \
-    | preprocess_render_event | make_stream_output
+    | tee -- "$tmp_sorted_stream" | preprocess_render_event | make_stream_output
+  exitcode=$?
+  if [ "$exitcode" -eq 5 ]; then
+    # interrupted
+    case $response_output in
+      "") exec 3>&1 ;;
+      *)  exec 3>"$response_output" ;;
+    esac
+    make_interrupted_output <"$tmp_sorted_stream" >&3
+  fi
+  exit "$exitcode"
 fi
-
-exitcode=$?
-rm -rf -- "$statedir"
-exit "$exitcode"
