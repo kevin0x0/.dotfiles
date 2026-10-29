@@ -22,7 +22,7 @@ opt_files_default_purpose=user_data
 
 . llm-config-utils
 
-llm_scriptname=llm-cfiles-api
+llm_scriptname=llm-files-api-configured
 source_configfile "@instances/$instance" || exit
 
 eval_api_key

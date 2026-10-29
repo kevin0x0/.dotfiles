@@ -1,0 +1,41 @@
+#!/bin/sh
+
+instance=$1
+case $instance in
+  -*|'')
+    instance=default
+    ;;
+  *)
+    shift
+    ;;
+esac
+
+
+opt_api_key=
+
+. llm-config-utils
+
+llm_scriptname=llm-responses-api-configured
+source_configfile "@instances/$instance" || exit
+
+eval_api_key
+
+cleanup() {
+  [ -n "$tmp" ] && rm -rf -- "$tmp"
+  if [ -n "$1" ]; then
+    trap - "$1"
+    kill -"$1" "$$"
+  fi
+}
+
+tmp=
+trap 'cleanup' EXIT
+trap 'cleanup TERM' TERM
+trap 'cleanup QUIT' QUIT
+tmp=$(tmpfile) || exit
+cat >"$tmp"
+
+trap ':' INT
+llm-responses-api -u "$opt_responses_base_url" -m "$opt_model" -FNk 0 -i "$tmp" "$@" <<EOF
+$opt_api_key
+EOF

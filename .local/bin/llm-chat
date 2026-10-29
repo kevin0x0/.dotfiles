@@ -438,16 +438,17 @@ call() (
     exit 1
   fi
 
-  trap ':' INT
-  set -o pipefail
-
-  cat -- "$conversation" "$this_turn" >"$tmp_conversation_fifo" &
-
   [ -s "$toollist" ] && set -- "$@" -T "$toollist"
+
+  cat -- "$conversation" "$this_turn" >"$response_input_fifo" &
+  dispatch_render_event "$render_event_fifo" <"$response_event_output_fifo" &
+
+  trap ':' INT
   llm-responses-api -FNk 0 "$@" -- "$response_output" - <<EOF \
-    | dispatch_render_event "$render_event_fifo"
+    >"$response_event_output_fifo"
 $opt_api_key
 EOF
+
   exitcode=$?
   while ! wait; do
     continue
@@ -639,7 +640,8 @@ toollist=$statedir/tool-list
 text_input=$statedir/text-input
 cmdline_input=$statedir/cmdline-input
 render_event_fifo=$statedir/render-event-fifo
-tmp_conversation_fifo=$statedir/tmp.conversation-fifo
+response_input_fifo=$statedir/response-input-fifo
+response_event_output_fifo=$statedir/response-output-fifo
 tmp=$statedir/tmp
 
 expand_toolspec "$opt_toolspec" \
@@ -648,7 +650,8 @@ expand_toolspec "$opt_toolspec" \
   | jq -cs 'select(length != 0)' >"$toollist"
 [ "$#" -ne 0 ] && printf "%s\n" "$@" >"$cmdline_input"
 mkfifo -- "$render_event_fifo" || exit
-mkfifo -- "$tmp_conversation_fifo" || exit
+mkfifo -- "$response_input_fifo" || exit
+mkfifo -- "$response_event_output_fifo" || exit
 
 if [ -n "$opt_session_conversation" ] && [ -f "$opt_session_conversation" ]; then
   state_init_from_session
@@ -662,7 +665,7 @@ fi
 
 set -- \
   -u "$opt_responses_base_url" \
-  -i "$tmp_conversation_fifo" \
+  -i "$response_input_fifo" \
   -r "$opt_reasoning" \
   -m "$opt_model"
 [ -n "$opt_stream" ] && set -- "$@" -s
@@ -710,16 +713,20 @@ while :; do
     agent-loop-api-call)
       call "$@"
       exitcode=$?
-      if [ ! -s "$response_output" ]; then
-        i18n -n llm-scripts 'agent loop failed but no error message given' >&2
-        error_to read-loop
-        continue
-      fi
-
       case $exitcode in
         0) # Append to input
+          if [ -s "$response_output" ]; then
+            llm-o2i "$response_output" >>"$this_turn"
+            state=agent-loop-tool-call
+          else
+            i18n -n llm-scripts \
+              'The API call exit code is 0, but the returned response output is empty.' >&2
+            error_to read-loop
+          fi
+          ;;
+        5)
           llm-o2i "$response_output" >>"$this_turn"
-          state=agent-loop-tool-call
+          state=agent-loop-api-call-interrupted
           ;;
         3) # response.incomplete
           echo
@@ -729,6 +736,7 @@ while :; do
                 # Skip the first item
                 jq -c -- 'inputs' "$response_output" >"$tmp"
                 cp -- "$tmp" "$response_output"
+                llm-o2i "$response_output" >>"$this_turn"
                 state=agent-loop-tool-call
                 ;;
               *)
@@ -748,14 +756,38 @@ while :; do
       esac
       ;;
     agent-loop-tool-call)
-      if call_tool; then
-        llm-render-events <"$tool_output" | dispatch_render_event "$render_event_fifo"
-        cat -- "$tool_output" >>"$this_turn"
-        [ -s "$tool_output" ] && state=agent-loop-api-call || state=agent-loop-end
-      else
+      call_tool
+      exitcode=$?
+      case $exitcode in
+        0)
+          cat -- "$tool_output" >>"$this_turn"
+          [ -s "$tool_output" ] && state=agent-loop-api-call || state=agent-loop-end
+          ;;
+        5)
+          cat -- "$tool_output" >>"$this_turn"
+          state=agent-loop-tool-call-interrupted
+          ;;
+        *)
+          i18n -n llm-scripts 'failed to handle tool call' >&2
+          error_to read-loop
+          continue
+          ;;
+      esac
+      llm-render-events <"$tool_output" | dispatch_render_event "$render_event_fifo"
+      ;;
+    agent-loop-api-call-interrupted)
+      i18n -n llm-scripts 'interrupted' >&2
+      if ! call_tool -I; then
         i18n -n llm-scripts 'failed to handle tool call' >&2
         error_to read-loop
+      else
+        cat -- "$tool_output" >>"$this_turn"
+        state=read-loop
       fi
+      ;;
+    agent-loop-tool-call-interrupted)
+      i18n -n llm-scripts 'interrupted' >&2
+      state=read-loop
       ;;
     agent-loop-end)
       cat -- "$this_turn" >>"$conversation"

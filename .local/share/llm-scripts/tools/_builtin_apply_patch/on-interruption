@@ -1,0 +1,8 @@
+#!/bin/sh
+
+jq '{
+      call_id: .call_id,
+      status: "failed",
+      type: "apply_patch_call_output",
+      output: "interrupted by user\n"
+    }'
