@@ -241,7 +241,7 @@ find_context_with_filter() {
     fi
   done
 
-  error "can not locate the context from line $file_line_offset: $(echo; sed 's/^/========> /' <"$context_lines_file")"
+  error "can not locate the context from line $file_line_offset in $filename: $(echo; sed 's/^/========> /' <"$context_lines_file")"
 }
 
 generate_change() {
