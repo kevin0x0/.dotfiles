@@ -3,12 +3,12 @@
   "properties": {
     "operation": {
       "type": "string",
-      "enum": ["create", "remove", "list", "path"],
+      "enum": ["create", "remove", "list-enabled", "path"],
       "description": "The operation to perform."
     },
     "state": {
       "type": "string",
-      "description": "Session state the hook is attached to. Required for create, remove and path; optional for list (filters the list)."
+      "description": "Session state the hook is attached to. Required for create, remove and path; optional for list-enabled (filters the list)."
     },
     "type": {
       "type": "string",

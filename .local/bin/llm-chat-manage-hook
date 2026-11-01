@@ -7,11 +7,11 @@ usage: llm-chat-manage-hook [-d <statedir>] <subcommand> [<options>] [<args>]
 Manage hooks that run on session state transitions.
 
 subcommands:
-  create  -s <state> [-t oneshot|always] [-A|-B] [-L] [-a] [-c]
-          (<command> | <hook-file>) [<name>]
-  remove  -s <state> [-t oneshot|always] [-A|-B] <name>
-  list    [-s <state>] [-t oneshot|always] [-A|-B]
-  path    [-s <state>] [-t oneshot|always] [-A|-B] <name>
+  create        -s <state> [-t oneshot|always] [-A|-B] [-L] [-a] [-c]
+                (<command> | <hook-file>) [<name>]
+  remove        -s <state> [-t oneshot|always] [-A|-B] <name>
+  list-enabled  [-s <state>] [-t oneshot|always] [-A|-B]
+  path          [-s <state>] [-t oneshot|always] [-A|-B] <name>
 
 options:
   -d <statedir>  session state directory; hooks live under <statedir>/hooks
@@ -42,7 +42,7 @@ subcommand=$1
 shift
 
 case $subcommand in
-  create|remove|list|path) ;;
+  create|remove|list-enabled|path) ;;
   *)
     printf "unsupported subcommand: %s\n" "$subcommand" >&2
     usage >&2
@@ -330,6 +330,6 @@ sub_path() {
 case $subcommand in
   create) sub_create "$@" ;;
   remove) sub_remove "$@" ;;
-  list) sub_list "$@" ;;
+  list-enabled) sub_list "$@" ;;
   path) sub_path "$@" ;;
 esac
