@@ -7,7 +7,7 @@ for name; do
   description=
   parameters=
 
-  locate_config_item generate "tools/$name/generate"
+  llmcu_locate_config_item generate "tools/$name/generate"
   if [ -f "$generate" ]; then
     if [ -r "$generate" ]; then
       (. -- "$generate")
@@ -15,8 +15,8 @@ for name; do
     fi
   fi
 
-  locate_config_item description "tools/$name/description"
-  locate_config_item parameters "tools/$name/parameters"
+  llmcu_locate_config_item description "tools/$name/description"
+  llmcu_locate_config_item parameters "tools/$name/parameters"
 
   if [ ! -f "$description" ] || [ ! -r "$description" ]; then
     description=/dev/null

@@ -121,7 +121,7 @@ call_builtin() {
   if [ "$exitcode" -gt 128 ]; then
     # Consider it to be interrupted
     on_interruption=
-    locate_config_item on_interruption "tools/$name/on-interruption"
+    llmcu_locate_config_item on_interruption "tools/$name/on-interruption"
 
     if [ -z "$on_interruption" ]; then
       printf "'%s' not found\n" "tools/$name/on-interruption" >&2
@@ -174,7 +174,7 @@ find_and_call() {
     return 1
   }
 
-  for_config_item "tools/$name" set_execpath
+  llmcu_for_config_item "tools/$name" set_execpath
 
   while IFS= read -r argpart; do
     case $argpart in
