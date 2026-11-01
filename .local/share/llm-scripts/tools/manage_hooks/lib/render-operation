@@ -1,0 +1,54 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+opt_action=
+opt_append=
+opt_content_kind=
+opt_subject=
+parse_my_option_A() {
+  opt_action=$OPTARG
+}
+parse_my_option_P() {
+  opt_append=1
+}
+parse_my_option_K() {
+  opt_content_kind=$OPTARG
+}
+parse_my_option_S() {
+  opt_subject=$OPTARG
+}
+llmtr_parse_options "A:PK:S:" "$@"
+
+case $opt_action in
+  create) llmtr_render_header '32;1' "create hook${opt_append:+ (append)}${opt_subject:+: $opt_subject}" ;;
+  remove) llmtr_render_header '31;1' "remove hook${opt_subject:+: $opt_subject}" ;;
+  list)   llmtr_render_header '36;1' "list hooks:" ;;
+  path)   llmtr_render_header '36;1' "get hook path${opt_subject:+: $opt_subject}" ;;
+esac
+
+case $opt_content_kind in
+  script)
+    highlight_format=
+    if [ -n "$llmtr_color_enabled" ]; then
+      case $(termcolors) in
+        16777216) highlight_format=truecolor ;;
+        *)        highlight_format=ansi ;;
+      esac
+    fi
+    if command -v highlight >/dev/null 2>&1; then
+      set -- highlight -O "$highlight_format" -S sh
+    else
+      set -- cat -u
+    fi
+    llmtr_complete_newline \
+      | llmtr_run_on_color "$@" \
+      | llmtr_render_lines
+    ;;
+  plain)
+    llmtr_complete_newline | llmtr_render_lines
+    ;;
+  '')
+    cat >/dev/null
+    ;;
+esac

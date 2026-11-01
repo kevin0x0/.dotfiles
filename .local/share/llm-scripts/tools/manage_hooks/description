@@ -1,0 +1,48 @@
+# Synopsis
+
+Manage session hooks: shell scripts that run when the chat session enters or
+leaves a state.
+
+# Operations
+
+- "create": create a hook. Requires "state" and "source". "mode" selects how
+  the hook content is provided: "command" (source is the shell script text),
+  "copy" (source is a file whose content is copied), "symlink" (source is a
+  file the hook links to). "name" is optional; an auto-generated name is used
+  when omitted. "append" requires "name" and appends to the existing hook
+  instead of failing; it can not be used with mode "symlink". "type"
+  ("oneshot" runs once then is removed, "always" runs every time) defaults to
+  "oneshot"; "when" ("before" entering / "after" leaving the state) defaults
+  to "after".
+- "remove": remove a hook. Requires "state" and "name".
+- "list": list existing hooks. "state", "type" and "when" can be used to
+  filter the list.
+- "path": print the absolute pathname of a hook. Requires "state" and "name".
+
+# States
+
+any-state, read-loop, agent-loop-api-call, agent-loop-tool-call,
+agent-loop-end, agent-loop-api-call-interrupted,
+agent-loop-tool-call-interrupted, end.
+
+# Approval
+
+"create" and "remove" require approval on the controlling terminal. In
+non-interactive sessions they are rejected unless automatic approval is
+configured.
+
+# Returns
+
+A JSON object. On success: create returns
+{"created":"<rel>","path":...} ({"appended":"<rel>","path":...} when
+appending); remove returns {"removed":"<rel>","path":...}; list returns
+{"hooks":[{"rel":...,"path":...},...]}; path returns {"path":...}.
+On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
+
+<rel> is the relative hook path in the form state/type/when/name.
+
+# Notes
+
+Use this tool to install scripts that run automatically on session state
+changes (for example desktop notifications or log appends), not to run
+commands directly; use the shell tool for that.

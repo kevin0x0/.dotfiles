@@ -1,0 +1,53 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+llmtr_parse_options "" "$@"
+
+program='
+include "functions";
+
+try (
+  fromjson |
+  ([.state, .type // "oneshot", .when // "after", (.name // empty)]
+     | map(select(. != null)) | join("/")) as $summary |
+  (.append == true) as $is_append |
+  if .operation == "create" then
+    (if (.mode // "command") == "command" then
+       (.source // "" | print_strings, " | ",
+        render_withflags("operation";
+          "-A create" + (if $is_append then " -P" else "" end)
+          + " -K script -S " + ($summary | @sh)))
+     elif (.mode // "command") == "copy" then
+       ("copy from: " + (.source // "?") | print_strings, " | ",
+        render_withflags("operation";
+          "-A create" + (if $is_append then " -P" else "" end)
+          + " -K plain -S " + ($summary | @sh)))
+     elif (.mode // "command") == "symlink" then
+       ("link to: " + (.source // "?") | print_strings, " | ",
+        render_withflags("operation";
+          "-A create" + (if $is_append then " -P" else "" end)
+          + " -K plain -S " + ($summary | @sh)))
+     else
+       ("" | print_strings, " | ",
+        render_withflags("operation";
+          "-A create" + (if $is_append then " -P" else "" end)
+          + " -S " + ($summary | @sh)))
+     end)
+  elif .operation == "remove" then
+    ("" | print_strings, " | ", render_withflags("operation"; "-A remove -S " + ($summary | @sh)))
+  elif .operation == "list" then
+    ("" | print_strings, " | ", render_withflags("operation"; "-A list"))
+  elif .operation == "path" then
+    ("" | print_strings, " | ", render_withflags("operation"; "-A path -S " + ($summary | @sh)))
+  else
+    ("unknown hook operation: " + (.operation // "?") | print_strings, " | ", render("error"))
+  end
+) catch (
+  halt
+)
+'
+
+jq -Rsj --arg libpath "$llmtropt_tool_dir/lib" \
+  -L "$llmtropt_tool_dir/lib" -- "$program" \
+  | sh -s -- "$@"
