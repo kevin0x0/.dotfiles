@@ -11,4 +11,4 @@ if [ -z "$opt_enable_hook" ]; then
   esac
 fi
 
-llm-chat-hook -d "$opt_state_dir" "$@"
+llm-chat-manage-hook -d "$opt_state_dir" "$@"
