@@ -2,7 +2,7 @@
 
 usage() {
   cat <<'EOF'
-usage: llm-chat-hook [-d <statedir>] <subcommand> [<options>] [<args>]
+usage: llm-chat-manage-hook [-d <statedir>] <subcommand> [<options>] [<args>]
 
 Manage hooks that run on session state transitions.
 
