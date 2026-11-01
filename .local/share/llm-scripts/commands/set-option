@@ -1,0 +1,14 @@
+# vim: ft=sh
+
+shift
+
+if [ "$#" -eq 0 ]; then
+  (
+    if f=$(command -v llm-chat) >/dev/null 2>&1; then
+      sed -n -- '/opt_/{s/^.*opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p;}' "$f" | sort -u
+    fi
+  )
+  return 0
+fi
+
+command eval "opt_$(printf "%s" "$1" | tr -- '-' '_')="'$2'
