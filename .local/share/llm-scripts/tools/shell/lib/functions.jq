@@ -7,7 +7,7 @@ def print_strings:
   "}" ;
 
 def render_withflags($kind; $flags):
-  ($libpath + "/render-" + $kind | @sh) + " " + $flags + " \"$@\"\n";
+  "sh -- " + ($libpath + "/render-" + $kind | @sh) + " " + $flags + " \"$@\"\n";
 
 def render($kind):
   render_withflags($kind; "");
