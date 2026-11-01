@@ -85,7 +85,7 @@ validate_type() {
 
 validate_name() {
   case $1 in
-    ''|.|..|*/*)
+    *$'\n'*|*/*|'..'|'.'|'')
       printf "invalid hook name: %s\n" "$1" >&2
       return 2
       ;;
@@ -99,12 +99,13 @@ list_hooks() {
   pattern=${opt_state:-*}/
   pattern=$pattern${opt_type:-*}/
   pattern=$pattern${opt_when:-*}/
-  find "$hookdir" \( -type f -o -type l \) \
+  find "$hookdir/" \( -type f -o -type l \) -print0 \
+    | jq --arg prefix "$hookdir/" \
+        -Rsr 'split("\u0000")[] | ltrimstr($prefix) | select(length != 0)' \
     | {
         while IFS= read -r line; do
-          rel=${line#"$hookdir"/}
-          case $rel in
-            $pattern*) printf "%s\n" "$rel" ;;
+          case $line in
+            $pattern*) printf "%s\n" "$line" ;;
           esac
         done
       }
