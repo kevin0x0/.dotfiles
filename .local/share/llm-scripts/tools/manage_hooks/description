@@ -15,7 +15,7 @@ leaves a state.
   "oneshot"; "when" ("before" entering / "after" leaving the state) defaults
   to "after".
 - "remove": remove a hook. Requires "state" and "name".
-- "list": list existing hooks. "state", "type" and "when" can be used to
+- "list-enabled": list enabled hooks. "state", "type" and "when" can be used to
   filter the list.
 - "path": print the absolute pathname of a hook. Requires "state" and "name".
 
@@ -35,7 +35,7 @@ configured.
 
 A JSON object. On success: create returns
 {"created":"<rel>","path":...} ({"appended":"<rel>","path":...} when
-appending); remove returns {"removed":"<rel>","path":...}; list returns
+appending); remove returns {"removed":"<rel>","path":...}; list-enabled returns
 {"hooks":[{"rel":...,"path":...},...]}; path returns {"path":...}.
 On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 

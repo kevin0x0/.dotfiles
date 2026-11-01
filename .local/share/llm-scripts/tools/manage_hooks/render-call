@@ -36,8 +36,8 @@ try (
      end)
   elif .operation == "remove" then
     ("" | print_strings, " | ", render_withflags("operation"; "-A remove -S " + ($summary | @sh)))
-  elif .operation == "list" then
-    ("" | print_strings, " | ", render_withflags("operation"; "-A list"))
+  elif .operation == "list-enabled" then
+    ("" | print_strings, " | ", render_withflags("operation"; "-A list-enabled"))
   elif .operation == "path" then
     ("" | print_strings, " | ", render_withflags("operation"; "-A path -S " + ($summary | @sh)))
   else

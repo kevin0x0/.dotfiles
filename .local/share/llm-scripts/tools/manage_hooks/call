@@ -27,9 +27,9 @@ cat >"$argfile"
 
 op=$(jq -j '.operation // ""' <"$argfile")
 case $op in
-  create|remove|list|path) ;;
+  create|remove|list-enabled|path) ;;
   *)
-    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, list or path"}'
+    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, list-enabled or path"}'
     exit 0
     ;;
 esac
@@ -116,7 +116,7 @@ case $op in
   remove|path)
     set -- "$@" -- "$name"
     ;;
-  list)
+  list-enabled)
     ;;
 esac
 
