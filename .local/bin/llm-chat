@@ -31,8 +31,8 @@ opt_state_dir=
 
 opt_enable_hook=
 
-opt_fromfile=
-opt_fromfd=
+llmcuopt_fromfile=
+llmcuopt_fromfd=
 
 opt_print_options=
 opt_print_states=
@@ -43,7 +43,7 @@ renderer_opt_tool_output_lines=15
 . llm-render-utils
 
 llm_scriptname=llm-chat
-[ -f "$llm_configdir/chat-config" ] && . -- "$llm_configdir/chat-config"
+[ -f "$llmcu_configdir/chat-config" ] && . -- "$llmcu_configdir/chat-config"
 
 llm_chat_options="fFnNswSh:H:o:O:r:E:k:K:m:u:t:c:" 
 while getopts "$llm_chat_options" opt; do
@@ -51,7 +51,7 @@ while getopts "$llm_chat_options" opt; do
     [oO])
       option_prefix=opt_
       [ "$opt" = O ] && option_prefix=
-      evaluate_option "$option_prefix$OPTARG"
+      llmcu_evaluate_option "$option_prefix$OPTARG"
       case $option_prefix$OPTARG in
         opt_api-key=*)      opt_api_key_cmd= ;;
         opt_api-key-cmd=*)  opt_api_key= ;;
@@ -60,58 +60,58 @@ while getopts "$llm_chat_options" opt; do
       esac
       ;;
     n)
-      set_boolean_option opt_inverse_boolean_option
+      llmcu_set_boolean_option llmcuopt_inverse_boolean_option
       ;;
     N)
-      set_boolean_option opt_getarg_trim_newline
+      llmcu_set_boolean_option llmcuopt_trim_newline
       ;;
     f)
-      set_boolean_option opt_fromfile
+      llmcu_set_boolean_option llmcuopt_fromfile
       ;;
     F)
-      set_boolean_option opt_fromfd
+      llmcu_set_boolean_option llmcuopt_fromfd
       ;;
     s)
-      set_boolean_option opt_stream
+      llmcu_set_boolean_option opt_stream
       ;;
     w)
-      set_boolean_option opt_session_writeback
+      llmcu_set_boolean_option opt_session_writeback
       ;;
     S)
-      set_boolean_option opt_show_conversation_on_startup
+      llmcu_set_boolean_option opt_show_conversation_on_startup
       ;;
     h)
-      getarg opt_session_conversation "$OPTARG"
+      llmcu_getarg opt_session_conversation "$OPTARG"
       ;;
     H)
-      getarg opt_session_fileids "$OPTARG"
+      llmcu_getarg opt_session_fileids "$OPTARG"
       ;;
     r)
-      getarg opt_reasoning "$OPTARG"
+      llmcu_getarg opt_reasoning "$OPTARG"
       ;;
     E)
-      getarg opt_api_key_cmd "$OPTARG"
+      llmcu_getarg opt_api_key_cmd "$OPTARG"
       opt_api_key=
       ;;
     k)
-      getarg opt_api_key "$OPTARG"
+      llmcu_getarg opt_api_key "$OPTARG"
       opt_api_key_cmd=
       ;;
     K)
-      getarg opt_cache_key "$OPTARG"
+      llmcu_getarg opt_cache_key "$OPTARG"
       ;;
     m)
-      getarg opt_model "$OPTARG"
+      llmcu_getarg opt_model "$OPTARG"
       ;;
     u)
-      getarg opt_responses_base_url "$OPTARG"
+      llmcu_getarg opt_responses_base_url "$OPTARG"
       ;;
     t)
-      getarg opt_toolspec "$OPTARG"
+      llmcu_getarg opt_toolspec "$OPTARG"
       ;;
     c)
       # Additional config
-      source_configfile "$OPTARG"
+      llmcu_source_configfile "$OPTARG"
       ;;
     \?)
       exit 2
@@ -131,7 +131,7 @@ if [ -n "$opt_print_states" ]; then
   exit 0
 fi
 
-[ -f "$llm_configdir/post-chat-config" ] && . -- "$llm_configdir/post-chat-config"
+[ -f "$llmcu_configdir/post-chat-config" ] && . -- "$llmcu_configdir/post-chat-config"
 
 if [ -n "$opt_repl_read_wrapper" ] && [ -z "$opt_repl_reader_ignore" ]; then
   if ! command eval " $opt_repl_read_wrapper"' "$0" -o repl-reader-ignore=1 "$@"'; then
@@ -160,7 +160,7 @@ if [ -z "$opt_repl_reader" ] && [ -z "$opt_repl_reader_ignore" ]; then
         printf "@%s\n" "${1##*/}"
         return 1
       }
-      match_config_item "commands/*" print_cmdname >"$opt_state_dir/tmp.completions"
+      llmcu_match_config_item "commands/*" print_cmdname >"$opt_state_dir/tmp.completions"
     fi
     rlwrap -C llm-chat -H "$historyfile" -b "$break_chars" -f "$builtin_completion" -f "$opt_state_dir/tmp.completions" -ca -S "$cmdline_prompt" -- sh -c '\''IFS= read -r line && printf "%s" "$line"'\'
   fi
@@ -177,7 +177,7 @@ if [ -z "$opt_repl_reader" ]; then
   fi'
 fi
 
-eval_api_key
+llmcu_eval_api_key
 
 if [ -z "$opt_api_key" ]; then
   i18n -n llm-scripts 'API key not provided' >&2
@@ -371,7 +371,7 @@ dispatch_command() {
       ;;
     *)
       cmdpath=
-      locate_config_item cmdpath "commands/$cmdname"
+      llmcu_locate_config_item cmdpath "commands/$cmdname"
       if [ -f "$cmdpath" ]; then
         if [ -x "$cmdpath" ]; then
           shift

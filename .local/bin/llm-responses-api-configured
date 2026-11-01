@@ -16,9 +16,9 @@ opt_api_key=
 . llm-config-utils
 
 llm_scriptname=llm-responses-api-configured
-source_configfile "@instances/$instance" || exit
+llmcu_source_configfile "@instances/$instance" || exit
 
-eval_api_key
+llmcu_eval_api_key
 
 cleanup() {
   [ -n "$tmp" ] && rm -rf -- "$tmp"

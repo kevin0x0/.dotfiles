@@ -18,7 +18,7 @@ expand_toolspec() {
         *)
           pattern=${patterns%%[[:space:]]*}
           patterns=${patterns#"$pattern"}
-          match_config_item "tools/$pattern" print_toolname
+          llmcu_match_config_item "tools/$pattern" print_toolname
           ;;
       esac
     done

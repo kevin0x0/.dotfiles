@@ -19,63 +19,63 @@ opt_nul_terminated=
 . llm-config-utils
 
 llm_scriptname=llm-file-manager
-[ -f "$llm_configdir/file-manager-config" ] && . -- "$llm_configdir/file-manager-config"
+[ -f "$llmcu_configdir/file-manager-config" ] && . -- "$llmcu_configdir/file-manager-config"
 
 while getopts "c:u:E:k:K:p:fFNaCUlmdtn" opt; do
   case $opt in
     c)
-      source_configfile "$OPTARG"
+      llmcu_source_configfile "$OPTARG"
       ;;
     u)
-      getarg opt_files_base_url "$OPTARG"
+      llmcu_getarg opt_files_base_url "$OPTARG"
       ;;
     E)
-      getarg opt_api_key_cmd "$OPTARG"
+      llmcu_getarg opt_api_key_cmd "$OPTARG"
       opt_api_key=
       ;;
     k)
-      getarg opt_api_key "$OPTARG"
+      llmcu_getarg opt_api_key "$OPTARG"
       opt_api_key_cmd=
       ;;
     K)
-      getarg opt_cache_key "$OPTARG"
+      llmcu_getarg opt_cache_key "$OPTARG"
       ;;
     p)
-      getarg opt_purpose "$OPTARG"
+      llmcu_getarg opt_purpose "$OPTARG"
       ;;
     f)
-      set_boolean_option opt_fromfile
+      llmcu_set_boolean_option llmcuopt_fromfile
       ;;
     F)
-      set_boolean_option opt_fromfd
+      llmcu_set_boolean_option llmcuopt_fromfd
       ;;
     N)
-      set_boolean_option opt_getarg_trim_newline
+      llmcu_set_boolean_option llmcuopt_trim_newline
       ;;
     a)
-      set_boolean_option opt_all
+      llmcu_set_boolean_option opt_all
       ;;
     C)
-      set_boolean_option opt_clean
+      llmcu_set_boolean_option opt_clean
       ;;
     U)
-      set_boolean_option opt_update
+      llmcu_set_boolean_option opt_update
       ;;
     l)
-      set_boolean_option opt_list
+      llmcu_set_boolean_option opt_list
       ;;
     m)
-      set_boolean_option opt_metadata
+      llmcu_set_boolean_option opt_metadata
       ;;
     d)
-      [ -n "$opt_delete" ] && set_boolean_option opt_deleteboth
-      set_boolean_option opt_delete
+      [ -n "$opt_delete" ] && llmcu_set_boolean_option opt_deleteboth
+      llmcu_set_boolean_option opt_delete
       ;;
     t)
-      set_boolean_option opt_trash
+      llmcu_set_boolean_option opt_trash
       ;;
     n)
-      set_boolean_option opt_nul_terminated
+      llmcu_set_boolean_option opt_nul_terminated
       ;;
     \?)
       exit 2
@@ -84,9 +84,9 @@ while getopts "c:u:E:k:K:p:fFNaCUlmdtn" opt; do
 done
 shift "$((OPTIND - 1))"
 
-[ -f "$llm_configdir/post-file-manager-config" ] && . -- "$llm_configdir/post-file-manager-config"
+[ -f "$llmcu_configdir/post-file-manager-config" ] && . -- "$llmcu_configdir/post-file-manager-config"
 
-eval_api_key
+llmcu_eval_api_key
 
 if [ -z "$opt_update$opt_list$opt_delete" ]; then
   opt_list=1

@@ -1,3 +1,3 @@
 # vim: ft=sh
 
-source_configfile @instances/default 2>/dev/null
+llmcu_source_configfile @instances/default 2>/dev/null

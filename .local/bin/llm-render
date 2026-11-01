@@ -5,23 +5,23 @@
 
 opt_color=auto
 opt_color_ansi=
-opt_fromfile=
+llmcuopt_fromfile=
 
 llm_scriptname=llm-render
-[ -f "$llm_configdir/llm-render" ] && . -- "$llm_configdir/llm-render"
+[ -f "$llmcu_configdir/llm-render" ] && . -- "$llmcu_configdir/llm-render"
 
 while getopts "f:o:O:c:" opt; do
   case $opt in
     f)
-      opt_fromfile=1
+      llmcuopt_fromfile=1
       ;;
     [oO])
       option_prefix=opt_
       [ "$opt" = O ] && option_prefix=
-      evaluate_option "$option_prefix$OPTARG"
+      llmcu_evaluate_option "$option_prefix$OPTARG"
       ;;
     c)
-      source_configfile "$OPTARG"
+      llmcu_source_configfile "$OPTARG"
       ;;
     \?)
       exit 2

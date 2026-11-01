@@ -37,7 +37,7 @@ if [ -z "$opt_name" ]; then
 fi
 
 toolpath=
-locate_config_item  toolpath "tools/$opt_name/$opt_render_kind"
+llmcu_locate_config_item  toolpath "tools/$opt_name/$opt_render_kind"
 
 if [ -x "$toolpath" ]; then
   [ -n "$opt_test" ] && exit 0

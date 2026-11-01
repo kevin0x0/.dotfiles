@@ -1,5 +1,5 @@
 #!/bin/sh
 
 . llm-config-utils
-locate_config_item prompt_template prompts/translation-template || exit
+llmcu_locate_config_item prompt_template prompts/translation-template || exit
 exec llm-lang-task -p "$prompt_template" "$@"

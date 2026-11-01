@@ -15,42 +15,42 @@ opt_input=
 while getopts "i:fFNu:k:sr:m:t:T:A:" opt; do
   case $opt in
     i)
-      getarg opt_input "$OPTARG"
+      llmcu_getarg opt_input "$OPTARG"
       ;;
     f)
-      set_boolean_option opt_fromfile
+      llmcu_set_boolean_option llmcuopt_fromfile
       ;;
     F)
-      set_boolean_option opt_fromfd
+      llmcu_set_boolean_option llmcuopt_fromfd
       ;;
     N)
-      set_boolean_option opt_getarg_trim_newline
+      llmcu_set_boolean_option llmcuopt_trim_newline
       ;;
     u)
-      getarg opt_responses_base_url "$OPTARG"
+      llmcu_getarg opt_responses_base_url "$OPTARG"
       ;;
     k)
-      getarg opt_api_key "$OPTARG"
+      llmcu_getarg opt_api_key "$OPTARG"
       ;;
     s)
-      set_boolean_option opt_stream
+      llmcu_set_boolean_option opt_stream
       ;;
     r)
-      getarg opt_reasoning "$OPTARG"
+      llmcu_getarg opt_reasoning "$OPTARG"
       ;;
     m)
-      getarg opt_model "$OPTARG"
+      llmcu_getarg opt_model "$OPTARG"
       ;;
     t)
-      getarg opt_tools "$OPTARG"
+      llmcu_getarg opt_tools "$OPTARG"
       opt_tools_file=
       ;;
     T)
-      getarg opt_tools_file "$OPTARG"
+      llmcu_getarg opt_tools_file "$OPTARG"
       opt_tools=
       ;;
     A)
-      getarg opt_extra_request_args "$OPTARG"
+      llmcu_getarg opt_extra_request_args "$OPTARG"
       ;;
     \?)
       exit 2

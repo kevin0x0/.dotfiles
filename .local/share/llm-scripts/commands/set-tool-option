@@ -18,9 +18,9 @@ list_options() {
 
 if [ "$#" -eq 1 ]; then
   (
-    list_options "$llm_configdir/tools/$1" && exit 0
-    list_options "$llm_datadir/tools/$1" && exit 0
-    for_config_item "tools/$1" list_options
+    list_options "$llmcu_configdir/tools/$1" && exit 0
+    list_options "$llmcu_datadir/tools/$1" && exit 0
+    llmcu_for_config_item "tools/$1" list_options
     exit 0
   )
 fi

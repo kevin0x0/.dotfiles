@@ -1,93 +1,93 @@
 #!/bin/sh
 
-opt_fromfile=
-opt_fromfd=
-opt_getarg_trim_newline=
-opt_inverse_boolean_option=
+llmcuopt_fromfile=
+llmcuopt_fromfd=
+llmcuopt_trim_newline=
+llmcuopt_inverse_boolean_option=
 
-getarg() {
-  if [ -n "$opt_fromfd" ]; then
-    llm_cfgutil_arg=$(cat <&"$2"; echo x)
-    llm_cfgutil_arg=${llm_cfgutil_arg%x}
-    opt_fromfd=
-  elif [ -n "$opt_fromfile" ]; then
-    llm_cfgutil_arg=$(cat -- "$2"; echo x)
-    llm_cfgutil_arg=${llm_cfgutil_arg%x}
-    opt_fromfile=
+llmcu_getarg() {
+  if [ -n "$llmcuopt_fromfd" ]; then
+    llmcu_arg=$(cat <&"$2"; echo x)
+    llmcu_arg=${llmcu_arg%x}
+    llmcuopt_fromfd=
+  elif [ -n "$llmcuopt_fromfile" ]; then
+    llmcu_arg=$(cat -- "$2"; echo x)
+    llmcu_arg=${llmcu_arg%x}
+    llmcuopt_fromfile=
   else
-    llm_cfgutil_arg=$2
+    llmcu_arg=$2
   fi
-  [ -n "$opt_getarg_trim_newline" ] && llm_cfgutil_arg=${llm_cfgutil_arg%$'\n'}
-  opt_getarg_trim_newline=
-  eval "$1"='$llm_cfgutil_arg'
+  [ -n "$llmcuopt_trim_newline" ] && llmcu_arg=${llmcu_arg%$'\n'}
+  llmcuopt_trim_newline=
+  eval "$1"='$llmcu_arg'
 }
 
-set_boolean_option() {
-  if [ -n "$opt_inverse_boolean_option" ]; then
+llmcu_set_boolean_option() {
+  if [ -n "$llmcuopt_inverse_boolean_option" ]; then
     eval "$1="
-    opt_inverse_boolean_option=
+    llmcuopt_inverse_boolean_option=
   else
     eval "$1=1"
   fi
 }
 
-eval_api_key() {
+llmcu_eval_api_key() {
   if [ -z "$opt_api_key" ] && [ -n "$opt_api_key_cmd" ]; then
     opt_api_key=$(eval " $opt_api_key_cmd" && echo x) || exit
     opt_api_key=${opt_api_key%$'\nx'}
   fi
 }
 
-llm_configdir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts
-llm_datadir=${XDG_DATA_HOME:-$HOME/.local/share}/llm-scripts
+llmcu_configdir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts
+llmcu_datadir=${XDG_DATA_HOME:-$HOME/.local/share}/llm-scripts
 
-match_item_in_datadirs() {
-  llm_cfgutil_paths=${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}
-  llm_cfgutil_paths=${llm_cfgutil_paths:+$llm_cfgutil_paths:}
-  while [ -n "$llm_cfgutil_paths" ]; do
-    llm_cfgutil_path=${llm_cfgutil_paths%%:*}
-    llm_cfgutil_path=${llm_cfgutil_path:-$PWD}/llm-scripts
-    for llm_cfgutil_config_item in "$llm_cfgutil_path"/$1; do
-      [ -e "$llm_cfgutil_config_item" ] || continue
-      "$2" "$llm_cfgutil_config_item" && return
+llmcu_match_item_in_datadirs() {
+  llmcu_paths=${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}
+  llmcu_paths=${llmcu_paths:+$llmcu_paths:}
+  while [ -n "$llmcu_paths" ]; do
+    llmcu_path=${llmcu_paths%%:*}
+    llmcu_path=${llmcu_path:-$PWD}/llm-scripts
+    for llmcu_config_item in "$llmcu_path"/$1; do
+      [ -e "$llmcu_config_item" ] || continue
+      "$2" "$llmcu_config_item" && return
     done
-    llm_cfgutil_paths=${llm_cfgutil_paths#*:}
+    llmcu_paths=${llmcu_paths#*:}
   done
   return 1
 }
 
-match_config_item() {
-  for llm_cfgutil_config_item in "$llm_configdir"/$1 "$llm_datadir"/$1; do
-    [ -e "$llm_cfgutil_config_item" ] || continue
-    "$2" "$llm_cfgutil_config_item" && return
+llmcu_match_config_item() {
+  for llmcu_config_item in "$llmcu_configdir"/$1 "$llmcu_datadir"/$1; do
+    [ -e "$llmcu_config_item" ] || continue
+    "$2" "$llmcu_config_item" && return
   done
-  match_item_in_datadirs "$@"
+  llmcu_match_item_in_datadirs "$@"
 }
 
-for_item_in_datadirs() {
-  llm_cfgutil_paths=${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}
-  llm_cfgutil_paths=${llm_cfgutil_paths:+$llm_cfgutil_paths:}
-  while [ -n "$llm_cfgutil_paths" ]; do
-    llm_cfgutil_path=${llm_cfgutil_paths%%:*}
-    llm_cfgutil_path=${llm_cfgutil_path:-$PWD}/llm-scripts
-    if [ -e "$llm_cfgutil_path/$1" ]; then
-      "$2" "$llm_cfgutil_path/$1" && return
+llmcu_for_item_in_datadirs() {
+  llmcu_paths=${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}
+  llmcu_paths=${llmcu_paths:+$llmcu_paths:}
+  while [ -n "$llmcu_paths" ]; do
+    llmcu_path=${llmcu_paths%%:*}
+    llmcu_path=${llmcu_path:-$PWD}/llm-scripts
+    if [ -e "$llmcu_path/$1" ]; then
+      "$2" "$llmcu_path/$1" && return
     fi
-    llm_cfgutil_paths=${llm_cfgutil_paths#*:}
+    llmcu_paths=${llmcu_paths#*:}
   done
   return 1
 }
 
-for_config_item() {
-  for llm_cfgutil_config_item in "$llm_configdir/$1" "$llm_datadir/$1"; do
-    if [ -e "$llm_cfgutil_config_item" ]; then
-      "$2" "$llm_cfgutil_config_item" && return
+llmcu_for_config_item() {
+  for llmcu_config_item in "$llmcu_configdir/$1" "$llmcu_datadir/$1"; do
+    if [ -e "$llmcu_config_item" ]; then
+      "$2" "$llmcu_config_item" && return
     fi
   done
-  for_item_in_datadirs "$@"
+  llmcu_for_item_in_datadirs "$@"
 }
 
-source_configfile() {
+llmcu_source_configfile() {
   case $1 in
     @*)
       set "${1#@}"
@@ -95,7 +95,7 @@ source_configfile() {
         [ -f "$1" ] && { . -- "$1"; return 0; }
       }
 
-      for_config_item "$1" do_source && return
+      llmcu_for_config_item "$1" do_source && return
       printf "can not find config file: %s\n" "$1" >&2
       return 1
       ;;
@@ -108,31 +108,31 @@ source_configfile() {
   esac
 }
 
-locate_config_item() {
-  llm_cfgutil_location=
+llmcu_locate_config_item() {
+  llmcu_location=
   set_location() {
-    llm_cfgutil_location=$1
+    llmcu_location=$1
   }
-  for_config_item "$2" set_location
+  llmcu_for_config_item "$2" set_location
 
-  if [ -n "$llm_cfgutil_location" ]; then
-    command eval " $1"='$llm_cfgutil_location'
+  if [ -n "$llmcu_location" ]; then
+    command eval " $1"='$llmcu_location'
   else
     return 1
   fi
 }
 
-evaluate_option() {
-  llm_cfgutil_optname=$(printf "%s" "${1%%=*}" | tr -- '-' '_')
+llmcu_evaluate_option() {
+  llmcu_optname=$(printf "%s" "${1%%=*}" | tr -- '-' '_')
   case $1 in
     *=*)
       ;;
     *)
-      set_boolean_option "$llm_cfgutil_optname"
+      llmcu_set_boolean_option "$llmcu_optname"
       return
       ;;
   esac
 
-  llm_cfgutil_optvalue=${1#*=}
-  getarg "$llm_cfgutil_optname" "$llm_cfgutil_optvalue"
+  llmcu_optvalue=${1#*=}
+  llmcu_getarg "$llmcu_optname" "$llmcu_optvalue"
 }
