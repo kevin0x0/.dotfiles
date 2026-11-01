@@ -1,0 +1,335 @@
+#!/bin/sh
+
+usage() {
+  cat <<'EOF'
+usage: llm-chat-hook [-d <statedir>] <subcommand> [<options>] [<args>]
+
+Manage hooks that run on session state transitions.
+
+subcommands:
+  create  -s <state> [-t oneshot|always] [-A|-B] [-L] [-a] [-c]
+          (<command> | <hook-file>) [<name>]
+  remove  -s <state> [-t oneshot|always] [-A|-B] <name>
+  list    [-s <state>] [-t oneshot|always] [-A|-B]
+  path    [-s <state>] [-t oneshot|always] [-A|-B] <name>
+
+options:
+  -d <statedir>  session state directory; hooks live under <statedir>/hooks
+  -s <state>     session state; available states are listed by
+                 `llm-chat -o print-states`
+  -t <type>      oneshot (run once, default) or always
+  -A / -B        run after (default) / before the state
+  -L             symlink the hook to <hook-file> instead of copying
+  -a             append to the existing hook instead of failing
+  -c             treat the hook content argument as the command itself
+  -j             print results as a single JSON object
+EOF
+}
+
+opt_state_dir=
+opt_json=
+while getopts "d:jh" opt; do
+  case $opt in
+    d) opt_state_dir=$OPTARG ;;
+    j) opt_json=1 ;;
+    h) usage; exit 0 ;;
+    \?) exit 2 ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+[ "$#" -ne 0 ] || { usage >&2; exit 2; }
+subcommand=$1
+shift
+
+case $subcommand in
+  create|remove|list|path) ;;
+  *)
+    printf "unsupported subcommand: %s\n" "$subcommand" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
+
+states=
+get_states() {
+  if [ -z "$states" ]; then
+    states=$(llm-chat -o print-states) || {
+      printf "failed to get supported states from llm-chat\n" >&2
+      exit 1
+    }
+  fi
+}
+
+validate_statedir() {
+  [ -n "$opt_state_dir" ] || { printf "statedir not provided (use -d)\n" >&2; return 2; }
+  [ -d "$opt_state_dir" ] || { printf "'%s' is not a directory\n" "$opt_state_dir" >&2; return 2; }
+}
+
+validate_state() {
+  [ -n "$1" ] || { printf "state not specified (use -s)\n" >&2; return 2; }
+  get_states
+  case " $states " in
+    *" $1 "*) return 0 ;;
+  esac
+  printf "unsupported state: %s\n" "$1" >&2
+  return 2
+}
+
+validate_type() {
+  case $1 in
+    oneshot|always) return 0 ;;
+  esac
+  printf "unsupported hook type: %s\n" "$1" >&2
+  return 2
+}
+
+validate_name() {
+  case $1 in
+    ''|.|..|*/*)
+      printf "invalid hook name: %s\n" "$1" >&2
+      return 2
+      ;;
+  esac
+}
+
+# Print matching hooks as relative paths (state/type/when/name);
+# empty opt_state/opt_type/opt_when act as wildcards.
+# The pattern is built from validated enum values, so it is safe unquoted.
+list_hooks() {
+  pattern=${opt_state:-*}/
+  pattern=$pattern${opt_type:-*}/
+  pattern=$pattern${opt_when:-*}/
+  find "$hookdir" \( -type f -o -type l \) \
+    | {
+        while IFS= read -r line; do
+          rel=${line#"$hookdir"/}
+          case $rel in
+            $pattern*) printf "%s\n" "$rel" ;;
+          esac
+        done
+      }
+}
+
+sub_create() {
+  OPTIND=1
+  opt_state=
+  opt_type=oneshot
+  opt_when=after
+  opt_command=
+  opt_symlink=
+  opt_append=
+  while getopts "s:t:ABcLa" opt; do
+    case $opt in
+      s) opt_state=$OPTARG ;;
+      t) opt_type=$OPTARG ;;
+      A) opt_when=after ;;
+      B) opt_when=before ;;
+      c) opt_command=1 ;;
+      L) opt_symlink=1 ;;
+      a) opt_append=1 ;;
+      \?) exit 2 ;;
+    esac
+  done
+  shift "$((OPTIND - 1))"
+
+  validate_statedir || return
+  validate_state "$opt_state" || return
+  validate_type "$opt_type" || return
+  if [ -n "$opt_append" ] && [ -n "$opt_symlink" ]; then
+    printf "options -a and -L can not be used together\n" >&2
+    return 2
+  fi
+  if [ -n "$opt_symlink" ] && [ -n "$opt_command" ]; then
+    printf "can not create symbolic hook file for command hook\n" >&2
+    return 2
+  fi
+
+  source=
+  name=
+  case $# in
+    0) printf "hook file not provided\n" >&2; return 2 ;;
+    1) source=$1 ;;
+    2) source=$1; name=$2 ;;
+    *) printf "too many arguments\n" >&2; return 2 ;;
+  esac
+  if [ -z "$opt_command" ]; then
+    case $source in
+      /*) ;;
+      *) source=$PWD/$source ;;
+    esac
+    if [ ! -f "$source" ]; then
+      printf "'%s' doesn't exist or not a file\n" "$source" >&2
+      return 1
+    fi
+  fi
+  if [ -n "$name" ]; then
+    validate_name "$name" || return
+  fi
+
+  hookdir=$opt_state_dir/hooks
+  d=$hookdir/$opt_state/$opt_type/$opt_when
+  mkdir -p -- "$d" || return 1
+
+  if [ -n "$name" ]; then
+    f=$d/$name
+    if [ -z "$opt_append" ] && [ -e "$f" ]; then
+      printf "hook already exists: %s\n" "$f" >&2
+      return 1
+    fi
+  else
+    # llm-chat and this script never touch hooks concurrently
+    f=$d/unnamed-$$
+    i=0
+    while [ -e "$f" ]; do
+      i=$((i + 1))
+      f=$d/unnamed-$$.$i
+    done
+    (set -C; : >"$f") || return 1
+  fi
+
+  action=created
+  if [ -n "$opt_append" ]; then
+    action='appended to'
+    if [ -n "$opt_command" ]; then
+      printf "%s\n" "$source" >>"$f"
+    else
+      cat -- "$source" >>"$f"
+    fi
+  elif [ -n "$opt_symlink" ]; then
+    ln -sf -- "$source" "$f"
+  elif [ -n "$opt_command" ]; then
+    printf "%s\n" "$source" >"$f"
+  else
+    cp -- "$source" "$f"
+  fi
+  [ "$?" -eq 0 ] || return 1
+
+  if [ -n "$opt_json" ]; then
+    rel=$opt_state/$opt_type/$opt_when/${f##*/}
+    if [ -n "$opt_append" ]; then
+      jq -cn --arg rel "$rel" --arg path "$f" '{appended:$rel,path:$path}'
+    else
+      jq -cn --arg rel "$rel" --arg path "$f" '{created:$rel,path:$path}'
+    fi
+  else
+    printf "%s hook at: %s\n" "$action" "$f"
+  fi
+}
+
+sub_remove() {
+  OPTIND=1
+  opt_state=
+  opt_type=oneshot
+  opt_when=after
+  while getopts "s:t:AB" opt; do
+    case $opt in
+      s) opt_state=$OPTARG ;;
+      t) opt_type=$OPTARG ;;
+      A) opt_when=after ;;
+      B) opt_when=before ;;
+      \?) exit 2 ;;
+    esac
+  done
+  shift "$((OPTIND - 1))"
+  [ "$#" -eq 1 ] || { printf "hook name not provided\n" >&2; return 2; }
+
+  validate_statedir || return
+  validate_state "$opt_state" || return
+  validate_type "$opt_type" || return
+  name=$1
+  validate_name "$name" || return
+
+  hookdir=$opt_state_dir/hooks
+  f=$hookdir/$opt_state/$opt_type/$opt_when/$name
+  if [ ! -e "$f" ]; then
+    printf "hook doesn't exist: %s\n" "$f" >&2
+    return 1
+  fi
+  rm -f -- "$f"
+  find "$hookdir" -depth -type d -exec rmdir {} \; 2>/dev/null
+  if [ -n "$opt_json" ]; then
+    jq -cn \
+      --arg rel "$opt_state/$opt_type/$opt_when/$name" --arg path "$f" \
+      '{removed:$rel,path:$path}'
+  else
+    printf "removed hook: %s\n" "$f"
+  fi
+}
+
+sub_list() {
+  OPTIND=1
+  opt_state=
+  opt_type=
+  opt_when=
+  while getopts "s:t:AB" opt; do
+    case $opt in
+      s) opt_state=$OPTARG ;;
+      t) opt_type=$OPTARG ;;
+      A) opt_when=after ;;
+      B) opt_when=before ;;
+      \?) exit 2 ;;
+    esac
+  done
+  shift "$((OPTIND - 1))"
+  [ "$#" -eq 0 ] || { printf "too many arguments\n" >&2; return 2; }
+
+  validate_statedir || return
+  if [ -n "$opt_state" ]; then
+    validate_state "$opt_state" || return
+  fi
+  if [ -n "$opt_type" ]; then
+    validate_type "$opt_type" || return
+  fi
+
+  hookdir=$opt_state_dir/hooks
+  if [ -d "$hookdir" ]; then
+    if [ -n "$opt_json" ]; then
+      list_hooks | jq -Rsc --arg hookdir "$hookdir" \
+        'split("\n") | map(select(. != "") | {rel:., path: ($hookdir + "/" + .)}) | {hooks:.}'
+    else
+      list_hooks
+    fi
+  else
+    [ -n "$opt_json" ] && printf '{"hooks":[]}\n'
+  fi
+}
+
+sub_path() {
+  OPTIND=1
+  opt_state=
+  opt_type=oneshot
+  opt_when=after
+  while getopts "s:t:AB" opt; do
+    case $opt in
+      s) opt_state=$OPTARG ;;
+      t) opt_type=$OPTARG ;;
+      A) opt_when=after ;;
+      B) opt_when=before ;;
+      \?) exit 2 ;;
+    esac
+  done
+  shift "$((OPTIND - 1))"
+  [ "$#" -eq 1 ] || { printf "hook name not provided\n" >&2; return 2; }
+
+  validate_statedir || return
+  validate_state "$opt_state" || return
+  validate_type "$opt_type" || return
+  name=$1
+  validate_name "$name" || return
+
+  hookdir=$opt_state_dir/hooks
+  f=$hookdir/$opt_state/$opt_type/$opt_when/$name
+  [ -e "$f" ] || { printf "hook doesn't exist: %s\n" "$f" >&2; return 1; }
+  if [ -n "$opt_json" ]; then
+    jq -cn --arg path "$f" '{path:$path}'
+  else
+    printf "%s\n" "$f"
+  fi
+}
+
+case $subcommand in
+  create) sub_create "$@" ;;
+  remove) sub_remove "$@" ;;
+  list) sub_list "$@" ;;
+  path) sub_path "$@" ;;
+esac

@@ -1,0 +1,21 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+opt_action=
+opt_subject=
+parse_my_option_A() {
+  opt_action=$OPTARG
+}
+parse_my_option_S() {
+  opt_subject=$OPTARG
+}
+llmtr_parse_options "A:S:" "$@"
+
+case $opt_action in
+  created)  llmtr_render_header '32;1' "hook created${opt_subject:+: $opt_subject}" ;;
+  appended) llmtr_render_header '32;1' "hook appended${opt_subject:+: $opt_subject}" ;;
+  removed)  llmtr_render_header '31;1' "hook removed${opt_subject:+: $opt_subject}" ;;
+esac
+
+llmtr_complete_newline | llmtr_render_lines

@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "properties": {
+    "operation": {
+      "type": "string",
+      "enum": ["create", "remove", "list", "path"],
+      "description": "The operation to perform."
+    },
+    "state": {
+      "type": "string",
+      "description": "Session state the hook is attached to. Required for create, remove and path; optional for list (filters the list)."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["oneshot", "always"],
+      "description": "oneshot runs once then is removed; always runs on every occurrence. Defaults to oneshot."
+    },
+    "when": {
+      "type": "string",
+      "enum": ["before", "after"],
+      "description": "Run when entering (before) or leaving (after) the state. Defaults to after."
+    },
+    "name": {
+      "type": "string",
+      "description": "Hook name. Required for remove and path. Optional for create (an auto-generated name is used); required when append is true."
+    },
+    "source": {
+      "type": "string",
+      "description": "For create: the hook script text (mode=command) or a file pathname (mode=copy or mode=symlink)."
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["command", "copy", "symlink"],
+      "description": "command: source is the shell script text. copy: copy the file content. symlink: link the hook to the file. Defaults to command."
+    },
+    "append": {
+      "type": "boolean",
+      "description": "Only for create: append to the existing hook with the same name instead of failing. Cannot be used with mode=symlink."
+    }
+  },
+  "required": ["operation"]
+}

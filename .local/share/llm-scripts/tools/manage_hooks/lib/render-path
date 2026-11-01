@@ -1,0 +1,11 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+opt_subject=
+parse_my_option_S() {
+  opt_subject=$OPTARG
+}
+llmtr_parse_options "S:" "$@"
+
+llmtr_render_header '36;1' "hook path${opt_subject:+: $opt_subject}"

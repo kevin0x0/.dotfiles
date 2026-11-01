@@ -1,0 +1,133 @@
+#!/bin/sh
+
+if [ -f "$2/tool-config/manage_hooks" ]; then
+  command . -- "$2/tool-config/manage_hooks" >/dev/null 2>&1
+fi
+
+cleanup() {
+  [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
+  if [ -n "$1" ]; then
+    trap - "$1"
+    kill -"$1" "$$"
+  fi
+}
+trap 'cleanup' EXIT
+trap 'cleanup INT' INT
+trap 'cleanup TERM' TERM
+trap 'cleanup QUIT' QUIT
+
+tmpdir=
+tmpdir=$(tmpfile -d) || exit 1
+argfile=$tmpdir/arg
+outfile=$tmpdir/stdout
+errfile=$tmpdir/stderr
+approval_out=$tmpdir/approval-out
+
+cat >"$argfile"
+
+op=$(jq -j '.operation // ""' <"$argfile")
+case $op in
+  create|remove|list|path) ;;
+  *)
+    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, list or path"}'
+    exit 0
+    ;;
+esac
+
+append=$(jq -j '.append // false' <"$argfile")
+
+# create and remove need approval
+if [ "$op" = create ] || [ "$op" = remove ]; then
+  summary=$(jq -j '[.state, .type // "oneshot", .when // "after", (.name // empty)] | map(select(. != null)) | join("/")' <"$argfile")
+  preview_command="$(shell-escape -- sh -- "$1/render-call" -d "$1" -s "$2")"
+  colored_preview_command="$preview_command -c always"
+  if [ "$append" = true ]; then
+    summary_command="$(shell-escape -- sh -- "$1/lib/render-operation" -d "$1" -s "$2" -A "$op" -P -S "$summary")"
+  else
+    summary_command="$(shell-escape -- sh -- "$1/lib/render-operation" -d "$1" -s "$2" -A "$op" -S "$summary")"
+  fi
+  header=$'\033[31;1mrequest to manage hook:\033[0m'
+  tty-approval \
+    -R \
+    -r "$opt_yes" \
+    -p "$preview_command" \
+    -P "$colored_preview_command" \
+    -s "$summary_command" \
+    -h "$header" \
+    -i "$argfile" >"$approval_out"
+
+  case $? in
+    0|3)
+      ;;
+    1)
+      jq -Rcs '{rejected:.}' <"$approval_out" | llm-make-mcontent -t
+      exit 0
+      ;;
+    *)
+      llm-make-mcontent -t '{"error":"approval agent exited abnormally"}'
+      exit 0
+      ;;
+  esac
+fi
+
+state=$(jq -j '.state // ""' <"$argfile")
+type=$(jq -j '.type // ""' <"$argfile")
+when=$(jq -j '.when // ""' <"$argfile")
+mode=$(jq -j '.mode // "command"' <"$argfile")
+source=$(jq -j '.source // ""' <"$argfile")
+name=$(jq -j '.name // ""' <"$argfile")
+
+set -- -jd "$2" "$op"
+if [ -n "$state" ]; then
+  set -- "$@" -s "$state"
+fi
+if [ -n "$type" ]; then
+  set -- "$@" -t "$type"
+fi
+if [ "$when" = before ]; then
+  set -- "$@" -B
+elif [ "$when" = after ]; then
+  set -- "$@" -A
+fi
+
+case $op in
+  create)
+    if [ "$append" = true ]; then
+      set -- "$@" -a
+    fi
+    case $mode in
+      command)
+        [ -n "$source" ] && set -- "$@" -c -- "$source"
+        ;;
+      copy)
+        set -- "$@" -- "$source"
+        ;;
+      symlink)
+        set -- "$@" -L -- "$source"
+        ;;
+      *)
+        jq -cn --arg mode "$mode" '{error:"invalid mode: " + $mode}' \
+          | llm-make-mcontent -t
+        exit 0
+        ;;
+    esac
+    [ -n "$name" ] && set -- "$@" "$name"
+    ;;
+  remove|path)
+    set -- "$@" -- "$name"
+    ;;
+  list)
+    ;;
+esac
+
+llm-chat-hook "$@" >"$outfile" 2>"$errfile"
+exitcode=$?
+if [ "$exitcode" -eq 0 ]; then
+  cat -- "$outfile" | llm-make-mcontent -t
+elif [ -s "$errfile" ]; then
+  head -n 1 -- "$errfile" | jq -Rsc '{error:rtrimstr("\n")}' \
+    | llm-make-mcontent -t
+else
+  printf '{"error":"failed"}\n' | llm-make-mcontent -t
+fi
+exit 0
