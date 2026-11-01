@@ -27,10 +27,13 @@ opt_session_conversation=
 opt_session_fileids=
 opt_session_writeback=
 
+opt_enable_hook=
+
 opt_fromfile=
 opt_fromfd=
 
 opt_print_options=
+opt_print_states=
 
 renderer_opt_tool_output_lines=15
 
@@ -116,6 +119,13 @@ done
 
 if [ -n "$opt_print_options" ]; then
   printf "%s\n" "$llm_chat_options"
+  exit 0
+fi
+
+if [ -n "$opt_print_states" ]; then
+  # Single source of truth for the states hooks can target
+  hook_states='any-state agent-loop-api-call agent-loop-tool-call read-loop agent-loop-end end agent-loop-api-call-interrupted agent-loop-tool-call-interrupted'
+  printf "%s\n" "$hook_states"
   exit 0
 fi
 
@@ -317,10 +327,10 @@ dispatch_command() {
       fi
       case $1 in
         agent-loop-api-call|agent-loop-tool-call)
-          state=$1
+          next_state=$1
           ;;
         *)
-          state=$last_error_state
+          next_state=$last_error_state
           ;;
       esac
       last_error_state=
@@ -560,6 +570,26 @@ read_loop() {
   [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >&3
 } 3>"$input_content"
 
+run_hooks() {
+  [ -z "$opt_enable_hook" ] && return 0
+  for hooked_state in any-state "$state"; do
+    [ -d "$hooks_dir/$hooked_state" ] || continue
+    for hook_type in oneshot always; do
+      if [ -e "$hooks_dir/$hooked_state/$hook_type/$1" ]; then
+        for hook_script in "$hooks_dir/$hooked_state/$hook_type/$1"/*; do
+          [ -f "$hook_script" ] || continue
+          (trap - INT; . -- "$hook_script")
+        done
+        if [ "$hook_type" = oneshot ]; then
+          rm -rf -- "$hooks_dir/$hooked_state/$hook_type/$1"
+        fi
+      fi
+    done
+    # Clean empty directories
+    find "$hooks_dir/$hooked_state" -depth -type d -exec rmdir {} \; 2>/dev/null
+  done
+}
+
 create_state_dir() {
   dirprefix=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/llm-chat-$$
   dir=$dirprefix
@@ -642,6 +672,7 @@ cmdline_input=$statedir/cmdline-input
 render_event_fifo=$statedir/render-event-fifo
 response_input_fifo=$statedir/response-input-fifo
 response_event_output_fifo=$statedir/response-output-fifo
+hooks_dir=$statedir/hooks
 tmp=$statedir/tmp
 
 expand_toolspec "$opt_toolspec" \
@@ -674,12 +705,14 @@ set -- \
 # REPL
 error_to() {
   last_error_state=$state
-  state=$1
+  next_state=$1
 }
 
 last_error_state=
 state=read-loop
+next_state=read-loop
 while :; do
+  run_hooks before
   case $state in
     read-loop)
       read_loop
@@ -692,23 +725,19 @@ while :; do
       fi
 
       case $input_end_action in
-        retry)
-          continue
+        retry|cancel)
           ;;
         break)
-          state=end
-          continue
+          next_state=end
           ;;
-        cancel)
-          continue
+        *)
+          if [ "$input_end_action" = go ] && [ -s "$input_content" ] || [ "$input_end_action" = add ]; then
+            llm-make-message -r "$input_message_role" -p <"$input_content" \
+              | tee -a "$this_turn" | llm-render-events | dispatch_render_event "$render_event_fifo"
+          fi
+          [ "$input_end_action" = go ] && next_state=agent-loop-api-call
           ;;
       esac
-
-      if [ "$input_end_action" = go ] && [ -s "$input_content" ] || [ "$input_end_action" = add ]; then
-        llm-make-message -r "$input_message_role" -p <"$input_content" \
-          | tee -a "$this_turn" | llm-render-events | dispatch_render_event "$render_event_fifo"
-      fi
-      [ "$input_end_action" = go ] && state=agent-loop-api-call
       ;;
     agent-loop-api-call)
       call "$@"
@@ -717,7 +746,7 @@ while :; do
         0) # Append to input
           if [ -s "$response_output" ]; then
             llm-o2i "$response_output" >>"$this_turn"
-            state=agent-loop-tool-call
+            next_state=agent-loop-tool-call
           else
             i18n -n llm-scripts \
               'The API call exit code is 0, but the returned response output is empty.' >&2
@@ -726,7 +755,7 @@ while :; do
           ;;
         5)
           llm-o2i "$response_output" >>"$this_turn"
-          state=agent-loop-api-call-interrupted
+          next_state=agent-loop-api-call-interrupted
           ;;
         3) # response.incomplete
           echo
@@ -737,7 +766,7 @@ while :; do
                 jq -c -- 'inputs' "$response_output" >"$tmp"
                 cp -- "$tmp" "$response_output"
                 llm-o2i "$response_output" >>"$this_turn"
-                state=agent-loop-tool-call
+                next_state=agent-loop-tool-call
                 ;;
               *)
                 i18n -n llm-scripts 'response incomplete: $1' "$incomplete_reason" >&2
@@ -761,16 +790,15 @@ while :; do
       case $exitcode in
         0)
           cat -- "$tool_output" >>"$this_turn"
-          [ -s "$tool_output" ] && state=agent-loop-api-call || state=agent-loop-end
+          [ -s "$tool_output" ] && next_state=agent-loop-api-call || next_state=agent-loop-end
           ;;
         5)
           cat -- "$tool_output" >>"$this_turn"
-          state=agent-loop-tool-call-interrupted
+          next_state=agent-loop-tool-call-interrupted
           ;;
         *)
           i18n -n llm-scripts 'failed to handle tool call' >&2
           error_to read-loop
-          continue
           ;;
       esac
       llm-render-events <"$tool_output" | dispatch_render_event "$render_event_fifo"
@@ -782,17 +810,17 @@ while :; do
         error_to read-loop
       else
         cat -- "$tool_output" >>"$this_turn"
-        state=read-loop
+        next_state=read-loop
       fi
       ;;
     agent-loop-tool-call-interrupted)
       i18n -n llm-scripts 'interrupted' >&2
-      state=read-loop
+      next_state=read-loop
       ;;
     agent-loop-end)
       cat -- "$this_turn" >>"$conversation"
       : >"$this_turn"
-      state=read-loop
+      next_state=read-loop
       ;;
     end)
       if [ -n "$opt_session_writeback" ]; then
@@ -802,7 +830,9 @@ while :; do
       ;;
     *)
       i18n -n llm-scripts 'unknown state: $1' "$state" >&2
-      state=read-loop
+      next_state=read-loop
       ;;
   esac
+  run_hooks after
+  state=$next_state
 done
