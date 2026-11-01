@@ -1,74 +1,34 @@
 #!/bin/sh
 
-opt_output_amount=
-opt_testfd=
-while getopts "l:T:" opt; do
-  case $opt in
-    l)
-      opt_output_amount=$OPTARG
-      ;;
-    T)
-      opt_testfd=$OPTARG
-      ;;
-    \?)
-      exit 2
-      ;;
+. llm-tool-render-utils
+
+llmtr_parse_options "" "$@"
+llmtr_render_header "36;1" apply_patch
+
+color_delete=$'\033[31m'
+color_add=$'\033[32m'
+color_context=$'\033[33m'
+color_operation=$'\033[1m'
+color_end=$'\033[0m'
+
+color_hunk_line() {
+  case $llmtr_line in
+    '+'*)     llmtr_line="$color_add$llmtr_line$color_end" ;;
+    '-'*)     llmtr_line="$color_delete$llmtr_line$color_end" ;;
+    '@@'*)    llmtr_line="$color_context$llmtr_line$color_end" ;;
+    '*** '*)  llmtr_line="$color_operation$llmtr_line$color_end" ;;
+    ' '*) ;;
   esac
-done
-
-color_bar=
-color_delete=
-color_add=
-color_context=
-color_end=
-color_has_more_begin=
-if [ -t "${opt_testfd:-1}" ]; then
-  case $(termcolors) in
-    16777216|256)
-      color_bar='\033[36m'
-      color_delete='\033[31m'
-      color_add='\033[32m'
-      color_context='\033[33m'
-      color_end='\033[0m'
-      color_has_more_begin='\033[91m'
-      ;;
-  esac
-fi
-
-print_hunk_line() {
-  if [ -n "$opt_output_amount" ] && [ "$count" -gt "$opt_output_amount" ]; then
-    if [ -z "$toomanylines" ]; then
-      printf "$color_has_more_begin› has more$color_end\n"
-      toomanylines=1
-    fi
-    return
-  fi
-
-  printf "$color_bar┃$color_end "
-  printf "$@"
 }
 
-count=0
-toomanylines=
-while IFS= read -r line || [ -n "$line" ]; do
-  count=$((count + 1))
-  case $line in
-    '+'*)
-      print_hunk_line "$color_add%s$color_end\n" "$line"
-      ;;
-    '-'*)
-      print_hunk_line "$color_delete%s$color_end\n" "$line"
-      ;;
-    ' '*)
-      print_hunk_line "%s\n" "$line"
-      ;;
-    '@@'*)
-      print_hunk_line "$color_context%s$color_end\n" "$line"
-      ;;
-    *)
-      count=0
-      toomanylines=
-      printf "$color_bar┃$color_end %s\n" "$line"
+should_reset_line() {
+  case $llmtr_line in
+    "$color_operation*** "*)
+      return 0
       ;;
   esac
-done
+  return 1
+}
+
+llmtr_run_filter_on_color color_hunk_line \
+  | llmtr_render_lines should_reset_line

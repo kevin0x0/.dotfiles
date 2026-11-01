@@ -1,0 +1,8 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+llmtr_parse_options "" "$@"
+
+llmtr_render_header '36;1' "execution result (stdout):"
+llmtr_mark_missing_newline | llmtr_render_lines

@@ -1,0 +1,52 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+opt_interpreter_from_cmdline=
+parse_my_option_I() {
+  opt_interpreter_from_cmdline=$OPTARG
+}
+
+llmtr_parse_options "I:" "$@"
+shift "$((OPTIND - 1))"
+
+llmtr_source_tool_config shell
+
+interpreter=$opt_interpreter
+[ -z "$interpreter" ] && interpreter=$opt_interpreter_from_cmdline
+if [ -z "$interpreter" ]; then
+  if command -v bash >/dev/null 2>&1; then
+    interpreter=bash
+  else
+    interpreter=sh
+  fi
+fi
+
+highlight_format=
+highlight_syntax=
+interpreter=${interpreter##*/}
+if [ -n "$llmtr_color_enabled" ]; then
+  case $(termcolors) in
+    16777216) highlight_format=truecolor ;;
+    *)        highlight_format=ansi ;;
+  esac
+
+  case $interpreter in
+    python*)  highlight_syntax=python ;;
+    lua*)     highlight_syntax=lua ;;
+    node)     highlight_syntax=javascript ;;
+    *lisp)    highlight_syntax=lisp ;;
+    *)        highlight_syntax=${interpreter:-sh} ;;
+  esac
+fi
+
+if command -v highlight >/dev/null 2>&1; then
+  set -- highlight -O "$highlight_format" -S "$highlight_syntax"
+else
+  set -- cat -u
+fi
+
+llmtr_render_header '36;1' "scripts execution${interpreter:+ ($interpreter)}:"
+llmtr_complete_newline \
+  | llmtr_run_on_color "$@" \
+  | llmtr_render_lines

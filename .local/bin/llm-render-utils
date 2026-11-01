@@ -58,10 +58,21 @@ default_renderer_file_image() {
   printf "\n"
 }
 
+default_renderer_tool_preparing() {
+  if llm-tool-render -ptn "$1"; then
+    jq -j '.arguments // .input // @json' \
+      | llm-tool-render -pn "$1" -- -s "$opt_state_dir" -l "$renderer_opt_tool_output_lines"
+  else
+    default_renderer_notify_header "preparing to call: $1"
+    echo
+  fi
+  cat >/dev/null
+}
+
 default_renderer_tool_call() {
   if llm-tool-render -ctn "$1"; then
     jq -j '.arguments // .input // @json' \
-      | llm-tool-render -cn "$1" -l "$renderer_opt_tool_output_lines"
+      | llm-tool-render -cn "$1" -- -s "$opt_state_dir" -l "$renderer_opt_tool_output_lines"
   else
     default_renderer_notify_header "calling $1"
     echo
@@ -75,7 +86,7 @@ default_renderer_tool_output() {
       jq -c '.output | if type == "string" then [{type:"input_text",text:.}] end | .[]'
     else
       cat -u
-    fi | llm-tool-render -on "$1" -l "$renderer_opt_tool_output_lines"
+    fi | llm-tool-render -on "$1" -- -s "$opt_state_dir" -l "$renderer_opt_tool_output_lines"
   else
     default_renderer_notify_header "called $1"
     echo
@@ -85,39 +96,11 @@ default_renderer_tool_output() {
 
 default_renderer_notify() {
   case $1 in
-    web_search_call|web_search_call@start)
-      default_renderer_notify_header "$1: "
-      echo
-      suffix=
-      case $1 in
-        *@start)
-          suffix="ing "
-          ;;
-        *)
-          suffix="ed "
-          ;;
-      esac
-      jq_program='
-      .action |
-      if .type == "search" then
-        .queries // [.query // empty] | .[] | "search" + $suffix + .
-      elif .type == "open_page" then
-        .url // empty | "open" + $suffix + .
-      elif .type == "find_in_page" then
-        "search" + $suffix + .pattern + "\nin page " + .url
-      else
-        empty
-      end
-      '
-      jq --unbuffered -r --arg suffix "$suffix" -- "$jq_program"
-      ;;
     *_call)
       default_renderer_tool_call "_builtin_${1%_call}" is_builtin
       ;;
     *_call_output)
       default_renderer_tool_output "_builtin_${1%_call_output}" is_builtin
-      ;;
-    *@start)
       ;;
     *)
       default_renderer_notify_header "$1"
@@ -130,6 +113,13 @@ default_renderer_notify() {
 
 default_renderer() {
   case "$1" in
+    preparing-call)
+      default_renderer_tool_preparing "$2"
+      return
+      ;;
+    preparing-builtin)
+      default_renderer_tool_preparing "_builtin_$2" is_builtin
+      ;;
     tool-call)
       default_renderer_tool_call "$2"
       return

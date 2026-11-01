@@ -39,6 +39,7 @@ if [ "$?" -ne 0 ]; then
   cat -- "$err"
   exit 1
 fi
+cat -- "$err"
 
 [ -n "$opt_reject" ] && set -- -r -- "$@"
 v4a-apply "$@" <"$tmp"

@@ -25,9 +25,9 @@ if [ "$#" -eq 1 ]; then
   )
 fi
 
-mkdir -p "$statedir/tool-config" || return
+mkdir -p "$opt_state_dir/tool-config" || return
 (
-  tool_config_file=$statedir/tool-config/$1
+  tool_config_file=$opt_state_dir/tool-config/$1
   shift
   for kv; do
     case $kv in

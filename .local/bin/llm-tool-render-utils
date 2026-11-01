@@ -1,0 +1,179 @@
+# vim: ft=sh
+
+llmtropt_output_amount=
+llmtropt_tool_dir=
+llmtropt_state_dir=
+llmtropt_color=auto
+
+llmtr_color_enabled=
+
+llmtr_options="s:d:l:c:" 
+
+llmtr_parse_options() {
+  llmtr_extra_options=$1
+  shift
+  OPTIND=1
+  while getopts "$llmtr_options$llmtr_extra_options" opt; do
+    case $opt in
+      d)  llmtropt_tool_dir=$OPTARG ;;
+      s)  llmtropt_state_dir=$OPTARG ;;
+      l)  llmtropt_output_amount=$OPTARG ;;
+      c)  llmtropt_color=$OPTARG ;;
+      \?) exit 2 ;;
+      *)  "parse_my_option_$opt" ;;
+    esac
+  done
+
+  [ -z "$llmtropt_tool_dir" ] && exit 2 
+
+  llmtr_color_enabled=
+  case $llmtropt_color in
+    always)
+      llmtr_color_enabled=1
+      ;;
+    never)
+      llmtr_color_enabled=
+      ;;
+    auto)
+      [ -t 1 ] && llmtr_color_enabled=1
+      ;;
+    [0123456789])
+      [ -t "$llmtropt_color" ] && llmtr_color_enabled=1
+      ;;
+  esac
+}
+
+llmtr_source_tool_config() {
+  if [ -n "$llmtropt_state_dir" ] && [ -f "$llmtropt_state_dir/tool-config/$1" ]; then
+    command . -- "$llmtropt_state_dir/tool-config/$1"
+  else
+    return 1
+  fi
+}
+
+llmtr_run_on_color() {
+  if [ -n "$llmtr_color_enabled" ]; then
+    "$@"
+  else
+    cat -u
+  fi
+}
+
+llmtr_run_filter() {
+  while IFS= read -r llmtr_line; do
+    if "$@"; then
+      printf "%s\n" "$llmtr_line"
+    fi
+  done
+
+  if [ -n "$llmtr_line" ]; then
+    if "$@"; then
+      printf "%s" "$llmtr_line"
+    fi
+  fi
+
+}
+
+llmtr_run_filter_on_color() {
+  if [ -n "$llmtr_color_enabled" ]; then
+    llmtr_run_filter "$@"
+  else
+    cat -u
+  fi
+}
+
+llmtr_filter_color_line() {
+  llmtr_line=$'\033['${1}m$llmtr_line$'\033[0m'
+}
+
+llmtr_missing_newline_mark="<missing newline>"
+llmtr_color_missing_newline_mark="41;30"
+llmtr_mark_missing_newline() {
+  while IFS= read -r llmtr_line; do
+    printf "%s\n" "$llmtr_line"
+  done
+
+  if [ -n "$llmtr_line" ]; then
+    if [ -n "$llmtr_color_enabled" ]; then
+      set -- \
+        "${1:-$llmtr_missing_newline_mark}" \
+        "${2:-$llmtr_color_missing_newline_mark}"
+      printf "%s\033[%sm%s\033[0m\n" "$llmtr_line" "$2" "$1"
+    else
+      printf "%s\n" "$llmtr_line$llmtr_missing_newline_mark"
+    fi
+  fi
+}
+
+llmtr_complete_newline() {
+  while IFS= read -r llmtr_line || [ -n "$llmtr_line" ]; do
+    printf "%s\n" "$llmtr_line"
+  done
+}
+
+llmtr_line_prefix="┃ "
+llmtr_line_has_more_prefix="› "
+llmtr_line_color_prefix='36'
+llmtr_line_color_has_more='31'
+llmtr_render_lines() {
+  llmtr_shoud_reset=$1
+
+  llmtr_line_begin=
+  if [ -n "$llmtr_color_enabled" ]; then
+    if [ -n "$llmtr_line_color_prefix" ]; then
+      llmtr_line_begin=$'\033['${llmtr_line_color_prefix}m$llmtr_line_prefix$'\033[0m'
+    else
+      llmtr_line_begin=$llmtr_line_prefix
+    fi
+
+    llmtr_has_more_color_enabled=
+    if [ -n "$llmtr_line_color_has_more" ]; then
+      llmtr_has_more_color_enabled=1
+    fi
+  else
+    llmtr_line_begin=$llmtr_line_prefix
+  fi
+
+  llmtr_print_stats() {
+    [ -n "$llmtr_has_more_color_enabled" ] && printf "\033[%sm" "$llmtr_line_color_has_more"
+    printf "%s%s\n" "$llmtr_line_has_more_prefix" \
+      "($llmtr_line_count lines in total, $((llmtr_line_count - llmtropt_output_amount)) lines not shown)"
+    [ -n "$llmtr_has_more_color_enabled" ] && printf "\033[0m"
+  }
+
+  llmtr_line_count=0
+  llmtr_process_line() {
+    if [ -n "$llmtr_shoud_reset" ] && "$llmtr_shoud_reset"; then
+      if [ "$llmtr_line_count" -gt "${llmtropt_output_amount:-$llmtr_line_count}" ]; then
+        llmtr_print_stats
+      fi
+      llmtr_line_count=0
+    fi
+
+    llmtr_line_count=$((llmtr_line_count + 1))
+    if [ "$llmtr_line_count" -gt "${llmtropt_output_amount:-$llmtr_line_count}" ]; then
+      return 1
+    fi
+    llmtr_line=$llmtr_line_begin$llmtr_line
+  }
+
+  llmtr_run_filter llmtr_process_line
+
+  if [ "$llmtr_line_count" -gt "${llmtropt_output_amount:-$llmtr_line_count}" ]; then
+    llmtr_print_stats
+  fi
+}
+
+llmtr_render_header() {
+  while [ "$#" -ne 0 ]; do
+    llmtr_header_color_end=
+    llmtr_header_color_begin=
+    if [ -n "$llmtr_color_enabled" ]; then
+      llmtr_header_color_begin=$'\033['${1}m
+      llmtr_header_color_end=$'\033[0m'
+    fi
+    printf "%s" "$llmtr_header_color_begin$2$llmtr_header_color_end"
+    shift 2
+  done
+  echo
+}

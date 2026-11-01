@@ -1,0 +1,38 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+llmtr_parse_options "" "$@"
+
+jq_program='
+.action |
+  if .type == "search" then
+    .queries // [.query // empty] | .[] | "searched " + .
+  elif .type == "open_page" then
+    .url // empty | "opened " + .
+  elif .type == "find_in_page" then
+    "found " + .pattern + "  \nin page " + .url
+  else
+    empty
+  end
+'
+url_color=$'\033[33m'
+query_color=$'\033[36m'
+pattern_color=$'\033[35m'
+keyword_color=$'\033[34m'
+color_end=$'\033[0m'
+color() {
+  trim_prefix=
+  color=
+  case $llmtr_line in
+    "searched "*)   trim_prefix="searched "; color=$query_color ;;
+    "opened "*)     trim_prefix="opened "; color=$url_color ;;
+    "found "*)      trim_prefix="found "; color=$pattern_color ;;
+    "  in page "*)  trim_prefix="  in page"; color=$url_color ;;
+    *)              return ;;
+  esac
+  llmtr_line=${llmtr_line#"$trim_prefix"}
+  llmtr_line="$keyword_color$trim_prefix$color_end $color$llmtr_line$color_end"
+}
+
+jq -r -- "$jq_program" | llmtr_run_filter_on_color color | llmtr_render_lines

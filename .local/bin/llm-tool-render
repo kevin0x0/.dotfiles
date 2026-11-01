@@ -4,9 +4,8 @@
 
 opt_test=
 opt_render_kind=
-opt_output_amount=
 opt_name=
-while getopts "tcol:n:" opt; do
+while getopts "tcopn:" opt; do
   case $opt in
     t)
       opt_test=1
@@ -17,8 +16,8 @@ while getopts "tcol:n:" opt; do
     o)
       opt_render_kind=render-output
       ;;
-    l)
-      opt_output_amount=$OPTARG
+    p)
+      opt_render_kind=render-prepare
       ;;
     n)
       opt_name=$OPTARG
@@ -37,18 +36,17 @@ if [ -z "$opt_name" ]; then
   exit 2
 fi
 
-render_tool() {
-  if [ -x "$1" ]; then
-    [ -n "$opt_test" ] && exit 0
-    "$1" -l "$opt_output_amount" -- "${1%/*}"
-    exit 0
-  elif [ -r "$1" ]; then
-    [ -n "$opt_test" ] && exit 0
-    sh -- "$1" -l "$opt_output_amount" -- "${1%/*}"
-    exit 0
-  fi
-}
+toolpath=
+locate_config_item  toolpath "tools/$opt_name/$opt_render_kind"
 
-for_config_item "tools/$opt_name/$opt_render_kind" render_tool
-
-[ -z "$opt_test" ]
+if [ -x "$toolpath" ]; then
+  [ -n "$opt_test" ] && exit 0
+  "$toolpath" -d "${toolpath%/*}" "$@"
+  exit 0
+elif [ -r "$toolpath" ]; then
+  [ -n "$opt_test" ] && exit 0
+  sh -- "$toolpath" -d "${toolpath%/*}" "$@"
+  exit 0
+else
+  [ -z "$opt_test" ]
+fi

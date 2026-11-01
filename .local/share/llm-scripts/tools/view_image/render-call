@@ -1,0 +1,6 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+llmtr_parse_options "" "$@"
+llmtr_render_header '36;1' 'view image: ' '33' "$(jq -r -- '.url // .pathname')"
