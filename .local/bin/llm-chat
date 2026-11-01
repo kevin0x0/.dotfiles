@@ -482,25 +482,11 @@ EOF
   return "$1"
 }
 
-expand_toolspec() {
-  print_toolname() {
-    set -- "${1%"${1##*[!/]}"}"
-    printf "%s\n" "${1##*/}"
-    return 1
-  }
-  patterns=$1
-  while [ -n "$patterns" ]; do
-    case $patterns in
-      [[:space:]]*)
-        patterns=${patterns#[[:space:]]}
-        ;;
-      *)
-        pattern=${patterns%%[[:space:]]*}
-        patterns=${patterns#"$pattern"}
-        match_config_item "tools/$pattern" print_toolname
-        ;;
-    esac
-  done | sort -u
+generete_tool_list() {
+  llm-expand-toolspec "$@" \
+    | tr '\n' '\000' \
+    | xargs -r0 -- llm-tool-list \
+    | jq -cs 'select(length != 0)' >"$toollist"
 }
 
 render_prompter() {
@@ -687,10 +673,7 @@ response_event_output_fifo=$opt_state_dir/response-output-fifo
 hooks_dir=$opt_state_dir/hooks
 tmp=$opt_state_dir/tmp
 
-expand_toolspec "$opt_toolspec" \
-  | tr '\n' '\000' \
-  | xargs -r0 -- llm-tool-list \
-  | jq -cs 'select(length != 0)' >"$toollist"
+generete_tool_list "$opt_toolspec"
 [ "$#" -ne 0 ] && printf "%s\n" "$@" >"$cmdline_input"
 mkfifo -- "$render_event_fifo" || exit
 mkfifo -- "$response_input_fifo" || exit
