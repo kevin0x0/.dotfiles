@@ -27,6 +27,8 @@ opt_session_conversation=
 opt_session_fileids=
 opt_session_writeback=
 
+opt_state_dir=
+
 opt_enable_hook=
 
 opt_fromfile=
@@ -152,15 +154,15 @@ if [ -z "$opt_repl_reader" ] && [ -z "$opt_repl_reader_ignore" ]; then
       : >"$historyfile"
     fi
     builtin_completion=${XDG_DATA_HOME:-$HOME/.local/share}/llm-scripts/chat/completion
-    if [ ! -e "$statedir/tmp.completions" ]; then
+    if [ ! -e "$opt_state_dir/tmp.completions" ]; then
       print_cmdname() {
         set -- "${1%"${1##*[!/]}"}"
         printf "@%s\n" "${1##*/}"
         return 1
       }
-      match_config_item "commands/*" print_cmdname >"$statedir/tmp.completions"
+      match_config_item "commands/*" print_cmdname >"$opt_state_dir/tmp.completions"
     fi
-    rlwrap -C llm-chat -H "$historyfile" -b "$break_chars" -f "$builtin_completion" -f "$statedir/tmp.completions" -ca -S "$cmdline_prompt" -- sh -c '\''IFS= read -r line && printf "%s" "$line"'\'
+    rlwrap -C llm-chat -H "$historyfile" -b "$break_chars" -f "$builtin_completion" -f "$opt_state_dir/tmp.completions" -ca -S "$cmdline_prompt" -- sh -c '\''IFS= read -r line && printf "%s" "$line"'\'
   fi
 fi
 
@@ -238,7 +240,7 @@ file_input() {
 
   for file; do
     if ! path2uri -u -- "$file"; then
-      if fileid=$(trap - INT; llm_chat_get_fileid "$statedir" "$opt_files_base_url" "$opt_api_key" "$opt_cache_key" "$opt_files_default_purpose" "$file" && echo x); then
+      if fileid=$(trap - INT; llm_chat_get_fileid "$opt_state_dir" "$opt_files_base_url" "$opt_api_key" "$opt_cache_key" "$opt_files_default_purpose" "$file" && echo x); then
         fileid=${fileid%$'\nx'}
         i18n -n llm-scripts 'file selected, file id: $1' "$fileid"
         llm-make-mcontent -e "$file_detail" "$mkcontent_id_opt" -- "$fileid" >&3
@@ -389,9 +391,9 @@ dispatch_command() {
 
 update_file_id() (
   changed=$1
-  unchanged=$statedir/tmp.unchanged
-  new=$statedir/tmp.new
-  idmap=$statedir/tmp.idmap
+  unchanged=$opt_state_dir/tmp.unchanged
+  new=$opt_state_dir/tmp.new
+  idmap=$opt_state_dir/tmp.idmap
 
   jq --slurpfile changed "$changed" -- \
     'if IN(.id; $changed[].id) then empty else . end' \
@@ -430,7 +432,7 @@ EOF
 check_file_id() {
   [ -f "$volatile_fileids" ] || return 0
 
-  changed=$statedir/tmp.changed
+  changed=$opt_state_dir/tmp.changed
   jq 'if .expires_at < now + 300 then . else empty end' \
     <"$volatile_fileids" >"$changed"
 
@@ -469,7 +471,7 @@ EOF
 
 call_tool() {
   set -- "$@" -i "$response_output" -- \
-    "$statedir" "$opt_files_base_url" \
+    "$opt_state_dir" "$opt_files_base_url" \
     "$opt_cache_key" "$opt_files_default_purpose"
   trap ':' INT
   llm-tool-call -NS llm_chat_opt_api_key=0 "$@" >"$tool_output" <<EOF
@@ -602,7 +604,7 @@ create_state_dir() {
       return 1
     fi
   done
-  printf "%s" "$dir"
+  opt_state_dir=$dir
 }
 
 state_init() {
@@ -650,30 +652,40 @@ state_init_from_session() {
 }
 
 cleanup() {
-  rm -rf -- "$statedir"
+  [ -n "$rm_dir_on_exit" ] && rm -rf -- "$rm_dir_on_exit"
+  if [ "$1" ]; then
+    trap - "$1"
+    kill -"$1" "$$"
+  fi
 }
 
 trap 'cleanup' EXIT
-trap 'cleanup; trap - QUIT; kill -QUIT "$$"' QUIT
-trap 'cleanup; trap - TERM; kill -TERM "$$"' TERM
+trap 'cleanup QUIT' QUIT
+trap 'cleanup TERM' TERM
 trap '' INT
 
-statedir=$(create_state_dir) || exit
-conversation=$statedir/conversation
-volatile_fileids=$statedir/volatile-file-ids
-persistent_fileids=$statedir/persistent-file-ids
-this_turn=$statedir/this-turn
-response_output=$statedir/response-output
-tool_output=$statedir/tool-output
-input_content=$statedir/input-content
-toollist=$statedir/tool-list
-text_input=$statedir/text-input
-cmdline_input=$statedir/cmdline-input
-render_event_fifo=$statedir/render-event-fifo
-response_input_fifo=$statedir/response-input-fifo
-response_event_output_fifo=$statedir/response-output-fifo
-hooks_dir=$statedir/hooks
-tmp=$statedir/tmp
+rm_dir_on_exit=
+if [ -z "$opt_state_dir" ]; then
+  create_state_dir || exit
+  rm_dir_on_exit=$opt_state_dir
+else
+  mkdir -p -- "$opt_state_dir" || exit
+fi
+conversation=$opt_state_dir/conversation
+volatile_fileids=$opt_state_dir/volatile-file-ids
+persistent_fileids=$opt_state_dir/persistent-file-ids
+this_turn=$opt_state_dir/this-turn
+response_output=$opt_state_dir/response-output
+tool_output=$opt_state_dir/tool-output
+input_content=$opt_state_dir/input-content
+toollist=$opt_state_dir/tool-list
+text_input=$opt_state_dir/text-input
+cmdline_input=$opt_state_dir/cmdline-input
+render_event_fifo=$opt_state_dir/render-event-fifo
+response_input_fifo=$opt_state_dir/response-input-fifo
+response_event_output_fifo=$opt_state_dir/response-output-fifo
+hooks_dir=$opt_state_dir/hooks
+tmp=$opt_state_dir/tmp
 
 expand_toolspec "$opt_toolspec" \
   | tr '\n' '\000' \

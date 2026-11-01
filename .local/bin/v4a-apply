@@ -13,15 +13,6 @@ while getopts "r" opt; do
 done
 shift "$((OPTIND - 1))"
 
-# Probe whether the controlling terminal is available.  The stderr
-# redirection must precede the /dev/tty one so that the diagnostic of a
-# failed open (no controlling terminal) is suppressed.  Do not use the
-# special builtin ':' as the probe command: a redirection error on it
-# makes a non-interactive shell exit.
-if printf "" 2>/dev/null >/dev/tty; then
-  opt_have_tty=1
-fi
-
 count=$#
 while [ "$count" -ne 0 ]; do
   count=$((count - 1))
@@ -32,6 +23,44 @@ while [ "$count" -ne 0 ]; do
   arg=${arg%x}
   set -- "$@" "${arg%/}"
 done
+
+diff() {
+  current_line=1
+  last_hunk_end=-100
+  while read line_offset count; do
+    line_offset=${line_offset#+}
+    printf "@change %s lines at line %s in %s\n" "$count" "$line_offset" "$1"
+    while [ "$current_line" -lt "$line_offset" ]; do
+      if ! IFS= read -r file_line; then
+        break 2
+      fi
+      if [ "$current_line" -ge "$((line_offset - 3))" ] \
+        || [ "$current_line" -lt "$((last_hunk_end + 3))" ]; then
+        printf " %s\n" "$file_line"
+      fi
+      current_line=$((current_line + 1))
+    done <&3
+
+    current_line=$((current_line + count))
+    while [ "$count" -ne 0 ]; do
+      IFS= read -r file_line
+        printf -- "-%s\n" "$file_line"
+      count=$((count - 1))
+    done <&3
+
+    while IFS= read -r change_line && [ "$change_line" != "." ]; do
+      printf "+%s\n" "${change_line# }"
+    done
+    last_hunk_end=$current_line
+  done
+
+  while IFS= read -r file_line; do
+    if [ "$current_line" -lt "$((last_hunk_end + 3))" ]; then
+      printf " %s%s\n" "$file_line"
+    fi
+    current_line=$((current_line + 1))
+  done <&3
+} 3<"$1"
 
 apply() {
   show_diff=$2
@@ -77,42 +106,31 @@ is_allowed() {
     esac
   done
 
-  if [ "$opt_reject" ] || [ -z "$opt_have_tty" ]; then
+  if [ -n "$opt_reject" ]; then
     return 1
   fi
 
-  while :; do
-    printf "request to operate on file: %s\n" "$f" >/dev/tty
-    printf "approve?(Y/n/[p]rint modification)\n" >/dev/tty
-
-    if ! read -r reply </dev/tty; then
-      return 1
-    fi
-
-    case $reply in
-      [nN])
-        return 1
-        ;;
-      [pP])
-        case $(head -n 1 -- "$current_operation") in
-          "@Update:"*)
-            tail -n +2 -- "$current_operation" | apply "$f" diff
-            ;;
-          *)
-            cat -- "$current_operation"
-            ;;
-        esac \
-          | if command -v less >/dev/null 2>&1; then
-              less --
-            else
-              more --
-            fi >/dev/tty
-        ;;
-      [yY]|'')
-        return 0
-        ;;
-    esac
-  done
+  color_output='
+    while IFS= read -r line; do
+      case $line in
+        "@"*) prefix="\\033[33m" ;;
+        "-"*) prefix="\\033[31m" ;;
+        "+"*) prefix="\\033[32m" ;;
+        " "*) prefix= ;;
+        *)    prefix= ;;
+      esac
+      printf "$prefix%s\033[0m\n" "$line"
+    done
+  '
+  header=$'\033[33;1m'"request to operate on file: $f"$'\033[0m'
+  case $(head -n 1 -- "$current_operation") in
+    "@Update:"*)
+      tail -n +2 -- "$current_operation" | diff "$f"
+      ;;
+    *)
+      sed 's/^ /+/' <"$current_operation"
+      ;;
+  esac | tty-approval -p 'cat -u' -P "$color_output" -h "$header" >/dev/null 2>&1
 }
 
 exitcode=0

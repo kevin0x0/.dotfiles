@@ -1,0 +1,159 @@
+#!/bin/sh
+
+opt_reply=
+opt_preview_command=
+opt_colored_preview_command=
+opt_summary_command=
+opt_header=
+opt_color='31;1'
+opt_command_input=
+opt_fake_input=
+opt_need_reasion=
+while getopts "r:p:P:s:h:c:i:FR" opt; do
+  case $opt in
+    r)  opt_reply=$OPTARG ;;
+    p)  opt_preview_command=$OPTARG ;;
+    P)  opt_colored_preview_command=$OPTARG ;;
+    s)  opt_summary_command=$OPTARG ;;
+    h)  opt_header=$OPTARG ;;
+    c)  opt_color=$OPTARG ;;
+    i)  opt_command_input=$OPTARG ;;
+    F)  opt_fake_input=1 ;;
+    R)  opt_need_reasion=1 ;;
+    \?) exit 2 ;;
+  esac
+done
+
+opt_color=$'\033['$opt_color'm'
+
+if [ "$opt_colored_preview_command" = - ]; then
+  opt_colored_preview_command=$opt_preview_command
+fi
+
+cleanup() {
+  [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
+}
+trap 'cleanup' EXIT
+trap '[ -n "$opt_need_reasion" ] && printf "rejected due to signal\n"; exit 1' INT TERM QUIT
+tmpdir=$(tmpfile -d) || exit 5
+command_input=$tmpdir/input
+fake_input=$tmpdir/fake-input
+
+if [ -z "$opt_command_input" ]; then
+  cat >"$command_input" || exit 5
+  opt_command_input=$command_input
+fi
+
+# Probe whether the controlling terminal is available.  The stderr
+# redirection must precede the /dev/tty one so that the diagnostic of a
+# failed open (no controlling terminal) is suppressed.
+have_tty=
+if command : 2>/dev/null >/dev/tty; then
+  have_tty=1
+fi
+
+tty_printf() {
+  printf "$@" >/dev/tty 2>&1
+}
+
+header_shown=
+show_header() {
+  [ -n "$header_shown" ] && return
+  header_shown=1
+  [ -n "$opt_header" ] && tty_printf "%s\n" "$opt_header"
+}
+
+reply=
+rejected=
+while :; do
+  if [ -n "$opt_reply" ]; then
+    reply=$opt_reply
+    opt_reply=
+  elif [ -z "$have_tty" ]; then
+    exitcode=1
+    reason='no controlling terminal and automatic approval is not configured'
+    break
+  else
+    show_header
+    if [ -n "$opt_summary_command" ]; then
+      (eval " $opt_summary_command" >/dev/tty 2>/dev/tty <"$opt_command_input")
+    fi
+
+    tty_printf "$opt_color%s\033[0m\n" \
+      "Do you approve the request(Y/n/${opt_fake_input:+[f]ake input/}[p]review)?"
+    IFS= read -r reply </dev/tty
+  fi
+
+  rejected=
+  reason=
+  case "$reply" in
+    [pP])
+      (
+        enable_color=
+        if less -R >/dev/null 2>&1 </dev/null; then
+          set -- less -R
+          enable_color=1
+        elif command -v more >/dev/null 2>&1; then
+          set -- more
+        else
+          set -- cat -u
+          enable_color=1
+        fi
+
+        if [ -n "$enable_color" ] && [ -n "$opt_colored_preview_command" ]; then
+          (eval " $opt_colored_preview_command" <"$opt_command_input")
+        elif [ -n "$opt_preview_command" ]; then
+          (eval " $opt_preview_command" <"$opt_command_input")
+        else
+          cat -u -- "$opt_command_input"
+        fi | "$@" >/dev/tty 2>&1
+      )
+      ;;
+    [yY]|"")
+      exitcode=0
+      break
+      ;;
+    [nN])
+      exitcode=1
+      if [ -n "$opt_need_reasion" ]; then
+        if [ -n "$have_tty" ]; then
+          tty_printf "${opt_color}Enter your reason(one line):\033[0m\n"
+          IFS= read -r reason </dev/tty
+        else
+          reason='automatically rejected'
+        fi
+      fi
+      break
+      ;;
+    [fF])
+      [ -z "$opt_fake_input" ] && continue
+
+      if [ -n "$have_tty" ]; then
+        msg="You will enter an interactive shell, please write the fake input to: $fake_input"
+        tty_printf "$opt_color%s\033[0m\n" "$msg"
+        if "${SHELL:-sh}" >/dev/tty 2>&1 </dev/tty; then
+          if [ ! -f "$fake_input" ]; then
+            tty_printf "$opt_color%s not created or not a regular file\033[0m\n" "$fake_input"
+          else
+            exitcode=3
+            break
+          fi
+        else
+          tty_printf "${opt_color}faking input cancelled\033[0m\n" "$fake_input"
+        fi
+      else
+        exitcode=1
+        reason='no controlling terminal to fake input'
+        break
+      fi
+      ;;
+  esac
+done
+
+case $exitcode in
+  0) ;;
+  1) [ -n "$opt_need_reasion" ] && printf "%s\n" "$reason" ;;
+  3) cat -- "$fake_input" ;;
+  *) ;;
+esac
+exit "$exitcode"

@@ -305,8 +305,10 @@ preprocess_render_event() {
       .output_index,
       null,
       null,
-      if .item.type != "reasoning" and .item.type != "message" then
-        "notify " + .item.type + "@start", (.item | @json)
+      if .item.type == "function_call" or .item.type == "custom_tool_call" then
+        "preparing-call " + .item.name, (.item | @json)
+      elif .item.type | endswith("_call") then
+        "preparing-builtin " + (.item.type | rtrimstr("_call")), (.item | @json)
       else
         "", ""
       end

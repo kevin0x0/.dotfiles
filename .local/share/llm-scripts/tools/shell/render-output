@@ -1,67 +1,22 @@
 #!/bin/sh
 
-opt_output_amount=
+. llm-tool-render-utils
 
-while getopts "l:" opt; do
-  case $opt in
-    l)
-      opt_output_amount=$OPTARG
-      ;;
-    \?)
-      exit 2
-      ;;
-  esac
-done
+llmtr_parse_options "" "$@"
 
-color_header_begin=
-color_has_more_begin=
-color_error_begin=
-color_stdout_begin=
-color_stderr_begin=
-color_end=
-if [ -t 1 ]; then
-  case $(termcolors) in
-    16777216|256)
-      color_header_begin='\033[36;1m'
-      color_has_more_begin='\033[91m'
-      color_error_begin='\033[31;1m'
-      color_stdout_begin='\033[36m'
-      color_stderr_begin='\033[31m'
-      color_end='\033[0m'
-      ;;
-  esac
-fi
+program='
+include "functions";
 
-jq -j 'select(.type == "input_text") | .text' \
-  | jq --argjson lines "${opt_output_amount:--1}" -j \
-      'def norm($prefix): rtrimstr("\n") | split("\n") | map($prefix + " " + . + "\n");
-       def head($lines): if $lines == -1 then .[] else .[0:$lines][], if $lines < length then ("...has more" | norm("more")[]) else empty end end;
+select(.type == "input_text") | .text |
+  try (
+    fromjson as $value |
+      "error", "stdout", "stderr", "rejected" | . as $field | $value[.] |
+      select(. != null and .!= "") | print_strings, " | ", render($field)
+  ) catch (
+    halt
+  )
+'
 
-       ("script output:" | norm("header")[]),
-       if .error != null then
-         .error + if .reason != null then "\n  " + .reason else "" end | norm("error")[]
-       else
-         (.stdout | if . != null then norm("stdout") | head($lines) else empty end),
-         (.stderr | if . != null then norm("stderr") | head($lines) else empty end)
-       end' \
-  | {
-      while IFS= read -r line; do
-        case $line in
-          "header "*)
-            printf "$color_header_begin%s$color_end\n" "${line#"header "}"
-            ;;
-          "error "*)
-            printf "$color_error_begin┃ %s$color_end\n" "${line#"error "}"
-            ;;
-          "stdout "*)
-            printf "$color_stdout_begin┃$color_end %s\n" "${line#"stdout "}"
-            ;;
-          "stderr "*)
-            printf "$color_stderr_begin┃$color_end %s\n" "${line#"stderr "}"
-            ;;
-          "more "*)
-            printf "$color_has_more_begin› %s$color_end\n" "${line#"more "}"
-            ;;
-        esac
-      done
-    }
+jq -j --arg libpath "$llmtropt_tool_dir/lib" \
+  -L "$llmtropt_tool_dir/lib" -- "$program" \
+  | sh -s -- "$@"

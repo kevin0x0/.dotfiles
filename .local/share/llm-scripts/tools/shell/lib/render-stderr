@@ -1,0 +1,9 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+llmtr_parse_options "" "$@"
+
+llmtr_render_header '31;1' "execution result (stderr):"
+llmtr_line_color_prefix='31'
+llmtr_mark_missing_newline | llmtr_render_lines

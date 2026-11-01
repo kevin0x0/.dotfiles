@@ -9,23 +9,27 @@ stdout=
 arg=
 
 cleanup() {
-  [ -n "$stderr" ] && rm -f -- "$stderr"
-  [ -n "$stdout" ] && rm -f -- "$stdout"
-  [ -n "$arg" ] && rm -f -- "$arg"
+  [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
+  if [ -n "$1" ]; then
+    trap - "$1"
+    kill -"$1" "$$"
+  fi
 }
 
 trap 'cleanup' EXIT
-trap 'cleanup; trap - INT; kill -INT "$$"' INT
-trap 'cleanup; trap - TERM; kill -TERM "$$"' TERM
-trap 'cleanup; trap - QUIT; kill -QUIT "$$"' QUIT
+trap 'cleanup INT' INT
+trap 'cleanup TERM' TERM
+trap 'cleanup QUIT' QUIT
 
-stderr=$(tmpfile) || exit 1
-stdout=$(tmpfile) || exit 1
-arg=$(tmpfile) || exit 1
+tmpdir=$(tmpfile -d) || exit 1
+stderr=$tmpdir/stderr
+stdout=$tmpdir/stdout
+arg=$tmpdir/arg
+approval_out=$tmpdir/approval-out
 
 cat >"$arg"
 
-if ! jq -e 'has("code") and has("intent")' "$arg" >/dev/null 2>&1; then
+if ! jq -e -- 'type == "object" and (.code | type) == "string" and (.intent | type) == "string"' "$arg" >/dev/null 2>&1; then
   llm-make-mcontent -t -- '{"error":"bad argument"}'
   exit 0
 fi
@@ -47,96 +51,48 @@ if ! command -v -- "$interpreter" >/dev/null 2>&1; then
   exit 0
 fi
 
-color_begin=
-color_end=
-if [ -t 2 ]; then
-  color_begin='\033[1;31m'
-  color_end='\033[0m'
+reply=
+if [ -n "$LLM_CHAT_SH_YES$opt_yes" ]; then
+  reply=${opt_yes:-$LLM_CHAT_SH_YES}
 fi
+header=$'\033[31;1m'"script execution requested ($interpreter):"$'\033[0m'
+preview_command="jq -j '.code' | $(shell-escape -- sh -- "$1/lib/render-code" -d "$1" -s "$2" -I "$interpreter")"
+colored_preview_command="$preview_command -c always"
+summary_command="jq -j '.intent' | $(shell-escape -- sh -- "$1/lib/render-intent" -d "$1" -s "$2")"
 
-# Probe whether the controlling terminal is available.  The stderr
-# redirection must precede the /dev/tty one so that the diagnostic of a
-# failed open (no controlling terminal) is suppressed.  Do not use the
-# special builtin ':' as the probe command: a redirection error on it
-# makes a non-interactive shell exit.
-if printf "" 2>/dev/null >/dev/tty; then
-  opt_have_tty=1
-fi
+tty-approval \
+  -FR \
+  -r "$reply" \
+  -p "$preview_command" \
+  -P "$colored_preview_command" \
+  -s "$summary_command" \
+  -h "$header" \
+  -i "$arg" >"$approval_out"
 
-header_shown=
-show_header() {
-  [ -n "$header_shown" ] && return
-  header_shown=1
-  printf "$color_begin%s$color_end\n" "script execution requested($interpreter):" >&2
-}
+case $? in
+  0)
+    jq -j '.code' <"$arg" | "$interpreter" >"$stdout" 2>"$stderr"
+    exitcode=$?
+    ;;
+  1)
+    jq -Rcs '{rejected:.}' <"$approval_out" \
+      | llm-make-mcontent -t
+    exit 0
+    ;;
+  3)
+    "$interpreter" >"$stdout" 2>"$stderr" <"$approval_out"
+    exitcode=$?
+    ;;
+  *)
+    llm-make-mcontent -t '{"error":"approval agent exited abnormally"}'
+    exit 0
+    ;;
+esac
 
-while :; do
-  if [ -n "$LLM_CHAT_SH_YES$opt_yes" ]; then
-    reply=${opt_yes:-$LLM_CHAT_SH_YES}
-    LLM_CHAT_SH_YES=
-    opt_yes=
-  elif [ -z "$opt_have_tty" ]; then
-    rejected=1
-    reason='no controlling terminal and automatic approval is not configured'
-    break
-  else
-    show_header
-    sh -- "$1/render-call" -C <"$arg" >&2
-    printf "$color_begin%s$color_end\n" \
-      "Do you approve the request(Y/n/[r]eplace the original script(s)/[p]rint code)?" >&2
-    IFS= read -r reply </dev/tty
-  fi
-
-  rejected=
-  reason=
-  exitcode=0
-  case "$reply" in
-    p)
-      if less -R </dev/null >/dev/null 2>&1; then
-        sh -- "$1/render-call" -IT 2 <"$arg" | less -R >&2
-      elif command -v more >/dev/null 2>&1; then
-        sh -- "$1/render-call" -I <"$arg" | more >&2
-      else
-        sh -- "$1/render-call" -I <"$arg" >&2
-      fi
-      continue
-      ;;
-    y|"")
-      jq -r -- '.code' "$arg" | "$interpreter" >"$stdout" 2>"$stderr"
-      exitcode=$?
-      break
-      ;;
-    n)
-      rejected=1
-      if [ -n "$opt_have_tty" ]; then
-        printf "\033[1;36mEnter your reason(one line):\033[0m\n" >&2
-        IFS= read -r reason </dev/tty
-      fi
-      break
-      ;;
-    r)
-      if [ -n "$opt_have_tty" ]; then
-        printf "\033[1;36mEnter your replacing script(type ctrl+D to send EOF):\033[0m\n" >&2
-        "$interpreter" </dev/tty >"$stdout" 2>"$stderr"
-        exitcode=$?
-      else
-        rejected=1
-        reason='no controlling terminal to read the replacing script'
-      fi
-      break
-      ;;
-  esac
-done
-
-if [ -n "$rejected" ]; then
-  jq -cn --arg reason "$reason" '{"error":"rejected","reason":$reason}' \
-    | llm-make-mcontent -t --
-else
-  jq -cn --rawfile out "$stdout" \
-    --rawfile err "$stderr" \
-    --argjson exitcode "$exitcode" \
-    '{"error":null,"stdout":$out,"stderr":$err,"exitcode":$exitcode}' \
-    | llm-make-mcontent -t --
-fi
+jq -cn --rawfile stdout "$stdout" \
+  --rawfile stderr "$stderr" \
+  --argjson exitcode "$exitcode" \
+  '{$stdout,$stderr,$exitcode}' \
+  | llm-make-mcontent -t --
 
 exit 0
