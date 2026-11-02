@@ -47,9 +47,9 @@ llmcu_match_item_in_datadirs() {
   llmcu_paths=${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}
   llmcu_paths=${llmcu_paths:+$llmcu_paths:}
   while [ -n "$llmcu_paths" ]; do
-    llmcu_path=${llmcu_paths%%:*}
-    llmcu_path=${llmcu_path:-$PWD}/llm-scripts
-    for llmcu_config_item in "$llmcu_path"/$llmcu_pattern; do
+    llmcu_dir=${llmcu_paths%%:*}
+    llmcu_dir=${llmcu_dir:-$PWD}/llm-scripts
+    for llmcu_config_item in "$llmcu_dir"/$llmcu_pattern; do
       [ -e "$llmcu_config_item" ] || continue
       "$@" "$llmcu_config_item" && return
     done
@@ -61,9 +61,11 @@ llmcu_match_item_in_datadirs() {
 llmcu_match_config_item() {
   llmcu_pattern=$1
   shift
-  for llmcu_config_item in "$llmcu_configdir"/$llmcu_pattern "$llmcu_datadir"/$llmcu_pattern; do
-    [ -e "$llmcu_config_item" ] || continue
-    "$@" "$llmcu_config_item" && return
+  for llmcu_dir in "$llmcu_configdir" "$llmcu_datadir"; do
+    for llmcu_config_item in "$llmcu_dir"/$llmcu_pattern; do
+      [ -e "$llmcu_config_item" ] || continue
+      "$@" "$llmcu_config_item" && return
+    done
   done
   llmcu_match_item_in_datadirs "$llmcu_pattern" "$@"
 }
@@ -74,10 +76,10 @@ llmcu_for_item_in_datadirs() {
   llmcu_paths=${XDG_DATA_DIRS:-/usr/local/share/:/usr/share/}
   llmcu_paths=${llmcu_paths:+$llmcu_paths:}
   while [ -n "$llmcu_paths" ]; do
-    llmcu_path=${llmcu_paths%%:*}
-    llmcu_path=${llmcu_path:-$PWD}/llm-scripts
-    if [ -e "$llmcu_path/$llmcu_item" ]; then
-      "$@" "$llmcu_path/$llmcu_item" && return
+    llmcu_dir=${llmcu_paths%%:*}
+    llmcu_dir=${llmcu_dir:-$PWD}/llm-scripts
+    if [ -e "$llmcu_dir/$llmcu_item" ]; then
+      "$@" "$llmcu_dir/$llmcu_item" && return
     fi
     llmcu_paths=${llmcu_paths#*:}
   done
@@ -87,10 +89,13 @@ llmcu_for_item_in_datadirs() {
 llmcu_for_config_item() {
   llmcu_item=$1
   shift
-  for llmcu_config_item in "$llmcu_configdir/$llmcu_item" "$llmcu_datadir/$llmcu_item"; do
-    if [ -e "$llmcu_config_item" ]; then
-      "$@" "$llmcu_config_item" && return
-    fi
+
+  for llmcu_dir in "$llmcu_configdir" "$llmcu_datadir"; do
+    for llmcu_config_item in "$llmcu_dir/$llmcu_item"; do
+      if [ -e "$llmcu_config_item" ]; then
+        "$@" "$llmcu_config_item" && return
+      fi
+    done
   done
   llmcu_for_item_in_datadirs "$llmcu_item" "$@"
 }
