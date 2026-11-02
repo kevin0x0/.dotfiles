@@ -96,11 +96,10 @@ validate_name() {
 # empty opt_state/opt_type/opt_when act as wildcards.
 # The pattern is built from validated enum values, so it is safe unquoted.
 list_hooks() {
-  pattern=${opt_state:-*}/
-  pattern=$pattern${opt_type:-*}/
-  pattern=$pattern${opt_when:-*}/
-  find "$hookdir/" \( -type f -o -type l \) -print0 \
-    | jq --arg prefix "$hookdir/" \
+  llm_chat_get_hook_relpath pattern "${opt_state:-*}" "${opt_type:-*}" "${opt_when:-*}"
+  pattern=$pattern/
+  find "$llm_chat_hooks_dir/" \( -type f -o -type l \) -print0 \
+    | jq --arg prefix "$llm_chat_hooks_dir/" \
         -Rsr 'split("\u0000")[] | ltrimstr($prefix) | select(length != 0)' \
     | {
         while IFS= read -r line; do
@@ -167,8 +166,9 @@ sub_create() {
     validate_name "$name" || return
   fi
 
-  hookdir=$opt_state_dir/hooks
-  d=$hookdir/$opt_state/$opt_type/$opt_when
+  . llm-chat-common
+  llm_chat_set_public_files_var "$opt_state_dir"
+  llm_chat_get_hook d "$opt_state" "$opt_type" "$opt_when"
   mkdir -p -- "$d" || return 1
 
   if [ -n "$name" ]; then
@@ -179,12 +179,14 @@ sub_create() {
     fi
   else
     # llm-chat and this script never touch hooks concurrently
-    f=$d/unnamed-$$
+    name=unnamed-$$
+    f=$d/$name
     i=0
-    while [ -e "$f" ]; do
+    while [ -e "$d/$name" ]; do
       i=$((i + 1))
-      f=$d/unnamed-$$.$i
+      name=unnamed-$$.$i
     done
+    f=$d/$name
     (set -C; : >"$f") || return 1
   fi
 
@@ -206,7 +208,7 @@ sub_create() {
   [ "$?" -eq 0 ] || return 1
 
   if [ -n "$opt_json" ]; then
-    rel=$opt_state/$opt_type/$opt_when/${f##*/}
+    llm_chat_get_hook_relpath rel "$opt_state" "$opt_type" "$opt_when" "$name"
     if [ -n "$opt_append" ]; then
       jq -cn --arg rel "$rel" --arg path "$f" '{appended:$rel,path:$path}'
     else
@@ -240,17 +242,18 @@ sub_remove() {
   name=$1
   validate_name "$name" || return
 
-  hookdir=$opt_state_dir/hooks
-  f=$hookdir/$opt_state/$opt_type/$opt_when/$name
+  . llm-chat-common
+  llm_chat_set_public_files_var "$opt_state_dir"
+  llm_chat_get_hook f "$opt_state" "$opt_type" "$opt_when" "$name"
   if [ ! -e "$f" ]; then
     printf "hook doesn't exist: %s\n" "$f" >&2
     return 1
   fi
   rm -f -- "$f"
-  find "$hookdir" -depth -type d -exec rmdir {} \; 2>/dev/null
   if [ -n "$opt_json" ]; then
+    llm_chat_get_hook_relpath rel "$opt_state" "$opt_type" "$opt_when" "$name"
     jq -cn \
-      --arg rel "$opt_state/$opt_type/$opt_when/$name" --arg path "$f" \
+      --arg rel "$rel" --arg path "$f" \
       '{removed:$rel,path:$path}'
   else
     printf "removed hook: %s\n" "$f"
@@ -282,11 +285,12 @@ sub_list() {
     validate_type "$opt_type" || return
   fi
 
-  hookdir=$opt_state_dir/hooks
-  if [ -d "$hookdir" ]; then
+  . llm-chat-common
+  llm_chat_set_public_files_var "$opt_state_dir"
+  if [ -d "$llm_chat_hooks_dir" ]; then
     if [ -n "$opt_json" ]; then
-      list_hooks | jq -Rsc --arg hookdir "$hookdir" \
-        'split("\n") | map(select(. != "") | {rel:., path: ($hookdir + "/" + .)}) | {hooks:.}'
+      list_hooks | jq -Rsc --arg hooks_dir "$llm_chat_hooks_dir" \
+        'split("\n") | map(select(. != "") | {rel:., path: ($hooks_dir + "/" + .)}) | {hooks:.}'
     else
       list_hooks
     fi
@@ -318,8 +322,9 @@ sub_path() {
   name=$1
   validate_name "$name" || return
 
-  hookdir=$opt_state_dir/hooks
-  f=$hookdir/$opt_state/$opt_type/$opt_when/$name
+  . llm-chat-common
+  llm_chat_set_public_files_var "$opt_state_dir"
+  llm_chat_get_hook f "$opt_state" "$opt_type" "$opt_when" "$name"
   [ -e "$f" ] || { printf "hook doesn't exist: %s\n" "$f" >&2; return 1; }
   if [ -n "$opt_json" ]; then
     jq -cn --arg path "$f" '{path:$path}'
