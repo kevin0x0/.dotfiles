@@ -2,9 +2,33 @@
 
 . llm-config-utils
 
+opt_tree=
+while getopts "t" opt; do
+  case $opt in
+    t)  opt_tree=1 ;;
+    \?) exit 2 ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
 print_toolname() {
   set -- "${1%"${1##*[!/]}"}"
   printf "%s\n" "${1##*/}"
+  return 1
+}
+
+print_tree() {
+  set -- "${1#"$llmcu_dir/tooltree/"}" "$1"
+  if [ -d "$2" ]; then
+    printf "%s\n" "${1%/}/"
+  else
+    printf "%s\n" "$1"
+  fi
+  return 1
+}
+
+print_toolname_in_tree() {
+  [ -f "$1" ] && printf "%s\n" "${1##*/}"
   return 1
 }
 
@@ -18,7 +42,15 @@ expand_toolspec() {
         *)
           pattern=${patterns%%[[:space:]]*}
           patterns=${patterns#"$pattern"}
-          llmcu_match_config_item "tools/$pattern" print_toolname
+          case $pattern in
+            */*)
+              [ -n "$opt_tree" ] && callback=print_tree || callback=print_toolname_in_tree
+              llmcu_match_config_item "tooltree/$pattern" "$callback"
+              ;;
+            *)
+              llmcu_match_config_item "tools/$pattern" print_toolname
+              ;;
+          esac
           ;;
       esac
     done
