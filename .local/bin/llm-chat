@@ -41,6 +41,7 @@ renderer_opt_tool_output_lines=15
 
 . llm-config-utils
 . llm-render-utils
+. llm-chat-common
 
 llm_scriptname=llm-chat
 [ -f "$llmcu_configdir/chat-config" ] && . -- "$llmcu_configdir/chat-config"
@@ -208,8 +209,6 @@ esac
 
 shift "$((OPTIND - 1))"
 
-. llm-chat-fileid-utils
-
 file_input() {
   is_image=
   [ "${1%%/*}" = @image ] && is_image=1
@@ -240,7 +239,7 @@ file_input() {
 
   for file; do
     if ! path2uri -u -- "$file"; then
-      if fileid=$(trap - INT; llm_chat_get_fileid "$opt_state_dir" "$opt_files_base_url" "$opt_api_key" "$opt_cache_key" "$opt_files_default_purpose" "$file" && echo x); then
+      if fileid=$(trap - INT; llm_chat_get_fileid "$opt_files_base_url" "$opt_api_key" "$opt_cache_key" "$opt_files_default_purpose" "$file" && echo x); then
         fileid=${fileid%$'\nx'}
         i18n -n llm-scripts 'file selected, file id: $1' "$fileid"
         llm-make-mcontent -e "$file_detail" "$mkcontent_id_opt" -- "$fileid" >&3
@@ -277,7 +276,7 @@ save_session() {
   fi
 
   if ! cp -- "$conversation" "$1" || \
-    ! cat -- "$persistent_fileids" "$volatile_fileids" >"$2"; then
+    ! cat -- "$llm_chat_persistent_fileids" "$llm_chat_volatile_fileids" >"$2"; then
   i18n -n llm-scripts 'failed to save as $1 and $2' "$1" "$2" >&2
   fi
 }
@@ -376,7 +375,7 @@ dispatch_command() {
         if [ -x "$cmdpath" ]; then
           shift
           (
-            export conversation volatile_fileids persistent_fileids this_turn toollist
+            export conversation llm_chat_volatile_fileids llm_chat_persistent_fileids this_turn llm_chat_tool_list
             "$cmdpath" "$@"
           )
         elif [ -r "$cmdpath" ]; then
@@ -397,7 +396,7 @@ update_file_id() (
 
   jq --slurpfile changed "$changed" -- \
     'if IN(.id; $changed[].id) then empty else . end' \
-    "$volatile_fileids" "$persistent_fileids" >"$unchanged"
+    "$llm_chat_volatile_fileids" "$llm_chat_persistent_fileids" >"$unchanged"
 
   trap ':' INT
   {
@@ -423,18 +422,18 @@ EOF
 
   cp -- "$tmp" "$conversation"
 
-  jq -c -- '[select(has("expires_at"))] | unique_by(.id)[]' "$unchanged" "$new" >"$volatile_fileids"
-  jq -c -- '[select(has("expires_at") | not)] | unique_by(.id)[]' "$unchanged" "$new" >"$persistent_fileids"
+  jq -c -- '[select(has("expires_at"))] | unique_by(.id)[]' "$unchanged" "$new" >"$llm_chat_volatile_fileids"
+  jq -c -- '[select(has("expires_at") | not)] | unique_by(.id)[]' "$unchanged" "$new" >"$llm_chat_persistent_fileids"
 
   rm -- "$unchanged" "$new" "$idmap"
 )
 
 check_file_id() {
-  [ -f "$volatile_fileids" ] || return 0
+  [ -f "$llm_chat_volatile_fileids" ] || return 0
 
   changed=$opt_state_dir/tmp.changed
   jq 'if .expires_at < now + 300 then . else empty end' \
-    <"$volatile_fileids" >"$changed"
+    <"$llm_chat_volatile_fileids" >"$changed"
 
   [ ! -s "$changed" ] && return 0
 
@@ -450,7 +449,7 @@ call() (
     exit 1
   fi
 
-  [ -s "$toollist" ] && set -- "$@" -T "$toollist"
+  [ -s "$llm_chat_tool_list" ] && set -- "$@" -T "$llm_chat_tool_list"
 
   cat -- "$conversation" "$this_turn" >"$response_input_fifo" &
   dispatch_render_event "$render_event_fifo" <"$response_event_output_fifo" &
@@ -480,13 +479,6 @@ EOF
   set -- "$?"
   trap '' INT
   return "$1"
-}
-
-generete_tool_list() {
-  llm-expand-toolspec -- "$@" \
-    | tr '\n' '\000' \
-    | xargs -r0 -- llm-tool-list \
-    | jq -cs 'select(length != 0)' >"$toollist"
 }
 
 render_prompter() {
@@ -561,20 +553,20 @@ read_loop() {
 run_hooks() {
   [ -z "$opt_enable_hook" ] && return 0
   for hooked_state in any-state "$state"; do
-    [ -d "$hooks_dir/$hooked_state" ] || continue
+    [ -d "$llm_chat_hooks_dir/$hooked_state" ] || continue
     for hook_type in oneshot always; do
-      if [ -e "$hooks_dir/$hooked_state/$hook_type/$1" ]; then
-        for hook_script in "$hooks_dir/$hooked_state/$hook_type/$1"/*; do
+      if [ -e "$llm_chat_hooks_dir/$hooked_state/$hook_type/$1" ]; then
+        for hook_script in "$llm_chat_hooks_dir/$hooked_state/$hook_type/$1"/*; do
           [ -f "$hook_script" ] || continue
           (trap - INT; . -- "$hook_script")
         done
         if [ "$hook_type" = oneshot ]; then
-          rm -rf -- "$hooks_dir/$hooked_state/$hook_type/$1"
+          rm -rf -- "$llm_chat_hooks_dir/$hooked_state/$hook_type/$1"
         fi
       fi
     done
     # Clean empty directories
-    find "$hooks_dir/$hooked_state" -depth -type d -exec rmdir {} \; 2>/dev/null
+    find "$llm_chat_hooks_dir/$hooked_state" -depth -type d -exec rmdir {} \; 2>/dev/null
   done
 }
 
@@ -595,8 +587,8 @@ create_state_dir() {
 
 state_init() {
   : >"$conversation"
-  : >"$volatile_fileids"
-  : >"$persistent_fileids"
+  : >"$llm_chat_volatile_fileids"
+  : >"$llm_chat_persistent_fileids"
   : >"$this_turn"
   : >"$response_output"
   : >"$tool_output"
@@ -630,8 +622,8 @@ state_init_from_session() {
   done
   cp -- "$opt_session_conversation" "$conversation"
 
-  if ! jq -c -- '[select(has("expires_at"))] | unique_by(.id)[]' "$opt_session_fileids" >"$volatile_fileids" ||
-    ! jq -c -- '[select(has("expires_at") | not)] | unique_by(.id)[]' "$opt_session_fileids" >"$persistent_fileids"; then
+  if ! jq -c -- '[select(has("expires_at"))] | unique_by(.id)[]' "$opt_session_fileids" >"$llm_chat_volatile_fileids" ||
+    ! jq -c -- '[select(has("expires_at") | not)] | unique_by(.id)[]' "$opt_session_fileids" >"$llm_chat_persistent_fileids"; then
     i18n -n llm-scripts 'failed to extract file ids from $1' "$opt_session_fileids" >&2
     exit 1
   fi
@@ -658,22 +650,28 @@ else
   mkdir -p -- "$opt_state_dir" || exit
 fi
 conversation=$opt_state_dir/conversation
-volatile_fileids=$opt_state_dir/volatile-file-ids
-persistent_fileids=$opt_state_dir/persistent-file-ids
 this_turn=$opt_state_dir/this-turn
 response_output=$opt_state_dir/response-output
 tool_output=$opt_state_dir/tool-output
 input_content=$opt_state_dir/input-content
-toollist=$opt_state_dir/tool-list
 text_input=$opt_state_dir/text-input
 cmdline_input=$opt_state_dir/cmdline-input
 render_event_fifo=$opt_state_dir/render-event-fifo
 response_input_fifo=$opt_state_dir/response-input-fifo
 response_event_output_fifo=$opt_state_dir/response-output-fifo
-hooks_dir=$opt_state_dir/hooks
 tmp=$opt_state_dir/tmp
+# Set:
+# llm_chat_volatile_fileids
+# llm_chat_persistent_fileids
+# llm_chat_tool_list
+# llm_chat_default_tool_name_list
+# llm_chat_extra_tool_name_list
+# llm_chat_hooks_dir
+llm_chat_set_public_files_var "$opt_state_dir"
 
-generete_tool_list "$opt_toolspec"
+llm-expand-toolspec -- "$opt_toolspec" >"$llm_chat_default_tool_name_list"
+llm_chat_generate_tool_list
+
 [ "$#" -ne 0 ] && printf "%s\n" "$@" >"$cmdline_input"
 mkfifo -- "$render_event_fifo" || exit
 mkfifo -- "$response_input_fifo" || exit

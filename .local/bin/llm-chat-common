@@ -1,0 +1,161 @@
+#!/bin/sh
+
+llm_chat_set_public_files_var() {
+  llm_chat_volatile_fileids=$1/volatile-file-ids
+  llm_chat_persistent_fileids=$1/persistent-file-ids
+  llm_chat_tool_list=$1/tool-list
+  llm_chat_default_tool_name_list=$1/default-tool-name-list
+  llm_chat_extra_tool_name_list=$1/extra-tool-name-list
+  llm_chat_hooks_dir=$1/hooks
+}
+
+llm_chat_helper_set_tmp() {
+  if [ "$1" = -d ]; then
+    tmp=$(tmpfile -d) || exit 1
+  else
+    tmp=$(tmpfile) || exit 1
+  fi
+
+  cleanup() {
+    if [ -n "$tmp" ]; then
+      [ -d "$tmp" ] && rm -rf -- "$tmp" || rm -f -- "$tmp"
+    fi
+
+    if [ -n "$1" ]; then
+      trap - "$1"
+      kill -"$1" "$$"
+    fi
+  }
+  trap 'cleanup' EXIT
+  for sig in INT TERM QUIT; do
+    trap "cleanup "$sig"" "$sig"
+  done
+}
+
+llm_chat_operate_extra_tool() (
+  OPTIND=1
+  opt_print=
+  opt_mode=
+  while getopts "pm:" opt; do
+    case $opt in
+      p) opt_print=1 ;;
+      m) opt_mode=$OPTARG ;;
+      \?) exit 2 ;;
+    esac
+  done
+  shift "$((OPTIND - 1))"
+
+  trap '' INT
+  namelist=$llm_chat_extra_tool_name_list
+  [ -f "$namelist" ] || : >"$namelist" || exit 1
+  llm_chat_helper_set_tmp -d
+  sort -o "$namelist" -- "$namelist"
+  case $opt_mode in
+    add)
+      llm-expand-toolspec -- "$@" | sort | comm -23 - "$namelist" >"$tmp/delta"
+      ;;
+    remove)
+      llm-expand-toolspec -- "$@" | sort | comm -12 - "$namelist" >"$tmp/delta"
+      ;;
+    *)
+      exit 2
+      ;;
+  esac
+  if [ -n "$opt_print" ]; then
+    cat -- "$tmp/delta"
+  fi
+
+  case $opt_mode in
+    add)
+      cat -- "$tmp/delta" >>"$namelist"
+      ;;
+    remove)
+      comm -13 --  "$tmp/delta" "$namelist" >"$tmp/result"
+      cp -- "$tmp/result" "$namelist"
+      ;;
+  esac
+)
+
+llm_chat_generate_tool_list() (
+  trap '' INT
+  set --
+  for f in "$llm_chat_default_tool_name_list" "$llm_chat_extra_tool_name_list"; do
+    [ -f "$f" ] || continue
+    set -- "$@" "$f"
+  done
+
+  [ "$#" -eq 0 ] && { : >"$llm_chat_tool_list"; return; }
+
+  sort -u -- "$@" \
+    | tr '\n' '\000' \
+    | xargs -r0 -- llm-tool-list \
+    | jq -cs -- 'select(length != 0)' >"$llm_chat_tool_list"
+)
+
+# $2 state, $3 type, $4 when, $5 name (optional)
+llm_chat_get_hook_relpath() {
+  command eval " $1"='$2/$3/$4${5:+/$5}'
+}
+
+# $2 state, $3 type, $4 when, $5 name (optional)
+llm_chat_get_hook() {
+  llm_chat_get_hook_relpath "$@"
+  command eval " $1"='$llm_chat_hooks_dir/$'"$1"
+}
+
+llm_chat_get_fileid() (
+  if [ -z "$1" ]; then
+    printf "base url for Files API not provided\n" >&2
+    exit 1
+  fi
+
+  if [ -z "$2" ]; then
+    printf "api key not provided\n" >&2
+    exit 1
+  fi
+
+  if [ -z "$3" ]; then
+    printf "cache key not provided\n" >&2
+    exit 1
+  fi
+
+  if [ -z "$4" ]; then
+    printf "purpose not provided\n" >&2
+    exit 1
+  fi
+
+  if [ -z "$5" ]; then
+    printf "file not provided\n" >&2
+    exit 1
+  fi
+
+  if [ "$#" -ne 5 ]; then
+    printf "not exactly 5 arguments\n" >&2
+    exit 1
+  fi
+
+  trap '' INT
+  llm_chat_helper_set_tmp
+
+  if ! llm-file-manager -u "$1" -FNk 0 -K "$3" -p "$4" -Ulm -- "$5" >"$tmp" <<EOF
+$2
+EOF
+  then
+    exit 1
+  fi
+
+  add_to_file=
+  if jq -e -- '.expires_at' "$tmp" >/dev/null 2>&1; then
+    add_to_file=$llm_chat_volatile_fileids
+  else
+    add_to_file=$llm_chat_persistent_fileids
+  fi
+
+  trap '' INT
+
+  cat "$tmp" >>"$add_to_file"
+  jq -r -- '.id' "$tmp"
+  jq -cs -- 'unique_by(.id)[]' "$add_to_file" >"$tmp"
+  cp -- "$tmp" "$add_to_file"
+  rm "$tmp"
+)
