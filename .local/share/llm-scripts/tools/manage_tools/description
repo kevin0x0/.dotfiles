@@ -9,9 +9,10 @@ tool documents.
   Requires "pattern".
 - "disable": remove tools matching "pattern" from the session's extra tool
   list. Requires "pattern".
-- "list": list tools. When "enabled" is true, lists the tools enabled in the
-  current session; otherwise lists the tools matching "pattern" (all tools
-  when "pattern" is omitted). "with_summary" adds each tool's short summary;
+- "list": list tools. When "enabled" is true, lists the tools currently
+  available to the model (the default tool list plus the enabled extra
+  tools); otherwise lists the tools matching "pattern" (all tools when
+  "pattern" is omitted). "with_summary" adds each tool's short summary;
   "start_index" and "count" select a page of the result.
 - "doc": read a document of a tool. Requires "toolname"; "docpath" defaults
   to "README.md".
@@ -35,6 +36,12 @@ are categories and files are concrete tools (named after the tools). The
 same tool may appear under multiple categories; each position is listed
 separately. Directories are only listed when "pattern" contains "/".
 
+# Tool documents
+
+Tool documents are plain-text (usually Markdown) files under the tool's
+doc directory; they hold extended reference material for the model.
+"README.md" is the conventional entry point.
+
 # Approval
 
 "enable" and "disable" are automatically approved by default.
@@ -53,6 +60,8 @@ On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 
 - "enable" and "disable" only affect the session's extra tool list; the
   default tool list specified at session start is not affected.
+- Enabling an already enabled tool, or disabling one that is not enabled,
+  is a no-op: the result is an empty list, not an error.
 - Enabling a tool only makes it available to the model; the tool is not
   executed until it is actually called (calls keep their own approval).
 - Enabled tools are scoped to the current session.
