@@ -30,7 +30,7 @@ approval_out=$tmpdir/approval-out
 cat >"$arg"
 
 if ! jq -e -- 'type == "object" and (.code | type) == "string" and (.intent | type) == "string"' "$arg" >/dev/null 2>&1; then
-  llm-make-mcontent -t -- '{"error":"bad argument"}'
+  llm-make-mcontent -t -- '{"error":"bad argument: both \"code\" and \"intent\" fields must be provided"}'
   exit 0
 fi
 
