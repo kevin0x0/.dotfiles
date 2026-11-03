@@ -29,7 +29,9 @@ depends on the operation: for enable and disable it matches tool names
 names while patterns containing "/" match paths in the tool tree (e.g.
 "builtin/*"), for listing items under the root of the tool tree, prefix
 your pattern with a "/" (e.g. "/*"); for listdoc it matches document
-pathnames under the tool's doc directory.
+pathnames under the tool's doc directory. A word starting with "@" names
+a tool preset (a named list of patterns, e.g. "@default"); it is
+expanded in place and can be mixed with other words.
 
 # Tool tree
 
