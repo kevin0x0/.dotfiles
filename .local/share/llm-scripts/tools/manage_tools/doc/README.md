@@ -22,7 +22,8 @@ Recipes:
 In tree mode, entries are paths: the last segment of a file entry is the
 tool name, and directory entries are categories and end with "/". A
 pattern ending with "/" matches only directories; otherwise files and
-directories are matched alike.
+directories are matched alike. A file directly under the tree root is a
+general-purpose tool that belongs to no category.
 
 # Pagination
 
