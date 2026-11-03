@@ -5,25 +5,29 @@ leaves a state.
 
 # Operations
 
-- "create": create a hook. Requires "state" and "source". "mode" selects how
-  the hook content is provided: "command" (source is the shell script text),
-  "copy" (source is a file whose content is copied), "symlink" (source is a
-  file the hook links to). "name" is optional; an auto-generated name is used
-  when omitted. "append" requires "name" and appends to the existing hook
-  instead of failing; it can not be used with mode "symlink". "type"
-  ("oneshot" runs once then is removed, "always" runs every time) defaults to
-  "oneshot"; "when" ("before" entering / "after" leaving the state) defaults
-  to "after".
-- "remove": remove a hook. Requires "state" and "name".
-- "list-enabled": list enabled hooks. "state", "type" and "when" can be used to
-  filter the list.
-- "path": print the absolute pathname of a hook. Requires "state" and "name".
+- "create": create a hook. Requires "state" and "source". "mode" selects
+  how the hook content is provided: "command" (source is the script text),
+  "copy" (source is a file whose content is copied), "symlink" (source is
+  a file the hook links to). "name" is optional (auto-generated when
+  omitted); with "append" (requires "name"), the content is appended to
+  the existing hook instead of failing.
+- "remove": remove a hook. Requires "state" and "name"; "type" and "when"
+  identify which hook is meant (defaulting to "oneshot"/"after", so pass
+  them for hooks created with other values).
+- "list-enabled": list enabled hooks. "state", "type" and "when" can be
+  used to filter the list.
+- "path": print the absolute pathname of a hook. Requires "state" and
+  "name"; "type" and "when" identify which hook is meant (defaulting to
+  "oneshot"/"after", so pass them for hooks created with other values).
 
 # States
 
 any-state, read-loop, agent-loop-api-call, agent-loop-tool-call,
 agent-loop-end, agent-loop-api-call-interrupted,
 agent-loop-tool-call-interrupted, end.
+
+"any-state" is a wildcard: its hooks run on every state transition, in
+addition to the hooks of the state being entered or left.
 
 # Approval
 
@@ -35,8 +39,8 @@ configured.
 
 A JSON object. On success: create returns
 {"created":"<rel>","path":...} ({"appended":"<rel>","path":...} when
-appending); remove returns {"removed":"<rel>","path":...}; list-enabled returns
-{"hooks":[{"rel":...,"path":...},...]}; path returns {"path":...}.
+appending); remove returns {"removed":"<rel>","path":...}; list-enabled
+returns {"hooks":[{"rel":...,"path":...},...]}; path returns {"path":...}.
 On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 
 <rel> is the relative hook path in the form state/type/when/name.
@@ -45,4 +49,5 @@ On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 
 Use this tool to install scripts that run automatically on session state
 changes (for example desktop notifications or log appends), not to run
-commands directly; use the shell tool for that.
+commands directly; use the shell tool for that. Hook output goes to the
+user's terminal, not to the model.
