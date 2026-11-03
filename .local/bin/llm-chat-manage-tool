@@ -10,7 +10,7 @@ subcommands:
   enable  [<glob pattern>...]
   disable [<glob pattern>...]
   list    [-e] [<glob pattern>...]
-  doc     <tool> [<doc path>]
+  doc     <tool> [<doc path>...]
   listdoc <tool> [<glob pattern>...]
 
 options:
@@ -63,6 +63,17 @@ validate_globpattern() {
     case $pattern in
       */.*|.*)
         printf "invalid glob pattern: %s\n" "$pattern" >&2
+        return 2
+        ;;
+    esac
+  done
+}
+
+validate_docpath() {
+  for docpath; do
+    case $docpath in
+      ..|*/../*|*/..|../*)
+        printf "invalid document path: %s\n" "$docpath" >&2
         return 2
         ;;
     esac
@@ -208,28 +219,34 @@ sub_doc() {
   # Currently no option supported
   [ "$1" = "--" ] && shift
   name=$1
+  shift
   validate_toolname "$name" || return
-  docpath=${2:-README.md}
+  [ "$#" -eq 0 ] && set -- "README.md"
+  validate_docpath "$@" || return
 
   . llm-config-utils
   cat_doc() {
     if [ -f "$1" ]; then
       if [ -n "$opt_json" ]; then
         jq -Rsc \
-          --arg name "$name" \
-          --arg path "${1#"$llmcu_dir/tools/$name/doc/"}" -- \
-          '{toolname:$name,docpath:$path,content:.}' "$1"
+          --arg path "$docpath" -- \
+          '{docpath:$path,content:.}' "$1"
       else
+        printf "%s:%s\n" "$name" "$docpath"
         cat -- "$1"
       fi
       return 0
     fi
     return 1
   }
-  if ! llmcu_for_config_item "tools/$name/doc/$docpath" cat_doc; then
-    printf "can not find the document '%s' for '%s' tool\n" "$docpath" "$name" >&2
-    return 1
-  fi
+  for docpath; do
+    llmcu_for_config_item "tools/$name/doc/$docpath" cat_doc
+  done \
+    | if [ -n "$opt_json" ]; then
+        jq -s --arg name "$name" '{toolname:$name,docs:.}'
+      else
+        cat
+      fi
 }
 
 sub_listdoc() {

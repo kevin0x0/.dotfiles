@@ -14,8 +14,10 @@ tool documents.
   tools); otherwise lists the tools matching "pattern" (all tools when
   "pattern" is omitted). "with_summary" adds each tool's short summary;
   "start_index" and "count" select a page of the result.
-- "doc": read a document of a tool. Requires "toolname"; "docpath" defaults
-  to "README.md".
+- "doc": read documents of a tool. Requires "toolname"; "docpaths" selects
+  the documents to read (defaults to "README.md"; several documents can be
+  read in one call). Documents that do not exist are silently omitted
+  from the result.
 - "listdoc": list the documents of a tool. Requires "toolname"; "pattern"
   can be used to filter by document path globs.
 
@@ -52,7 +54,7 @@ A JSON object. On success: enable returns {"added_tools":[...],"count":...};
 disable returns {"removed_tools":[...],"count":...}; list returns
 {"list":[{"name" or "path":..., "summary"?:...},...],"total":...,
 "start_index":...,"count":...}; doc returns
-{"toolname":...,"docpath":...,"content":...}; listdoc returns
+{"toolname":...,"docs":[{"docpath":...,"content":...},...]}; listdoc returns
 {"toolname":...,"doclist":[...]}.
 On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 

@@ -29,6 +29,7 @@ tmpdir=$(tmpfile -d) || exit 1
 argfile=$tmpdir/arg
 outfile=$tmpdir/stdout
 errfile=$tmpdir/stderr
+docpaths=$tmpdir/docpaths
 approval_out=$tmpdir/approval-out
 
 cat >"$argfile"
@@ -79,7 +80,7 @@ fi
 enabled=$(jq -j '(.enabled and true) or false' <"$argfile")
 with_summary=$(jq -j '(.with_summary and true) or false' <"$argfile")
 name=$(jq -j '.toolname // "" | tostring' <"$argfile")
-docpath=$(jq -j '.docpath // "" | tostring' <"$argfile")
+jq -r '.docpaths // empty | if type != "array" then [.] end | .[]' <"$argfile" >"$docpaths"
 start_index=$(jq -j '.start_index | select(type == "number")' <"$argfile")
 count=$(jq -j '.count | select(type == "number")' <"$argfile")
 
@@ -106,7 +107,9 @@ case $op in
     ;;
   doc)
     set -- "$@" -- "$name"
-    [ -n "$docpath" ] && set -- "$@" "$docpath"
+    while IFS= read -r docpath; do
+      set -- "$@" "$docpath"
+    done <"$docpaths"
     ;;
   listdoc)
     set -- "$@" -- "$name"
