@@ -21,7 +21,7 @@
     },
     "enabled": {
       "type": "boolean",
-      "description": "Only for list: when true, list the tools enabled in the current session instead of matching pattern."
+      "description": "Only for list: when true, list the tools currently available to the model (the default tool list plus the enabled extra tools) instead of matching pattern."
     },
     "with_summary": {
       "type": "boolean",
