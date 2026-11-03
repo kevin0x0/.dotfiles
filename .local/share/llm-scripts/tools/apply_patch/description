@@ -9,17 +9,20 @@ The tool input is the patch text itself, not JSON.
 
     *** Begin Patch
     *** Update File: <path>
+    *** Move to: <new path>
     @@ <optional anchor line>
      <context line>
     -<removed line>
     +<added line>
-    *** Move to: <new path>
     *** Add File: <path>
     +<content line>
     *** Delete File: <path>
     *** End of File
     *** End Patch
 
+- "*** Move to" is optional and, when present, must follow the
+  "*** Update File" header, before any hunk lines; it moves the file
+  being updated.
 - Every hunk line starts with exactly one of: " " (keep), "+" (add),
   "-" (delete). A blank added line is "+"; a blank context line is " ".
 - "@@ <line>" starts the next hunk at that line; the anchor line itself is
@@ -35,8 +38,8 @@ The tool input is the patch text itself, not JSON.
 
 One line per applied operation: "created: <path>", "updated '<path>'",
 "deleted: <path>", "moved '<from>' to '<to>'", or
-"failed to <operation> <path>: <reason>". On a parse failure:
-"error at line <n>: ...".
+"failed to <operation> <path>: <reason>". On a parse failure: an error
+naming the offending line and reason.
 
 # Notes
 

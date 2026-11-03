@@ -1,11 +1,6 @@
 # Synopsis
 
-Request to execute a script through a specified interpreter.
-
-Returns:
-- On success: `{"exitcode": <int>, "stdout": <string>, "stderr": <string>}`
-- On failure: `{"error": <string>}`
-- On rejection: `{"rejected": <string>}`
+Execute a script through a specified interpreter.
 
 # Interpreter Resolution
 
@@ -15,9 +10,21 @@ The interpreter is selected according to the following priority order:
 3. `bash`, if available.
 4. `sh`.
 
+# Approval
+
+Execution requires approval on the controlling terminal; in
+non-interactive sessions it is rejected unless automatic approval is
+configured.
+
+# Returns
+
+- On success: `{"exitcode": <int>, "stdout": <string>, "stderr": <string>}`
+- On failure: `{"error": <string>}`
+- On rejection: `{"rejected": <string>}`
+
 # Notes
 
-- The request may be rejected.
+- The script runs in the working directory of the session.
 - The script must terminate.
-- Do not modify system state unless it is explicitly what the user wants or 
+- Do not modify system state unless it is explicitly what the user wants or
 is strictly necessary to fulfill the request.
