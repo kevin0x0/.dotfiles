@@ -1,0 +1,1 @@
+Built-in apply_patch type: the model emits structured file operations (create, update, delete); they are applied locally as a V4A patch.

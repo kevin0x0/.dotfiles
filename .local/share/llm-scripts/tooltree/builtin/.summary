@@ -1,0 +1,1 @@
+Tools of special built-in types (such as apply_patch and web_search) that are neither function nor custom; their input and output follow type-specific formats.

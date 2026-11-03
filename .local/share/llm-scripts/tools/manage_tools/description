@@ -1,0 +1,62 @@
+# Synopsis
+
+Manage the tool set of the current session, or explore the tool tree and
+tool documents.
+
+# Operations
+
+- "enable": add tools matching "pattern" to the session's extra tool list.
+  Requires "pattern".
+- "disable": remove tools matching "pattern" from the session's extra tool
+  list. Requires "pattern".
+- "list": list tools. When "enabled" is true, lists the tools enabled in the
+  current session; otherwise lists the tools matching "pattern" (all tools
+  when "pattern" is omitted). "with_summary" adds each tool's short summary;
+  "start_index" and "count" select a page of the result.
+- "doc": read a document of a tool. Requires "toolname"; "docpath" defaults
+  to "README.md".
+- "listdoc": list the documents of a tool. Requires "toolname"; "pattern"
+  can be used to filter by document path globs.
+
+# Patterns
+
+"pattern" is a list of space separated glob patterns. The matching target
+depends on the operation: for enable and disable it matches tool names
+(e.g. "manage_*", "shell"); for list, patterns without "/" match tool
+names while patterns containing "/" match paths in the tool tree (e.g.
+"builtin/*"), for listing items under the root of the tool tree, prefix
+your pattern with a "/" (e.g. "/*"); for listdoc it matches document
+pathnames under the tool's doc directory.
+
+# Tool tree
+
+The tool tree is a classification tree over the available tools: directories
+are categories and files are concrete tools (named after the tools). The
+same tool may appear under multiple categories; each position is listed
+separately. Directories are only listed when "pattern" contains "/".
+
+# Approval
+
+"enable" and "disable" are automatically approved by default.
+
+# Returns
+
+A JSON object. On success: enable returns {"added_tools":[...],"count":...};
+disable returns {"removed_tools":[...],"count":...}; list returns
+{"list":[{"name" or "path":..., "summary"?:...},...],"total":...,
+"start_index":...,"count":...}; doc returns
+{"toolname":...,"docpath":...,"content":...}; listdoc returns
+{"toolname":...,"doclist":[...]}.
+On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
+
+# Notes
+
+- "enable" and "disable" only affect the session's extra tool list; the
+  default tool list specified at session start is not affected.
+- Enabling a tool only makes it available to the model; the tool is not
+  executed until it is actually called (calls keep their own approval).
+- Enabled tools are scoped to the current session.
+- A tool may still be invisible to the model after being enabled if the
+  model provider does not support it.
+- Use this tool to inspect what is available and to adjust the session
+  tool set; use the shell tool to read other files.
