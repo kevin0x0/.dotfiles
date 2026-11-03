@@ -32,6 +32,22 @@ print_toolname_in_tree() {
   return 1
 }
 
+preset_error() {
+  printf "can not specify a preset pattern in a preset(%s in %s), ignored\n" \
+    "$preset_line" "$pattern" >&2
+}
+
+expand_preset() {
+  while IFS= read -r preset_line; do
+    case $preset_line in
+      @*|*[[:space:]]@*) preset_error ;;
+      *)  patterns="$patterns $preset_line" ;;
+    esac
+  done <<EOF
+$(llm-expand-preset -p tools -- "${pattern#@}")
+EOF
+}
+
 expand_toolspec() {
   for patterns; do
     while [ -n "$patterns" ]; do
@@ -43,6 +59,9 @@ expand_toolspec() {
           pattern=${patterns%%[[:space:]]*}
           patterns=${patterns#"$pattern"}
           case $pattern in
+            @*)
+              expand_preset
+              ;;
             */*)
               [ -n "$opt_tree" ] && callback=print_tree || callback=print_toolname_in_tree
               llmcu_match_config_item "tooltree/$pattern" "$callback"

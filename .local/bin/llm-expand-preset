@@ -1,0 +1,35 @@
+#!/bin/sh
+
+. llm-config-utils
+
+opt_prefix=
+while getopts "p:" opt; do
+  case $opt in
+    p)  opt_prefix=$OPTARG ;;
+    \?) exit 2 ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+cat_preset() {
+  [ -f "$1" ] && cat -- "$1"
+}
+
+expand_spec() {
+  for patterns; do
+    while [ -n "$patterns" ]; do
+      case $patterns in
+        [[:space:]]*)
+          patterns=${patterns#[[:space:]]}
+          ;;
+        *)
+          pattern=${patterns%%[[:space:]]*}
+          patterns=${patterns#"$pattern"}
+          llmcu_match_config_item "presets/$opt_prefix/$pattern" cat_preset
+          ;;
+      esac
+    done
+  done
+}
+
+expand_spec "$@"
