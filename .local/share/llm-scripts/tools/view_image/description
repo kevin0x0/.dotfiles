@@ -1,4 +1,9 @@
-Get an image for you.
-Only one of .url and .pathname should be provided.
-Return the image visually on success.
-Return {"error": <string>} on failure.
+# Synopsis
+
+Show an image to you: it is fetched from a URL or a local pathname and
+included in the result so you can see it. Give exactly one of "url" and
+"pathname".
+
+# Returns
+
+The image on success, or {"error": <string>} on failure.

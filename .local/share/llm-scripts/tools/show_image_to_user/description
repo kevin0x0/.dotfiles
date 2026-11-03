@@ -1,3 +1,9 @@
-Show an image to user, you can use this tool to insert an image to your reply to user.
-Only one of .url and .pathname should be provided.
-Return {"error":null} on success, or {"error": <string>} on failure.
+# Synopsis
+
+Show an image to the user: it is fetched from a URL or a local pathname
+and displayed in the user's terminal. Give exactly one of "url" and
+"pathname".
+
+# Returns
+
+{"error":null} on success, or {"error": <string>} on failure.
