@@ -34,7 +34,7 @@ pathnames under the tool's doc directory.
 The tool tree is a classification tree over the available tools: directories
 are categories and files are concrete tools (named after the tools). The
 same tool may appear under multiple categories; each position is listed
-separately. Directories are only listed when "pattern" contains "/".
+separately.
 
 # Tool documents
 
