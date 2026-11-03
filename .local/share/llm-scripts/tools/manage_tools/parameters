@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "properties": {
+    "operation": {
+      "type": "string",
+      "enum": ["enable", "disable", "list", "doc", "listdoc"],
+      "description": "The operation to perform: enable adds tools matching pattern to the current session, disable removes them, list lists tools, doc reads a document of a tool, listdoc lists documents of a tool."
+    },
+    "pattern": {
+      "type": "string",
+      "description": "Space separated glob pattern list. Required for enable and disable, where it matches tool names (e.g. \"manage_*\"); optional for list, where patterns without \"/\" match tool names and patterns containing \"/\" match paths in the tool tree (e.g. \"builtin/*\"; all tools are listed when omitted); optional for listdoc, where it matches document paths (all documents when omitted)."
+    },
+    "toolname": {
+      "type": "string",
+      "description": "Name of the tool. Required for doc and listdoc."
+    },
+    "docpath": {
+      "type": "string",
+      "description": "Document pathname relative to the tool's doc directory. Optional for doc.",
+      "default": "README.md"
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Only for list: when true, list the tools enabled in the current session instead of matching pattern."
+    },
+    "with_summary": {
+      "type": "boolean",
+      "description": "Only for list: when true, list the tools with a short summary."
+    },
+    "start_index": {
+      "type": "integer",
+      "description": "Only for list: the index of starting output item.",
+      "default": 0
+    },
+    "count": {
+      "type": "integer",
+      "description": "Only for list: the maximum number of output items.",
+      "default": 20
+    }
+  },
+  "required": ["operation"]
+}

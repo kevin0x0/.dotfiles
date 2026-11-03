@@ -1,0 +1,31 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+llmtr_parse_options "" "$@"
+
+llmtr_render_header '36;1' 'manage tools:'
+jq -Rsr '
+try (
+  fromjson |
+    if .operation == "enable" or .operation == "disable" then
+      .operation + ": " + (.pattern | tostring | gsub("\n"; " ")),
+    else
+      "error: bad argument"
+    end
+) catch (
+  "error: bad argument"
+)
+' | {
+  IFS= read -r line;
+  case $line in
+    "error:"*)
+        llmtr_render_header '31;1' "$line"
+        exit 0
+      ;;
+    *)
+        llmtr_render_header '33;1' "the following tool(s) will be ${line%%:*}:"
+        pattern=${line#*:}
+        llm-expand-toolspec -- "$pattern" | llmtr_render_lines
+      ;;
+  esac
+}

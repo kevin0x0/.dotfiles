@@ -1,0 +1,50 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+llmtr_parse_options "" "$@"
+
+llmtr_render_header '36;1' 'manage tools:'
+
+op_color='33'
+error_color='31'
+color_line() {
+  prefix=
+  color=$op_color
+  case $llmtr_line in
+    "enable:"*) prefix="enable" ;;
+    "disable:"*) prefix="disable" ;;
+    "list enabled tools") prefix="list enabled tools" ;;
+    "list tools:"*) prefix="list tools" ;;
+    "read document:"*) prefix="read document" ;;
+    "list document:"*) prefix="list document" ;;
+    "error:"*) prefix="error"; color=$error_color ;;
+  esac
+
+  llmtr_line=${llmtr_line#"$prefix"}
+  llmtr_line=$'\033['${color}m$prefix$llmtr_line$'\033[0m'
+}
+
+jq -Rsr '
+try (
+  fromjson |
+    if .operation == "enable" or .operation == "disable" then
+      .operation + ": " + (.pattern // "" | tostring)
+    elif .operation == "list" then
+      if .enabled then
+        "list enabled tools"
+      else
+        "list tools: " + (.pattern // "" | tostring)
+      end
+    elif .operation == "doc" then
+      "read document: " + (.toolname | tostring) + " " + (.docpath // "" | tostring)
+    elif .operation == "listdoc" then
+      "list document: " + (.toolname | tostring) + " " + (.pattern // "" | tostring)
+    else
+      "error: bad argument"
+    end
+) catch (
+  "error: bad argument"
+)
+' | llmtr_run_filter_on_color color_line \
+  | llmtr_render_lines

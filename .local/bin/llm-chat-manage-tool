@@ -1,0 +1,286 @@
+#!/bin/sh
+
+usage() {
+  cat <<'EOF'
+usage: llm-chat-manage-tool [-d <statedir>] <subcommand> [<options>] [<args>]
+
+Manage tools in a session or explore available tools.
+
+subcommands:
+  enable  [<glob pattern>...]
+  disable [<glob pattern>...]
+  list    [-e] [<glob pattern>...]
+  doc     <tool> [<doc path>]
+  listdoc <tool> [<glob pattern>...]
+
+options:
+  -d <statedir>  session state directory
+  -j             print results as a single JSON object
+  -h             print this help
+EOF
+}
+
+opt_state_dir=
+opt_json=
+while getopts "d:hj" opt; do
+  case $opt in
+    d) opt_state_dir=$OPTARG ;;
+    h) usage; exit 0 ;;
+    j) opt_json=1 ;;
+    \?) exit 2 ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+[ "$#" -ne 0 ] || { usage >&2; exit 2; }
+subcommand=$1
+shift
+
+case $subcommand in
+  enable|disable|list|doc|listdoc) ;;
+  *)
+    printf "unsupported subcommand: %s\n" "$subcommand" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
+
+validate_statedir() {
+  [ -n "$opt_state_dir" ] || { printf "statedir not provided (use -d)\n" >&2; return 2; }
+  [ -d "$opt_state_dir" ] || { printf "'%s' is not a directory\n" "$opt_state_dir" >&2; return 2; }
+}
+
+validate_toolname() {
+  case $1 in
+    *[![:alnum:]_-]*|'')
+      printf "invalid tool name: %s\n" "$1" >&2
+      return 2
+      ;;
+  esac
+}
+
+validate_globpattern() {
+  for pattern; do
+    case $pattern in
+      */.*|.*)
+        printf "invalid glob pattern: %s\n" "$pattern" >&2
+        return 2
+        ;;
+    esac
+  done
+}
+
+sub_operate_tool_list() {
+  validate_statedir || return
+  action=$1
+  shift
+  # Currently no option supported
+  [ "$1" = "--" ] && shift
+  validate_globpattern "$@" || return
+
+  . llm-chat-common
+  llm_chat_set_public_files_var "$opt_state_dir"
+
+  set -o pipefail
+  {
+    if ! llm_chat_operate_extra_tool -pm "$action" -- "$@"; then
+      printf "failed to %s extra tool\n" "$action" >&2
+      exit 1
+    fi
+    llm_chat_generate_tool_list
+  } | {
+    case $action in
+      add)    key=added_tools ;;
+      remove) key=removed_tools ;;
+    esac
+    if [ -n "$opt_json" ]; then
+      jq -Rcn --arg key "$key" -- '
+      {
+        $key:[inputs]
+      } | .count = (.[$key] | length)'
+    else
+      cat
+    fi
+  }
+}
+
+list_with_summary() {
+  . llm-config-utils
+  while IFS= read -r toolspec; do
+    printf "%s\n" "$toolspec"
+    case $toolspec in
+      */)
+        llmcu_for_config_item "tooltree/$toolspec/.summary" cat --
+        ;;
+      *)
+        name=${toolspec##*/}
+        llmcu_for_config_item "tools/$name/summary" cat --
+        ;;
+    esac
+    printf "\0"
+  done
+}
+
+sub_list() {
+  OPTIND=1
+  opt_list_enabled=
+  opt_with_summary=
+  opt_start_index=
+  opt_count=
+  while getopts "esi:c:" opt; do
+    case $opt in
+      e) opt_list_enabled=1 ;;
+      s) opt_with_summary=1 ;;
+      i) opt_start_index=$OPTARG ;;
+      c) opt_count=$OPTARG ;;
+      \?) exit 2 ;;
+    esac
+  done
+  shift "$((OPTIND - 1))"
+
+  if [ -n "$opt_list_enabled" ]; then
+    [ "$#" -eq 0 ] || { printf "too many arguments\n" >&2; return 2; }
+    validate_statedir || return
+  else
+    validate_globpattern "$@" || return
+  fi
+
+  if [ -n "$opt_list_enabled" ]; then
+    . llm-chat-common
+    llm_chat_set_public_files_var "$opt_state_dir"
+    set --
+    for f in  "$llm_chat_extra_tool_name_list" "$llm_chat_default_tool_name_list"; do
+      [ -f "$f" ] || continue
+      set -- "$@" "$f"
+    done
+    [ "$#" -ne 0 ] && cat -- "$@" | sort -u
+  else
+    [ "$#" -eq 0 ] && set -- '*'
+    llm-expand-toolspec -t -- "$@"
+  fi | {
+    if [ -z "$opt_with_summary" ]; then
+      tr '\n' '\000'
+    else
+      list_with_summary
+    fi
+  } | {
+    [ -z "$opt_start_index" ] && opt_start_index=0
+    [ -z "$opt_count" ] && opt_count=-1
+    jq -Rsc \
+      --arg list_enabled "$opt_list_enabled" \
+      --arg with_summary "$opt_with_summary" \
+      --argjson start_index "$opt_start_index" \
+      --argjson count "$opt_count" '
+      [
+        split("\u0000")[] | select(. != "") | index("\n") as $i | {
+          (if .[:$i] | contains("/") then "path" else "name" end):.[:$i],
+        } + (if $with_summary != "" then { summary:.[$i+1:]} else {} end)
+      ] | (
+          if $count == -1 then
+            length else
+            $count + $start_index
+          end
+        ) as $end_index | {
+        list:.[$start_index:$end_index],
+        total:length,
+        start_index:$start_index,
+        count:$end_index - $start_index
+      }
+      '
+  } | {
+    if [ -n "$opt_json" ]; then
+      cat
+    else
+      jq -r \
+        --arg with_summary "$opt_with_summary" '
+        (
+          .list[] | .path // .name,
+          if $with_summary != "" then .summary else empty end
+        ),
+        "total: " + (.total | tostring),
+        "start_index: " + (.start_index | tostring),
+        "count: " + (.count | tostring)
+        '
+    fi
+  }
+}
+
+sub_doc() {
+  # Currently no option supported
+  [ "$1" = "--" ] && shift
+  name=$1
+  validate_toolname "$name" || return
+  docpath=${2:-README.md}
+
+  . llm-config-utils
+  cat_doc() {
+    if [ -f "$1" ]; then
+      if [ -n "$opt_json" ]; then
+        jq -Rsc \
+          --arg name "$name" \
+          --arg path "${1#"$llmcu_dir/tools/$name/doc/"}" -- \
+          '{toolname:$name,docpath:$path,content:.}' "$1"
+      else
+        cat -- "$1"
+      fi
+      return 0
+    fi
+    return 1
+  }
+  if ! llmcu_for_config_item "tools/$name/doc/$docpath" cat_doc; then
+    printf "can not find the document '%s' for '%s' tool\n" "$docpath" "$name" >&2
+    return 1
+  fi
+}
+
+sub_listdoc() {
+  # Currently no option supported
+  [ "$1" = "--" ] && shift
+  [ "$#" -eq 0 ] && { printf "missing tool name\n" >&2; return 2; }
+  name=$1
+  shift
+  validate_toolname "$name" || return
+  validate_globpattern "$@" || return
+
+  . llm-config-utils
+
+  case $# in
+    0)
+      print_all() {
+        find "$1/." ! -name . -exec sh -c '
+          prefix="$1"
+          shift
+          for f; do
+            [ -d "$f" ] && f=${f%/}/
+            printf "%s\n" "${f#"$prefix"}"
+          done
+        ' sh "$1/./" {} +
+      }
+      llmcu_for_config_item "tools/$name/doc/" print_all
+      ;;
+    *)
+      validate_globpattern "$@" || return
+      print_docs() {
+        [ -d "$1" ] && set -- "${1%/}/"
+        printf "%s\n" "${1#"$llmcu_dir/tools/$name/doc/"}"
+        return 1
+      }
+      for globpattern; do
+        llmcu_match_config_item "tools/$name/doc/$globpattern" print_docs
+      done
+    ;;
+  esac | sort -u | {
+    if [ -n "$opt_json" ]; then
+      jq --arg name "$name" -Rcn '{toolname:$name, doclist:[inputs]}'
+    else
+      cat -u
+    fi
+  }
+}
+
+case $subcommand in
+  enable)   sub_operate_tool_list add "$@" ;;
+  disable)  sub_operate_tool_list remove "$@" ;;
+  list)     sub_list "$@" ;;
+  doc)      sub_doc "$@" ;;
+  listdoc)  sub_listdoc "$@" ;;
+esac

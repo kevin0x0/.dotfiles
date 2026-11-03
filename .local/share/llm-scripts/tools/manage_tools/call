@@ -1,0 +1,127 @@
+#!/bin/sh
+
+# Enable auto approval by default.
+opt_yes=y
+statedir=$2
+if [ -f "$statedir/tool-config/manage_tools" ]; then
+  command . -- "$statedir/tool-config/manage_tools" >/dev/null 2>&1
+fi
+
+cleanup() {
+  [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
+  if [ -n "$1" ]; then
+    trap - "$1"
+    kill -"$1" "$$"
+  fi
+}
+trap 'cleanup' EXIT
+for sig in INT TERM QUIT; do
+  trap "cleanup $sig" "$sig"
+done
+
+error() {
+  jq --arg err "$1" -cn -- '{error:$err}' | llm-make-mcontent -t
+  exit 0
+}
+
+tmpdir=
+tmpdir=$(tmpfile -d) || exit 1
+argfile=$tmpdir/arg
+outfile=$tmpdir/stdout
+errfile=$tmpdir/stderr
+approval_out=$tmpdir/approval-out
+
+cat >"$argfile"
+
+op=$(jq -j '.operation // "" | tostring' <"$argfile" 2>/dev/null)
+case $op in
+  enable|disable|list|doc|listdoc) ;;
+  *)
+    error "bad argument: operation must be enable, disable, list, doc or listdoc"
+    ;;
+esac
+
+pattern=$(jq -j '.pattern // "" | tostring | gsub("\n"; " ")' <"$argfile")
+
+# enable and disable need approval
+if [ "$op" = enable ] || [ "$op" = disable ]; then
+  if [ -z "$pattern" ]; then
+    error "bad argument: pattern is not given or is empty"
+  fi
+
+  summary=$'\033[33;1m'"$op tools matching pattern(s): $pattern"$'\033[0m'
+  preview_command="$(shell-escape -- sh -- "$1/lib/approval-preview" -s "$2")"
+  colored_preview_command="$preview_command -c always"
+  summary_command="$(shell-escape -- printf "%s\n" "$summary")"
+  header=$'\033[31;1mrequest to '$op$' tool(s):\033[0m'
+  tty-approval \
+    -R \
+    -r "$opt_yes" \
+    -p "$preview_command" \
+    -P "$colored_preview_command" \
+    -s "$summary_command" \
+    -h "$header" \
+    -i "$argfile" >"$approval_out"
+
+  case $? in
+    0|3)
+      ;;
+    1)
+      jq -Rcs '{rejected:.}' <"$approval_out" | llm-make-mcontent -t
+      exit 0
+      ;;
+    *)
+      error "approval agent exited abnormally"
+      ;;
+  esac
+fi
+
+enabled=$(jq -j '(.enabled and true) or false' <"$argfile")
+with_summary=$(jq -j '(.with_summary and true) or false' <"$argfile")
+name=$(jq -j '.toolname // "" | tostring' <"$argfile")
+docpath=$(jq -j '.docpath // "" | tostring' <"$argfile")
+start_index=$(jq -j '.start_index | select(type == "number")' <"$argfile")
+count=$(jq -j '.count | select(type == "number")' <"$argfile")
+
+case $start_index in
+  *[!0123456789]*|'') start_index=0 ;;
+esac
+case $count in
+  *[!0123456789]*|'') count=20 ;;
+esac
+
+set -- -jd "$statedir" "$op"
+case $op in
+  enable|disable)
+    set -- "$@" -- "$pattern"
+    ;;
+  list)
+    set -- "$@" -i "$start_index" -c "$count"
+    [ "$with_summary" = true ] && set -- "$@" -s
+    if [ "$enabled" = true ]; then
+      set -- "$@" -e
+    else
+      [ -n "$pattern" ] && set -- "$@" -- "$pattern"
+    fi
+    ;;
+  doc)
+    set -- "$@" -- "$name"
+    [ -n "$docpath" ] && set -- "$@" "$docpath"
+    ;;
+  listdoc)
+    set -- "$@" -- "$name"
+    [ -n "$pattern" ] && set -- "$@" "$pattern"
+    ;;
+esac
+
+llm-chat-manage-tool "$@" >"$outfile" 2>"$errfile"
+exitcode=$?
+if [ "$exitcode" -eq 0 ]; then
+  llm-make-mcontent -ft -- "$outfile"
+elif [ -s "$errfile" ]; then
+  jq -Rsc '{error:rtrimstr("\n")}' "$errfile" \
+    | llm-make-mcontent -t
+else
+  llm-make-mcontent -t '{"error":"failed"}'
+fi
+exit 0

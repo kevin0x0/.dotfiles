@@ -1,0 +1,81 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+llmtr_parse_options "" "$@"
+
+jq -r '
+select(.type == "input_text").text |
+try (
+  fromjson |
+  if .error != null then
+    "error",
+    .error
+  elif .added_tools != null then
+    "enable",
+    .added_tools[]
+  elif .removed_tools != null then
+    "disable",
+    .removed_tools[]
+  elif .list != null then
+    "list" + (
+      if .list[0] | type == "object" and has("summary") then
+        " with summary"
+      else
+        ""
+      end
+    ),
+    (.list[] | .path // .name)
+  elif .content != null then
+    "doc " + .toolname,
+    .docpath
+  elif .doclist != null then
+    "listdoc " + .toolname,
+    .doclist[]
+  else
+    ""
+  end
+) catch (
+  "error",
+  "bad output"
+)
+' | {
+  IFS= read -r line
+  color=33
+  case $line in
+    error)
+      llmtr_render_header '31;1' "manage_tools error"
+      color=31
+      ;;
+    enable)
+      llmtr_render_header '36;1' "enabled tools"
+      ;;
+    disable)
+      llmtr_render_header '36;1' "disabled tools"
+      ;;
+    list)
+      llmtr_render_header '36;1' "listed tools"
+      ;;
+    'list with summary')
+      llmtr_render_header '36;1' "listed tools with summary"
+      ;;
+    doc*)
+      llmtr_render_header \
+        '36;1' "read " \
+        '1' "${line#"doc "}" \
+        '36;1' "'s document:"
+      ;;
+    listdoc*)
+      llmtr_render_header \
+        '36;1' "listed " \
+        '1' "${line#"listdoc "}" \
+        '36;1' "'s documents:"
+      ;;
+    *)
+      exit 0
+      ;;
+  esac
+
+  llmtr_complete_newline \
+    | llmtr_run_filter_on_color llmtr_filter_color_line "$color" \
+    | llmtr_render_lines
+}
