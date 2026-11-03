@@ -8,7 +8,8 @@ explains the interface details.
 
 "pattern" is a space separated list of glob patterns. Patterns without
 "/" match tool names across all tools; patterns containing "/" match
-paths in the tool tree (tree mode).
+paths in the tool tree (tree mode). A word starting with "@" expands a
+tool preset in place: a named list of patterns stored by the user.
 
 Recipes:
 
@@ -18,6 +19,7 @@ Recipes:
 - "manage_*"    tools whose name starts with "manage_"
 - "shell"       the exact tool name
 - "*"           all tools (name mode)
+- "@default"    the tools of a named preset; can be mixed with other words
 
 In tree mode, entries are paths: the last segment of a file entry is the
 tool name, and directory entries are categories and end with "/". A
