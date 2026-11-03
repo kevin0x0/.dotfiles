@@ -115,16 +115,19 @@ sub_operate_tool_list() {
 }
 
 list_with_summary() {
+  cat_summary() {
+    [ -f "$1" ] && cat -- "$1"
+  }
   . llm-config-utils
   while IFS= read -r toolspec; do
     printf "%s\n" "$toolspec"
     case $toolspec in
       */)
-        llmcu_for_config_item "tooltree/$toolspec/.summary" cat --
+        llmcu_for_config_item "tooltree/$toolspec/.summary" cat_summary
         ;;
       *)
         name=${toolspec##*/}
-        llmcu_for_config_item "tools/$name/summary" cat --
+        llmcu_for_config_item "tools/$name/summary" cat_summary
         ;;
     esac
     printf "\0"
