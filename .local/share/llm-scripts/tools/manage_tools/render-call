@@ -4,47 +4,54 @@
 
 llmtr_parse_options "" "$@"
 
-llmtr_render_header '36;1' 'manage tools:'
-
-op_color='33'
-error_color='31'
-color_line() {
-  prefix=
-  color=$op_color
-  case $llmtr_line in
-    "enable:"*) prefix="enable" ;;
-    "disable:"*) prefix="disable" ;;
-    "list enabled tools") prefix="list enabled tools" ;;
-    "list tools:"*) prefix="list tools" ;;
-    "read document:"*) prefix="read document" ;;
-    "list document:"*) prefix="list document" ;;
-    "error:"*) prefix="error"; color=$error_color ;;
-  esac
-
-  llmtr_line=${llmtr_line#"$prefix"}
-  llmtr_line=$'\033['${color}m$prefix$llmtr_line$'\033[0m'
-}
-
 jq -Rsr '
 try (
   fromjson |
-    if .operation == "enable" or .operation == "disable" then
-      .operation + ": " + (.pattern // "" | tostring)
+    if .operation == "enable" then
+      "enabling " + (.pattern // "" | tostring)
+    elif .operation == "disable" then
+      "disabling " + (.pattern // "" | tostring)
     elif .operation == "list" then
       if .enabled then
-        "list enabled tools"
+        "listing enabled tools"
       else
-        "list tools: " + (.pattern // "" | tostring)
+        "listing tools matching " + (.pattern // "" | tostring)
       end
     elif .operation == "doc" then
-      "read document: " + (.toolname | tostring) + " " + (.docpath // "" | tostring)
+      "reading documents of " + (.toolname | tostring),
+      (
+        (.docpaths // []) | if type == "array" then . else [.] end |
+          map(tostring | gsub("\n"; ""))[]
+      )
     elif .operation == "listdoc" then
-      "list document: " + (.toolname | tostring) + " " + (.pattern // "" | tostring)
+      "listing documents of " + (.toolname | tostring) + " " + (.pattern // "" | tostring)
     else
       "error: bad argument"
     end
 ) catch (
   "error: bad argument"
 )
-' | llmtr_run_filter_on_color color_line \
-  | llmtr_render_lines
+' | {
+  op_color='36;1'
+  error_color='31;1'
+  IFS= read -r line
+  prefix=
+  color=$op_color
+  case $line in
+    "enabling"*) prefix="enabling" ;;
+    "disabling"*) prefix="disabling" ;;
+    "listing enabled tools") prefix="listing enabled tools" ;;
+    "listing tools"*) prefix="listing tools matching" ;;
+    "reading documents of"*) prefix="reading documents of" ;;
+    "listing documents of"*) prefix="listing documents of" ;;
+    "error:"*) prefix="error:"; color=$error_color ;;
+  esac
+
+  llmtr_render_header "$color" "$prefix" '1' "${line#"$prefix"}"
+
+  while IFS= read -r line; do
+    printf "%s\n" "$line"
+  done \
+    | llmtr_run_filter_on_color llmtr_filter_color_line '33' \
+    | llmtr_render_lines
+}

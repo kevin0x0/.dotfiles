@@ -14,10 +14,20 @@
       "type": "string",
       "description": "Name of the tool. Required for doc and listdoc."
     },
-    "docpath": {
-      "type": "string",
-      "description": "Document pathname relative to the tool's doc directory. Optional for doc.",
-      "default": "README.md"
+    "docpaths": {
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "Document pathname relative to the tool's doc directory. Optional for doc.",
+          "default": "README.md"
+        },
+        {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Document pathname list relative to the tool's doc directory. Optional for doc.",
+          "default": ["README.md"]
+        }
+      ]
     },
     "enabled": {
       "type": "boolean",

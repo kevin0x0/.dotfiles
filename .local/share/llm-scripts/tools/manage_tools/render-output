@@ -25,9 +25,9 @@ try (
       end
     ),
     (.list[] | .path // .name)
-  elif .content != null then
+  elif .docs != null then
     "doc " + .toolname,
-    .docpath
+    .docs[].docpath
   elif .doclist != null then
     "listdoc " + .toolname,
     .doclist[]
@@ -60,15 +60,13 @@ try (
       ;;
     doc*)
       llmtr_render_header \
-        '36;1' "read " \
+        '36;1' "read documents of " \
         '1' "${line#"doc "}" \
-        '36;1' "'s document:"
       ;;
     listdoc*)
       llmtr_render_header \
-        '36;1' "listed " \
+        '36;1' "listed documents of " \
         '1' "${line#"listdoc "}" \
-        '36;1' "'s documents:"
       ;;
     *)
       exit 0
