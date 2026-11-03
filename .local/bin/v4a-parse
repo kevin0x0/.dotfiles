@@ -320,6 +320,11 @@ parse_changes() {
         ;;
       EOF)
         file_line_offset=$(($(wc -l -- <"$filename") - $(wc -l -- <"$old_lines") + 1))
+        if [ "$file_line_offset" -lt 1 ]; then
+          # The file doesn't have that many lines, set the line offset to 1,
+          # and let the find_context fail.
+          file_line_offset=1
+        fi
         generate_change
         ;;
       *)
