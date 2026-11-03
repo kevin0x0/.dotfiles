@@ -35,7 +35,8 @@
     },
     "with_summary": {
       "type": "boolean",
-      "description": "Only for list: when true, list the tools with a short summary."
+      "description": "Only for list: when true, list the tools with a short summary.",
+      "default": false
     },
     "start_index": {
       "type": "integer",
