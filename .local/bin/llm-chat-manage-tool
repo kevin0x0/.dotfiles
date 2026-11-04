@@ -7,11 +7,12 @@ usage: llm-chat-manage-tool [-d <statedir>] <subcommand> [<options>] [<args>]
 Manage tools in a session or explore available tools.
 
 subcommands:
-  enable  [<glob pattern>...]
-  disable [<glob pattern>...]
-  list    [-e] [<glob pattern>...]
-  doc     <tool> [<doc path>...]
-  listdoc <tool> [<glob pattern>...]
+  enable    [<glob pattern>...]
+  disable   [<glob pattern>...]
+  describe  [<glob pattern>...]
+  list      [-esic] [-Esic] [<glob pattern>...]
+  doc       <tool> [<doc path>...]
+  listdoc   <tool> [<glob pattern>...]
 
 options:
   -d <statedir>  session state directory
@@ -36,7 +37,7 @@ subcommand=$1
 shift
 
 case $subcommand in
-  enable|disable|list|doc|listdoc) ;;
+  enable|disable|describe|list|doc|listdoc) ;;
   *)
     printf "unsupported subcommand: %s\n" "$subcommand" >&2
     usage >&2
@@ -84,8 +85,22 @@ sub_operate_tool_list() {
   validate_statedir || return
   action=$1
   shift
-  # Currently no option supported
-  [ "$1" = "--" ] && shift
+  OPTIND=1
+  opt_parameters=
+  opt_description=
+  opt_parameters_given=
+  opt_description_given=
+  opt_defer_loading=
+  while getopts "d:p:l" opt; do
+    case $opt in
+      d) opt_description=$OPTARG; opt_description_given=1 ;;
+      p) opt_parameters=$OPTARG; opt_parameters_given=1 ;;
+      l) opt_defer_loading=1 ;;
+      \?) exit 2 ;;
+    esac
+  done
+  shift "$((OPTIND - 1))"
+
   validate_globpattern "$@" || return
 
   . llm-chat-common
@@ -97,7 +112,12 @@ sub_operate_tool_list() {
       printf "failed to %s extra tool\n" "$action" >&2
       exit 1
     fi
-    llm_chat_generate_tool_list
+
+    set --
+    [ -n "$opt_description_given" ] && set -- "$@" -d "$opt_description"
+    [ -n "$opt_parameters_given" ] && set -- "$@" -p "$opt_parameters"
+    [ -n "$opt_defer_loading" ] && set -- "$@" -l
+    llm_chat_generate_tool_list "$@"
   } | {
     case $action in
       add)    key=added_tools ;;
@@ -112,6 +132,51 @@ sub_operate_tool_list() {
       cat
     fi
   }
+}
+
+sub_describe() {
+  OPTIND=1
+  opt_describe_all_match=
+  while getopts "a" opt; do
+    case $opt in
+      a) opt_describe_all_match=1 ;;
+      \?) exit 2 ;;
+    esac
+  done
+  shift "$((OPTIND - 1))"
+
+  validate_globpattern "$@"
+  if [ -z "$opt_describe_all_match" ]; then
+    validate_statedir || return 2
+    . llm-chat-common
+    llm_chat_set_public_files_var "$opt_state_dir"
+    llm_chat_get_tool_state_dir my_state_dir manage_tools || return
+    described=$my_state_dir/described
+  fi
+
+  filter() {
+    [ -n "$opt_describe_all_match" ] && { cat; return; }
+    not_in() {
+      [ -f "$1" ] || { cat; return; }
+      comm -23 -- - "$1"
+    }
+    in_extra() {
+      [ -f "$llm_chat_extra_tool_name_list" ] || { cat >/dev/null; return; }
+      comm -12 -- - "$llm_chat_extra_tool_name_list"
+    }
+    [ ! -f "$described" ] && : >"$described"
+    in_extra \
+      | not_in "$described" \
+      | tee -- "$my_state_dir/tmp"
+    sort -o "$described" -- "$my_state_dir/tmp" "$described"
+    rm -f -- "$my_state_dir/tmp"
+  }
+
+  llm-expand-toolspec -- "$@" \
+    | filter \
+    | tr '\n' '\000' \
+    | xargs -r0 -- llm-tool-list -- \
+    | jq -sc '{described:length,tools:.}'
 }
 
 list_with_summary() {
@@ -138,12 +203,14 @@ sub_list() {
   OPTIND=1
   opt_list_enabled=
   opt_with_summary=
+  opt_ignore_extralist=
   opt_start_index=
   opt_count=
-  while getopts "esi:c:" opt; do
+  while getopts "esEi:c:" opt; do
     case $opt in
       e) opt_list_enabled=1 ;;
       s) opt_with_summary=1 ;;
+      E) opt_ignore_extralist=1 ;;
       i) opt_start_index=$OPTARG ;;
       c) opt_count=$OPTARG ;;
       \?) exit 2 ;;
@@ -154,22 +221,39 @@ sub_list() {
   if [ -n "$opt_list_enabled" ]; then
     [ "$#" -eq 0 ] || { printf "too many arguments\n" >&2; return 2; }
     validate_statedir || return
+    . llm-chat-common
+    llm_chat_set_public_files_var "$opt_state_dir"
   else
     validate_globpattern "$@" || return
+    if [ -z "$opt_ignore_extralist" ]; then
+      validate_statedir || return
+      . llm-chat-common
+      llm_chat_set_public_files_var "$opt_state_dir"
+    fi
   fi
 
   if [ -n "$opt_list_enabled" ]; then
-    . llm-chat-common
-    llm_chat_set_public_files_var "$opt_state_dir"
     set --
     for f in  "$llm_chat_extra_tool_name_list" "$llm_chat_default_tool_name_list"; do
       [ -f "$f" ] || continue
       set -- "$@" "$f"
     done
-    [ "$#" -ne 0 ] && cat -- "$@" | sort -u
+    [ "$#" -ne 0 ] && sort -- "$@"
   else
     [ "$#" -eq 0 ] && set -- '*'
-    llm-expand-toolspec -t -- "$@"
+    llm-expand-toolspec -t -- "$@" | {
+      if [ -n "$opt_ignore_extralist" ]; then
+        cat
+      elif [ ! -f "$llm_chat_extra_tool_name_list" ]; then
+        cat >/dev/null
+      else
+        jq -Rr --rawfile extralist "$llm_chat_extra_tool_name_list" -- '
+        (reduce ($extralist | split("\n")[] | select(. != ""))
+          as $name ({}; .[$name] = true)) as $extra |
+          select(endswith("/") or $extra[.[(rindex("/") // -1) + 1:]])
+        '
+      fi
+    }
   fi | {
     if [ -z "$opt_with_summary" ]; then
       tr '\n' '\000'
@@ -300,6 +384,7 @@ sub_listdoc() {
 case $subcommand in
   enable)   sub_operate_tool_list add "$@" ;;
   disable)  sub_operate_tool_list remove "$@" ;;
+  describe) sub_describe "$@" ;;
   list)     sub_list "$@" ;;
   doc)      sub_doc "$@" ;;
   listdoc)  sub_listdoc "$@" ;;

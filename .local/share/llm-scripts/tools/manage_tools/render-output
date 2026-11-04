@@ -16,6 +16,9 @@ try (
   elif .removed_tools != null then
     "disable",
     .removed_tools[]
+  elif .described != null then
+    "describe",
+    (.tools[] | .name // .type)
   elif .list != null then
     "list" + (
       if .list[0] | type == "object" and has("summary") then
@@ -51,6 +54,9 @@ try (
       ;;
     disable)
       llmtr_render_header '36;1' "disabled tools"
+      ;;
+    describe)
+      llmtr_render_header '36;1' "described tools"
       ;;
     list)
       llmtr_render_header '36;1' "listed tools"

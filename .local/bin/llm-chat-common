@@ -7,6 +7,7 @@ llm_chat_set_public_files_var() {
   llm_chat_default_tool_name_list=$1/default-tool-name-list
   llm_chat_extra_tool_name_list=$1/extra-tool-name-list
   llm_chat_hooks_dir=$1/hooks
+  llm_chat_tool_state_dir=$1/tool-state
 }
 
 llm_chat_helper_set_tmp() {
@@ -46,16 +47,27 @@ llm_chat_operate_extra_tool() (
   shift "$((OPTIND - 1))"
 
   trap '' INT
-  namelist=$llm_chat_extra_tool_name_list
-  [ -f "$namelist" ] || : >"$namelist" || exit 1
+
+  # The key invariant:
+  # extralist ∩ defaultlist = Ø
+  # both lists are sorted
+
+  extralist=$llm_chat_extra_tool_name_list
+  defaultlist=$llm_chat_default_tool_name_list
+  for list in "$extralist" "$defaultlist"; do
+    [ -f "$list" ] || : >"$list" || exit 1
+  done
+
   llm_chat_helper_set_tmp -d
-  sort -o "$namelist" -- "$namelist"
   case $opt_mode in
     add)
-      llm-expand-toolspec -- "$@" | sort | comm -23 - "$namelist" >"$tmp/delta"
+      llm-expand-toolspec -- "$@" \
+        | comm -23 - "$extralist" \
+        | comm -23 - "$defaultlist" >"$tmp/delta"
       ;;
     remove)
-      llm-expand-toolspec -- "$@" | sort | comm -12 - "$namelist" >"$tmp/delta"
+      llm-expand-toolspec -- "$@" \
+        | comm -12 - "$extralist" >"$tmp/delta"
       ;;
     *)
       exit 2
@@ -67,30 +79,52 @@ llm_chat_operate_extra_tool() (
 
   case $opt_mode in
     add)
-      cat -- "$tmp/delta" >>"$namelist"
+      cat -- "$tmp/delta" >>"$extralist"
       ;;
     remove)
-      comm -13 --  "$tmp/delta" "$namelist" >"$tmp/result"
-      cp -- "$tmp/result" "$namelist"
+      comm -13 --  "$tmp/delta" "$extralist" >"$tmp/result"
+      cp -- "$tmp/result" "$extralist"
       ;;
   esac
 )
 
 llm_chat_generate_tool_list() (
-  trap '' INT
-  set --
-  for f in "$llm_chat_default_tool_name_list" "$llm_chat_extra_tool_name_list"; do
-    [ -f "$f" ] || continue
-    set -- "$@" "$f"
+  OPTIND=1
+  opt_parameters=
+  opt_description=
+  opt_parameters_given=
+  opt_description_given=
+  opt_defer_loading=
+  while getopts "d:p:l" opt; do
+    case $opt in
+      d) opt_description=$OPTARG; opt_description_given=1 ;;
+      p) opt_parameters=$OPTARG; opt_parameters_given=1 ;;
+      l) opt_defer_loading=1 ;;
+      \?) exit 2 ;;
+    esac
   done
+  set --
+  [ -n "$opt_description_given" ] && set -- "$@" -d "$opt_description"
+  [ -n "$opt_parameters_given" ] && set -- "$@" -p "$opt_parameters"
+  [ -n "$opt_defer_loading" ] && set -- "$@" -l
 
-  [ "$#" -eq 0 ] && { : >"$llm_chat_tool_list"; return; }
-
-  sort -u -- "$@" \
-    | tr '\n' '\000' \
-    | xargs -r0 -- llm-tool-list \
-    | jq -cs -- 'select(length != 0)' >"$llm_chat_tool_list"
+  trap '' INT
+  {
+    if [ -f "$llm_chat_default_tool_name_list" ]; then
+      tr '\n' '\000' <"$llm_chat_default_tool_name_list" \
+        | xargs -r0 -- llm-tool-list --
+    fi
+    if [ -f "$llm_chat_extra_tool_name_list" ]; then
+      tr '\n' '\000' <"$llm_chat_extra_tool_name_list" \
+        | xargs -r0 -- llm-tool-list "$@" --
+    fi
+  } | jq -cs -- 'select(length != 0)' >"$llm_chat_tool_list"
 )
+
+llm_chat_get_tool_state_dir() {
+  command eval " $1"='$llm_chat_tool_state_dir/$2'
+  command eval "[ -e \"\$$1\" ] || mkdir -p -- \"\$$1\""
+}
 
 # $2 state, $3 type, $4 when, $5 name (optional)
 llm_chat_get_hook_relpath() {

@@ -1,8 +1,18 @@
 # manage_tools
 
-Supplementary reference for managing the session tool set and exploring
+Supplementary reference for managing the session tool sets and exploring
 the tool system. The tool description covers the operations; this document
 explains the interface details.
+
+# Tool sets
+
+- The default tool set is loaded with full signatures when the session
+  starts.
+- The extra tool set is loaded with stub signatures; call "describe" to
+  retrieve the full signature of one of its tools before calling it.
+- The enabled tool set is the union of the two, and is what the model
+  can see in the session. "list" with "ignore_extra_set" can also list
+  tools outside the enabled tool set.
 
 # Patterns
 
@@ -36,10 +46,9 @@ when the result is large.
 
 # Errors and edge cases
 
-- "list" with "enabled" true takes no "pattern": combining them is an
-  error.
-- "enable" and "disable" also accept tree paths: patterns containing "/"
-  are matched against the tool tree and the matched tools are
-  enabled/disabled by name; directory entries are ignored.
+- "describe" only describes tools of the extra tool set, and skips tools
+  already described in this session; with no "pattern" it describes
+  nothing.
+- "list" without "ignore_extra_set" lists only the extra tool set.
 - Glob patterns can not match dot-prefixed (hidden) names; such patterns
   are rejected.
