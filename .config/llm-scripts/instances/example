@@ -24,4 +24,19 @@ if [ "$llm_scriptname" = llm-chat ]; then
   # Specify the tools of the default tool set: a space-separated list of
   # glob patterns.
   opt_default_tools='@default _builtin_web_search manage_tools'
+
+  # Specify the extra tool set: additional tools loaded for the session.
+  # With opt_extra_tools_defer_loading=inject, they are loaded with stub
+  # signatures, and their full signatures are fetched on demand with the
+  # manage_tools tool, which must then be enabled; without defer loading
+  # it is optional.
+  # opt_extra_tools='*'
+  # opt_extra_tools_defer_loading=inject
+  #
+  # With opt_extra_tools_defer_loading=on, the provider defers loading
+  # natively; add the tool_search tool so deferred tools can be loaded
+  # on demand.
+  # opt_extra_tools='*'
+  # opt_extra_tools_defer_loading=on
+  # opt_default_tools="$opt_default_tools _builtin_tool_search"
 fi
