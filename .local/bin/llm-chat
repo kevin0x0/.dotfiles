@@ -14,7 +14,8 @@ opt_prompt=
 opt_prompt_file=
 opt_default_tools=
 opt_extra_tools=
-opt_extra_tools_defer_loading=off
+opt_extra_tools_defer_loading=
+opt_extra_tools_defer_loading_mode=
 opt_extra_tools_description='[deferred]'
 opt_extra_tools_parameters=''
 opt_show_conversation_on_startup=1
@@ -577,11 +578,12 @@ run_hooks() {
 generate_tool_list() {
   llm-expand-toolspec -- "$opt_default_tools" >"$llm_chat_default_tool_name_list"
   llm_chat_operate_extra_tool -m add -- "$opt_extra_tools"
-  case $opt_extra_tools_defer_loading in
-    off)
-      llm_chat_generate_tool_list
-      ;;
-    on)
+  if [ -z "$opt_extra_tools_defer_loading" ]; then
+    llm_chat_generate_tool_list
+    return
+  fi
+  case ${opt_extra_tools_defer_loading_mode:-inject} in
+    builtin)
       llm_chat_generate_tool_list -l
       ;;
     inject)
@@ -590,8 +592,8 @@ generate_tool_list() {
         -p "$opt_extra_tools_parameters"
       ;;
     *)
-      printf "invalid value of opt_extra_tools_defer_loading: %s\n" \
-        "$opt_extra_tools_defer_loading" >&2
+      printf "invalid value of opt_extra_tools_defer_loading_mode: %s\n" \
+        "$opt_extra_tools_defer_loading_mode" >&2
       exit 2
       ;;
   esac

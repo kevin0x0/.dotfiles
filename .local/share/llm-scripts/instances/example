@@ -25,18 +25,19 @@ if [ "$llm_scriptname" = llm-chat ]; then
   # glob patterns.
   opt_default_tools='@default _builtin_web_search manage_tools'
 
-  # Specify the extra tool set: additional tools loaded for the session.
-  # With opt_extra_tools_defer_loading=inject, they are loaded with stub
-  # signatures, and their full signatures are fetched on demand with the
-  # manage_tools tool, which must then be enabled; without defer loading
-  # it is optional.
-  # opt_extra_tools='*'
-  # opt_extra_tools_defer_loading=inject
+  # Deferred loading of the extra tool set is enabled by sourcing the
+  # defer-loading snippet, which also adds the supporting tool to the
+  # default tool set (manage_tools in inject mode, _builtin_tool_search
+  # in builtin mode; the mode is preset by the model config). Pick one:
   #
-  # With opt_extra_tools_defer_loading=on, the provider defers loading
-  # natively; add the tool_search tool so deferred tools can be loaded
-  # on demand.
-  # opt_extra_tools='*'
-  # opt_extra_tools_defer_loading=on
-  # opt_default_tools="$opt_default_tools _builtin_tool_search"
+  # 1. Set nothing here; source the snippet manually. It defaults the
+  #    extra tool set to '*'.
+  #
+  # 2. Set the extra tool set here (space-separated glob patterns), and
+  #    source the snippet manually:
+  #    opt_extra_tools='manage_*'
+  #
+  # 3. Enable deferred loading by default:
+  #    opt_extra_tools='manage_*'
+  #    llmcu_source_configfile @snippets/defer-loading
 fi
