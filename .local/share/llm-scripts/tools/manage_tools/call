@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# Enable auto approval by default.
-opt_yes=y
+opt_yes=
 statedir=$2
 if [ -f "$statedir/tool-config/manage_tools" ]; then
   command . -- "$statedir/tool-config/manage_tools" >/dev/null 2>&1
@@ -34,11 +33,13 @@ approval_out=$tmpdir/approval-out
 
 cat >"$argfile"
 
+# enable and disable operations are availabel but not explicitly exposed 
+# to the model.
 op=$(jq -j '.operation // "" | tostring' <"$argfile" 2>/dev/null)
 case $op in
-  enable|disable|list|doc|listdoc) ;;
+  enable|disable|describe|list|doc|listdoc) ;;
   *)
-    error "bad argument: operation must be enable, disable, list, doc or listdoc"
+    error "bad argument: operation must be describe, list, doc or listdoc"
     ;;
 esac
 
@@ -77,7 +78,7 @@ if [ "$op" = enable ] || [ "$op" = disable ]; then
   esac
 fi
 
-enabled=$(jq -j '(.enabled and true) or false' <"$argfile")
+ignore_extra_set=$(jq -j '(.ignore_extra_set and true) or false' <"$argfile")
 with_summary=$(jq -j '(.with_summary and true) or false' <"$argfile")
 name=$(jq -j '.toolname // "" | tostring' <"$argfile")
 jq -r '.docpaths // empty | if type != "array" then [.] end | .[]' <"$argfile" >"$docpaths"
@@ -96,11 +97,14 @@ case $op in
   enable|disable)
     set -- "$@" -- "$pattern"
     ;;
+  describe)
+    [ "$pattern" ] && set -- "$@" -- "$pattern"
+    ;;
   list)
     set -- "$@" -i "$start_index" -c "$count"
     [ "$with_summary" = true ] && set -- "$@" -s
-    if [ "$enabled" = true ]; then
-      set -- "$@" -e
+    if [ "$ignore_extra_set" = true ]; then
+      set -- "$@" -E
     else
       [ -n "$pattern" ] && set -- "$@" -- "$pattern"
     fi

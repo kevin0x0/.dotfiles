@@ -3,12 +3,12 @@
   "properties": {
     "operation": {
       "type": "string",
-      "enum": ["enable", "disable", "list", "doc", "listdoc"],
-      "description": "The operation to perform: enable adds tools matching pattern to the current session, disable removes them, list lists tools, doc reads a document of a tool, listdoc lists documents of a tool."
+      "enum": ["describe", "list", "doc", "listdoc"],
+      "description": "The operation to perform."
     },
     "pattern": {
       "type": "string",
-      "description": "Space separated glob pattern list. Required for enable and disable, where it matches tool names (e.g. \"manage_*\"); optional for list, where patterns without \"/\" match tool names and patterns containing \"/\" match paths in the tool tree (e.g. \"builtin/*\"; all tools are listed when omitted); optional for listdoc, where it matches document paths (all documents when omitted)."
+      "description": "Space separated glob pattern list. Optional for describe, where it matches tool names or tree paths (nothing is described when omitted); optional for list, where patterns without \"/\" match tool names and patterns containing \"/\" match paths in the tool tree (e.g. \"builtin/*\"; the extra tool set is listed when omitted); optional for listdoc, where it matches document paths (all documents when omitted)."
     },
     "toolname": {
       "type": "string",
@@ -29,9 +29,9 @@
         }
       ]
     },
-    "enabled": {
+    "ignore_extra_set": {
       "type": "boolean",
-      "description": "Only for list: when true, list the tools currently available to the model (the default tool list plus the enabled extra tools) instead of matching pattern."
+      "description": "Only for list: when true, list all tools instead of only those of the extra tool set."
     },
     "with_summary": {
       "type": "boolean",

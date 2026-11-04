@@ -12,7 +12,11 @@ opt_files_default_purpose=user_data
 opt_default_role=user
 opt_prompt=
 opt_prompt_file=
-opt_toolspec=
+opt_default_tools=
+opt_extra_tools=
+opt_extra_tools_defer_loading=off
+opt_extra_tools_description='[deferred]'
+opt_extra_tools_parameters=''
 opt_show_conversation_on_startup=1
 opt_color=auto
 opt_color_ansi=
@@ -108,7 +112,7 @@ while getopts "$llm_chat_options" opt; do
       llmcu_getarg opt_responses_base_url "$OPTARG"
       ;;
     t)
-      llmcu_getarg opt_toolspec "$OPTARG"
+      llmcu_getarg opt_default_tools "$OPTARG"
       ;;
     c)
       # Additional config
@@ -570,6 +574,29 @@ run_hooks() {
   done
 }
 
+generate_tool_list() {
+  llm-expand-toolspec -- "$opt_default_tools" >"$llm_chat_default_tool_name_list"
+  llm_chat_operate_extra_tool -m add -- "$opt_extra_tools"
+  case $opt_extra_tools_defer_loading in
+    off)
+      llm_chat_generate_tool_list
+      ;;
+    on)
+      llm_chat_generate_tool_list -l
+      ;;
+    inject)
+      llm_chat_generate_tool_list -l \
+        -d "$opt_extra_tools_description" \
+        -p "$opt_extra_tools_parameters"
+      ;;
+    *)
+      printf "invalid value of opt_extra_tools_defer_loading: %s\n" \
+        "$opt_extra_tools_defer_loading" >&2
+      exit 2
+      ;;
+  esac
+}
+
 create_state_dir() {
   dirprefix=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/llm-chat-$$
   dir=$dirprefix
@@ -668,10 +695,7 @@ tmp=$opt_state_dir/tmp
 # llm_chat_extra_tool_name_list
 # llm_chat_hooks_dir
 llm_chat_set_public_files_var "$opt_state_dir"
-
-llm-expand-toolspec -- "$opt_toolspec" >"$llm_chat_default_tool_name_list"
-llm_chat_generate_tool_list
-
+generate_tool_list
 [ "$#" -ne 0 ] && printf "%s\n" "$@" >"$cmdline_input"
 mkfifo -- "$render_event_fifo" || exit
 mkfifo -- "$response_input_fifo" || exit

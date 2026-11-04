@@ -1,37 +1,47 @@
 # Synopsis
 
-Manage the tool set of the current session, or explore the tool tree and
-tool documents.
+Manage the tool sets of the current session, retrieve the full signature
+of a tool, or explore the tool tree and tool documents.
+
+# Tool sets
+
+The tools of a session form three sets:
+
+- The default tool set is loaded with full signatures when the session
+  starts.
+- The extra tool set is loaded with stub signatures; call "describe" to
+  retrieve the full signature of one of its tools before calling it.
+- The enabled tool set is the union of the two, and is what the model
+  can see in the session. This tool can also list tools outside the
+  enabled tool set.
 
 # Operations
 
-- "enable": add tools matching "pattern" to the session's extra tool list.
-  Requires "pattern".
-- "disable": remove tools matching "pattern" from the session's extra tool
-  list. Requires "pattern".
-- "list": list tools. When "enabled" is true, lists the tools currently
-  available to the model (the default tool list plus the enabled extra
-  tools); otherwise lists the tools matching "pattern" (all tools when
-  "pattern" is omitted). "with_summary" adds each tool's short summary;
+- "describe": return the full signature (description and parameters) of
+  the tools of the extra tool set matching "pattern"; with no "pattern",
+  nothing is described. Tools already described in this session are
+  skipped.
+- "list": list the tools of the extra tool set matching "pattern" (all
+  of them when "pattern" is omitted); set "ignore_extra_set" to list all
+  tools instead. "with_summary" adds each tool's short summary;
   "start_index" and "count" select a page of the result.
-- "doc": read documents of a tool. Requires "toolname"; "docpaths" selects
-  the documents to read (defaults to "README.md"; several documents can be
-  read in one call). Documents that do not exist are silently omitted
-  from the result.
-- "listdoc": list the documents of a tool. Requires "toolname"; "pattern"
-  can be used to filter by document path globs.
+- "doc": read documents of a tool. Requires "toolname"; "docpaths"
+  selects the documents to read (defaults to "README.md"; several
+  documents can be read in one call). Documents that do not exist are
+  silently omitted from the result.
+- "listdoc": list the documents of a tool. Requires "toolname";
+  "pattern" can be used to filter by document path globs.
 
 # Patterns
 
 "pattern" is a list of space separated glob patterns. The matching target
-depends on the operation: for enable and disable it matches tool names
-(e.g. "manage_*", "shell"); for list, patterns without "/" match tool
-names while patterns containing "/" match paths in the tool tree (e.g.
-"builtin/*"), for listing items under the root of the tool tree, prefix
-your pattern with a "/" (e.g. "/*"); for listdoc it matches document
-pathnames under the tool's doc directory. A word starting with "@" names
-a tool preset (a named list of patterns, e.g. "@default"); it is
-expanded in place and can be mixed with other words.
+depends on the operation: for describe and list, patterns without "/"
+match tool names while patterns containing "/" match paths in the tool
+tree (e.g. "builtin/*"), for listing items under the root of the tool
+tree, prefix your pattern with a "/" (e.g. "/*"); for listdoc it matches
+document pathnames under the tool's doc directory. A word starting with
+"@" names a tool preset (a named list of patterns, e.g. "@default"); it
+is expanded in place and can be mixed with other words.
 
 # Tool tree
 
@@ -46,14 +56,10 @@ Tool documents are plain-text (usually Markdown) files under the tool's
 doc directory; they hold extended reference material for the model.
 "README.md" is the conventional entry point.
 
-# Approval
-
-"enable" and "disable" are automatically approved by default.
-
 # Returns
 
-A JSON object. On success: enable returns {"added_tools":[...],"count":...};
-disable returns {"removed_tools":[...],"count":...}; list returns
+A JSON object. On success:
+describe returns {"described":...,"tools":[{...}, ...]}; list returns
 {"list":[{"name" or "path":..., "summary"?:...},...],"total":...,
 "start_index":...,"count":...}; doc returns
 {"toolname":...,"docs":[{"docpath":...,"content":...},...]}; listdoc returns
@@ -62,14 +68,8 @@ On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 
 # Notes
 
-- "enable" and "disable" only affect the session's extra tool list; the
-  default tool list specified at session start is not affected.
-- Enabling an already enabled tool, or disabling one that is not enabled,
-  is a no-op: the result is an empty list, not an error.
-- Enabling a tool only makes it available to the model; the tool is not
-  executed until it is actually called (calls keep their own approval).
-- Enabled tools are scoped to the current session.
-- A tool may still be invisible to the model after being enabled if the
-  model provider does not support it.
-- Use this tool to inspect what is available and to adjust the session
-  tool set; use the shell tool to read other files.
+- A tool of the extra tool set can be described once per session; later
+  "describe" calls skip it.
+- The tool sets are scoped to the current session.
+- Use this tool to inspect what is available and "describe" to learn how
+  to call a tool; use the shell tool to read other files.

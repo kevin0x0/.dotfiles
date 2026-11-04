@@ -11,11 +11,13 @@ try (
       "enabling " + (.pattern // "" | tostring)
     elif .operation == "disable" then
       "disabling " + (.pattern // "" | tostring)
+    elif .operation == "describe" then
+      "describing " + (.pattern // "" | tostring)
     elif .operation == "list" then
-      if .enabled then
-        "listing enabled tools"
+      if .ignore_extra_set then
+        "listing all tools matching " + (.pattern // "" | tostring)
       else
-        "listing tools matching " + (.pattern // "" | tostring)
+        "listing extra tools matching " + (.pattern // "" | tostring)
       end
     elif .operation == "doc" then
       "reading documents of " + (.toolname | tostring),
@@ -40,8 +42,9 @@ try (
   case $line in
     "enabling"*) prefix="enabling" ;;
     "disabling"*) prefix="disabling" ;;
-    "listing enabled tools") prefix="listing enabled tools" ;;
-    "listing tools"*) prefix="listing tools matching" ;;
+    "describing"*) prefix="describing" ;;
+    "listing all tools"*) prefix="listing all tools matching" ;;
+    "listing extra tools"*) prefix="listing extra tools matching" ;;
     "reading documents of"*) prefix="reading documents of" ;;
     "listing documents of"*) prefix="listing documents of" ;;
     "error:"*) prefix="error:"; color=$error_color ;;

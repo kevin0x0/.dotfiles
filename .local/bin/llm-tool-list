@@ -2,6 +2,74 @@
 
 . llm-config-utils
 
+opt_parameters=
+opt_description=
+opt_description_given=
+opt_defer_loading=
+while getopts "d:p:l" opt; do
+  case $opt in
+    d) opt_description=$OPTARG; opt_description_given=1 ;;
+    p) opt_parameters=$OPTARG; opt_parameters_given=1 ;;
+    l) opt_defer_loading=1 ;;
+    \?) exit 2 ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+generate_normal() {
+  set -- --arg name "$name" \
+    --arg defer_loading "$opt_defer_loading" \
+    --rawfile description "$description" \
+
+  if [ -z "$parameters" ]; then
+    jq -cn "$@" '
+        {type:"custom",$name,$description} | 
+          if $defer_loading != "" then
+            .defer_loading = true
+          end'
+  else
+    set -- "$@" --slurpfile params "$parameters"
+    jq -cn "$@" '
+        {type:"function",$name,$description} |
+          if $params[0] then
+            .parameters = $params[0]
+          end |
+          if $defer_loading != "" then
+            .defer_loading = true
+          end'
+    if [ "$?" -ne 0 ]; then
+      printf "failed to generate json for '%s' tool\n" "$name" >&2
+    fi
+  fi
+}
+
+generate_injected() {
+  set -- --arg name "$name"
+  if [ -n "$opt_description_given" ]; then
+    set -- "$@" --arg description "$opt_description"
+  else
+    set -- "$@" --rawfile description "$description"
+  fi
+
+  if [ -z "$parameters" ]; then
+    jq -cn "$@" '{type:"custom",$name,$description}'
+  else
+    if [ -n "$opt_parameters_given" ]; then
+      set -- "$@" --argjson params "[$opt_parameters]"
+    else
+      set -- "$@" --slurpfile params "$parameters"
+    fi
+    jq -cn "$@" '
+        {type:"function",$name,$description} |
+          if $params[0] then
+            .parameters = $params[0]
+          end'
+    if [ "$?" -ne 0 ]; then
+      printf "failed to generate json for '%s' tool\n" "$name" >&2
+    fi
+  fi
+}
+
 for name; do
   generate=
   description=
@@ -25,15 +93,9 @@ for name; do
     parameters=
   fi
 
-  if [ -z "$parameters" ]; then
-    jq -cn --rawfile desc "$description" --arg name "$name" \
-      '{"type":"custom","name":$name,"description":$desc}'
+  if [ -z "$opt_defer_loading" ] || [ -z "$opt_description_given$opt_parameters_given" ]; then
+    generate_normal
   else
-    jq -cn --rawfile desc "$description" --arg name "$name" \
-      --slurpfile params "$parameters" \
-      '{"type":"function","name":$name,"description":$desc,"parameters":$params[0]}'
-    if [ "$?" -ne 0 ]; then
-      printf "failed to generate json for '%s' tool\n" "$name" >&2
-    fi
+    generate_injected
   fi
 done
