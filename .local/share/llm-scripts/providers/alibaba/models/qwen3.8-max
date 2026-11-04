@@ -2,3 +2,4 @@
 
 llmcu_source_configfile @providers/alibaba/config
 opt_model=qwen3.8-max
+opt_extra_tools_defer_loading_mode=inject

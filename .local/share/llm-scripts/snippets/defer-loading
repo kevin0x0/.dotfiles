@@ -1,0 +1,24 @@
+#!/bin/sh
+
+[ -z "$opt_extra_tools" ] && opt_extra_tools='*'
+
+llm_snippets_toolname=
+case ${opt_extra_tools_defer_loading_mode:-inject} in
+  builtin)    llm_snippets_toolname=_builtin_tool_search ;;
+  inject)     llm_snippets_toolname=manage_tools ;;
+  *)          return ;;
+esac
+# If $llm_snippets_toolname is explicitly specified, don't add it again.
+# This detection is not necessary, it is only for cosmetic purpose.
+case $opt_default_tools in
+  *[[:space:]]"$llm_snippets_toolname"[[:space:]]*| \
+  "$llm_snippets_toolname"[[:space:]]*| \
+  *[[:space:]]"$llm_snippets_toolname"| \
+  "$llm_snippets_toolname")
+    ;;
+  *)
+    opt_default_tools="$opt_default_tools $llm_snippets_toolname"
+    ;;
+esac
+opt_extra_tools_defer_loading=1
+unset llm_snippets_toolname

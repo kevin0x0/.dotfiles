@@ -2,3 +2,4 @@
 
 llmcu_source_configfile @providers/deepseek/config
 opt_model=deepseek-flash
+opt_extra_tools_defer_loading_mode=inject
