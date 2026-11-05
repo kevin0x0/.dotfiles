@@ -15,9 +15,9 @@ try (
       "describing " + (.pattern // "" | tostring)
     elif .operation == "list" then
       if .ignore_extra_set then
-        "listing all tools matching " + (.pattern // "" | tostring)
+        "listing all tools matching " + (.pattern // "*" | tostring)
       else
-        "listing extra tools matching " + (.pattern // "" | tostring)
+        "listing extra tools matching " + (.pattern // "*" | tostring)
       end
     elif .operation == "doc" then
       "reading documents of " + (.toolname | tostring),
@@ -26,7 +26,7 @@ try (
           map(tostring | gsub("\n"; ""))[]
       )
     elif .operation == "listdoc" then
-      "listing documents of " + (.toolname | tostring) + " " + (.pattern // "" | tostring)
+      "listing documents of " + (.toolname | tostring) + " " + (.pattern // "*" | tostring)
     else
       "error: bad argument"
     end
@@ -34,23 +34,10 @@ try (
   "error: bad argument"
 )
 ' | {
-  op_color='36;1'
-  error_color='31;1'
   IFS= read -r line
-  prefix=
-  color=$op_color
-  case $line in
-    "enabling"*) prefix="enabling" ;;
-    "disabling"*) prefix="disabling" ;;
-    "describing"*) prefix="describing" ;;
-    "listing all tools"*) prefix="listing all tools matching" ;;
-    "listing extra tools"*) prefix="listing extra tools matching" ;;
-    "reading documents of"*) prefix="reading documents of" ;;
-    "listing documents of"*) prefix="listing documents of" ;;
-    "error:"*) prefix="error:"; color=$error_color ;;
-  esac
-
-  llmtr_render_header "$color" "$prefix" '1' "${line#"$prefix"}"
+  printf "%s\n" "$line" | llmtr_run_on_color llmtr_color_pattern \
+    '1' '36;1' '^(enabling|disabling|describing|listing (all|extra) tools matching|(listing|reading) documents of)' '&' \
+    '1' '31;1' '^error:' '&'
 
   while IFS= read -r line; do
     printf "%s\n" "$line"

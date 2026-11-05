@@ -5,30 +5,19 @@
 llmtr_parse_options "" "$@"
 llmtr_render_header "36;1" apply_patch
 
-color_delete=$'\033[31m'
-color_add=$'\033[32m'
-color_context=$'\033[33m'
-color_operation=$'\033[1m'
-color_end=$'\033[0m'
-
-color_hunk_line() {
-  case $llmtr_line in
-    '+'*)     llmtr_line="$color_add$llmtr_line$color_end" ;;
-    '-'*)     llmtr_line="$color_delete$llmtr_line$color_end" ;;
-    '@@'*)    llmtr_line="$color_context$llmtr_line$color_end" ;;
-    '*** '*)  llmtr_line="$color_operation$llmtr_line$color_end" ;;
-    ' '*) ;;
-  esac
-}
-
 should_reset_line() {
-  case $llmtr_line in
-    "$color_operation*** "*)
+  llmtr_ltrim_ansi_color line "$llmtr_line"
+  case $line in
+    "*** "*)
       return 0
       ;;
   esac
   return 1
 }
 
-llmtr_run_filter_on_color color_hunk_line \
+llmtr_run_on_color llmtr_color_pattern \
+  '0' '32' '^\+.*$' '&' \
+  '0' '31' '^-.*$' '&' \
+  '0' '33' '^@@.*$' '&' \
+  '0' '1' '^\*\*\* .*$' '&' \
   | llmtr_render_lines should_reset_line
