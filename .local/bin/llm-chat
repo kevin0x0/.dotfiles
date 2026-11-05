@@ -577,11 +577,11 @@ run_hooks() {
 
 generate_tool_list() {
   llm-expand-toolspec -- "$opt_default_tools" >"$llm_chat_default_tool_name_list"
-  llm_chat_operate_extra_tool -m add -- "$opt_extra_tools"
   if [ -z "$opt_extra_tools_defer_loading" ]; then
     llm_chat_generate_tool_list
     return
   fi
+  llm_chat_operate_extra_tool -m add -- "$opt_extra_tools"
   case ${opt_extra_tools_defer_loading_mode:-inject} in
     builtin)
       llm_chat_generate_tool_list -l
