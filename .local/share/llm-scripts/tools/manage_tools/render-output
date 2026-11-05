@@ -8,19 +8,19 @@ select(.type == "input_text").text |
 try (
   fromjson |
   if .error != null then
-    "error",
+    "manage_tools error",
     .error
   elif .added_tools != null then
-    "enable",
+    "enabled tools",
     .added_tools[]
   elif .removed_tools != null then
-    "disable",
+    "disabled tools",
     .removed_tools[]
   elif .described != null then
-    "describe",
+    "described tools",
     (.tools[] | .name // .type)
   elif .list != null then
-    "list" + (
+    "listed tools" + (
       if .list[0] | type == "object" and has("summary") then
         " with summary"
       else
@@ -29,10 +29,10 @@ try (
     ),
     (.list[] | .path // .name)
   elif .docs != null then
-    "doc " + .toolname,
+    "read documents of " + .toolname,
     .docs[].docpath
   elif .doclist != null then
-    "listdoc " + .toolname,
+    "listed documents of " + .toolname,
     .doclist[]
   else
     ""
@@ -45,39 +45,11 @@ try (
   IFS= read -r line
   color=33
   case $line in
-    error)
-      llmtr_render_header '31;1' "manage_tools error"
-      color=31
-      ;;
-    enable)
-      llmtr_render_header '36;1' "enabled tools"
-      ;;
-    disable)
-      llmtr_render_header '36;1' "disabled tools"
-      ;;
-    describe)
-      llmtr_render_header '36;1' "described tools"
-      ;;
-    list)
-      llmtr_render_header '36;1' "listed tools"
-      ;;
-    'list with summary')
-      llmtr_render_header '36;1' "listed tools with summary"
-      ;;
-    doc*)
-      llmtr_render_header \
-        '36;1' "read documents of " \
-        '1' "${line#"doc "}" \
-      ;;
-    listdoc*)
-      llmtr_render_header \
-        '36;1' "listed documents of " \
-        '1' "${line#"listdoc "}" \
-      ;;
-    *)
-      exit 0
-      ;;
+    "manage_tools error") color=31 ;;
   esac
+  printf "%s\n" "$line" | llmtr_run_on_color llmtr_color_pattern \
+    '1' '36;1' '^((enabled|disabled|described|listed) tools|listed tools with summary|(read|listed) documents of)' '&' \
+    '1' '31;1' '^manage_tools error' '&'
 
   llmtr_complete_newline \
     | llmtr_run_filter_on_color llmtr_filter_color_line "$color" \

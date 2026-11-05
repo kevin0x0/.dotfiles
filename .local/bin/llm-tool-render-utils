@@ -86,6 +86,74 @@ llmtr_filter_color_line() {
   llmtr_line=$'\033['${1}m$llmtr_line$'\033[0m'
 }
 
+llmtr_color_pattern() {
+  llmtr_count=$#
+  llmtr_eres=
+  llmtr_repls=
+  llmtr_base_colors=
+  while [ "$llmtr_count" -ge 4 ]; do
+    llmtr_count=$((llmtr_count - 4))
+    llmtr_repls=$llmtr_repls$'\033[0m\033['${2}m$4$'\033[0m\033['${1}m$'\n'
+    llmtr_eres=$llmtr_eres$3$'\n'
+    llmtr_base_colors=$llmtr_base_colors$1$'\n'
+    shift 4
+  done
+  llmtr_eres=$(printf "%s" "$llmtr_eres" | sed 's/\\/\\\\/g; s/$/\\n/;' | tr -d '\n')
+  llmtr_repls=$(printf "%s" "$llmtr_repls" | sed 's/\\/\\\\/g; s/$/\\n/;' | tr -d '\n')
+  llmtr_base_colors=$(printf "%s" "$llmtr_base_colors" | sed 's/$/\\n/;' | tr -d '\n')
+  # The trailing echo guarantees the last record is newline-terminated so
+  # awk always sees it; a missing final newline in the input is then
+  # recovered from the record count: an extra empty record means the input
+  # ended with a newline (the last line is flushed by renderline("\n")),
+  # while a final record rendered in END with an empty terminator means
+  # it did not.
+  { cat -u; echo; } | awk \
+    -v colorsnl="$llmtr_base_colors" \
+    -v eresnl="$llmtr_eres" \
+    -v replsnl="$llmtr_repls" '
+        function renderline(newline) {
+          for (i = 1; i <= n; ++i) {
+            if (gsub(eres[i], repls[i], pending_line) != 0) {
+              printf "%s%s", "\033[" colors[i] "m" pending_line "\033[0m", newline
+              return
+            }
+          }
+          printf "%s%s", pending_line, newline
+        }
+        BEGIN {
+          n = split(colorsnl, colors, "\n") - 1
+          split(eresnl, eres, "\n")
+          split(replsnl, repls, "\n")
+          pending_line = ""
+          pending = 0
+        }
+        {
+          if (pending)
+            renderline("\n")
+          pending_line = $0
+          pending = 1
+        }
+        END {
+          if (pending_line != "")
+            renderline("")
+        }'
+}
+
+llmtr_ltrim_ansi_color() {
+  llmtr_ltrim_line=$2
+  while :; do
+    case $llmtr_ltrim_line in
+      $'\033'*m*)
+        llmtr_ltrim_line=${llmtr_ltrim_line#*m}
+        ;;
+      *)
+        command eval " $1"='$llmtr_ltrim_line'
+        return
+        ;;
+    esac
+  done
+}
+
 llmtr_missing_newline_mark="<missing newline>"
 llmtr_color_missing_newline_mark="41;30"
 llmtr_mark_missing_newline() {
