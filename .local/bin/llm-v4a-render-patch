@@ -15,9 +15,10 @@ should_reset_line() {
   return 1
 }
 
-llmtr_run_on_color llmtr_color_pattern \
-  '0' '32' '^\+.*$' '&' \
-  '0' '31' '^-.*$' '&' \
-  '0' '33' '^@@.*$' '&' \
-  '0' '1' '^\*\*\* .*$' '&' \
+llmtr_complete_newline \
+  | llmtr_run_on_color llmtr_color_pattern \
+    '0' '32' '^\+.*$' '&' \
+    '0' '31' '^-.*$' '&' \
+    '0' '33' '^@@.*$' '&' \
+    '0' '1' '^\*\*\* .*$' '&' \
   | llmtr_render_lines should_reset_line
