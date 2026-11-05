@@ -15,7 +15,8 @@ should_reset_line() {
   return 1
 }
 
-llmtr_complete_newline \
+llmtr_mark_common_cntrl_chars \
+  | llmtr_complete_newline \
   | llmtr_run_on_color llmtr_color_pattern \
     '0' '32' '^\+.*$' '&' \
     '0' '31' '^-.*$' '&' \
