@@ -173,6 +173,56 @@ llmtr_mark_missing_newline() {
   fi
 }
 
+llmtr_cntrl_color_default='41;30'
+# The characters marked by llmtr_mark_common_cntrl_chars, in the same
+# order as their marks inside the function. ESC must come first: the
+# colored wrappers of the marks themselves contain ESC bytes, and the
+# ESC pass must therefore run before they are introduced.
+llmtr_cntrl_chars=$'\033\b\v\f\r\036\177'
+
+llmtr_mark_common_cntrl_chars() {
+  llmtr_cntrl_color=${1:-$llmtr_cntrl_color_default}
+  case $llmtr_cntrl_color in
+    ''|*[!0-9\;]*) llmtr_cntrl_color=$llmtr_cntrl_color_default ;;
+  esac
+
+  # NUL makes the input non-textual (POSIX text utilities behave
+  # unpredictably on it), so it is replaced up front with RS (0x1e).
+  # The sentinel is internal: it is rendered as the \0 mark below and
+  # never appears as itself in the output. The marks of the other
+  # control characters are escape sequences, one per line.
+  llmtr_cntrl_marks=$(printf '%s\n' '\e' '\b' '\v' '\f' '\r' '\0' '\177' \
+    | sed 's/\\/\\\\/g')
+  { tr '\0' '\036'; echo; } | awk \
+    -v colored="$llmtr_color_enabled" \
+    -v color="$llmtr_cntrl_color" \
+    -v chars="$llmtr_cntrl_chars" \
+    -v marks="$llmtr_cntrl_marks" '
+      function renderline(newline) {
+        for (i = 1; i <= n; ++i)
+          gsub(substr(chars, i, 1), repl[i], pending_line)
+        printf "%s%s", pending_line, newline
+      }
+      BEGIN {
+        n = length(chars)
+        split(marks, mark, "\n")
+        for (i = 1; i <= n; ++i)
+          repl[i] = (colored != "" ? "\033[" color "m" mark[i] "\033[0m" : mark[i])
+        pending_line = ""
+        pending = 0
+      }
+      {
+        if (pending)
+          renderline("\n")
+        pending_line = $0
+        pending = 1
+      }
+      END {
+        if (pending_line != "")
+          renderline("")
+      }'
+}
+
 llmtr_complete_newline() {
   while IFS= read -r llmtr_line || [ -n "$llmtr_line" ]; do
     printf "%s\n" "$llmtr_line"
