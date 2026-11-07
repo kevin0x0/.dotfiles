@@ -8,12 +8,15 @@ of a tool, or explore the tool tree and tool documents.
 The tools of a session form three sets:
 
 - The default tool set is loaded with full signatures when the session
-  starts.
+  starts. It is configured by the user at session start and is usually
+  small.
 - The extra tool set is loaded with stub signatures; call "describe" to
   retrieve the full signature of one of its tools before calling it.
-- The enabled tool set is the union of the two, and is what the model
-  can see in the session. This tool can also list tools outside the
-  enabled tool set.
+- The enabled tool set is the union of the two, and is exactly the set
+  of tools visible to you in the session: every tool you can see in
+  your tool list is in either the default or the extra tool set, and a
+  tool that is not in your tool list is in neither of them and can not
+  be called, no matter what "list" reports.
 
 # Operations
 
@@ -22,8 +25,9 @@ The tools of a session form three sets:
   nothing is described. Tools already described in this session are
   skipped.
 - "list": list the tools of the extra tool set matching "pattern" (all
-  of them when "pattern" is omitted); set "ignore_extra_set" to list all
-  tools instead. "with_summary" adds each tool's short summary;
+  of them when "pattern" is omitted); set "ignore_extra_set" to list
+  the whole catalog instead, including tools that are not available in
+  this session. "with_summary" adds each tool's short summary;
   "start_index" and "count" select a page of the result.
 - "doc": read documents of a tool. Requires "toolname"; "docpaths"
   selects the documents to read (defaults to "README.md"; several
