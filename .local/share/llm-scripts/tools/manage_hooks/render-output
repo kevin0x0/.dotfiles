@@ -15,6 +15,7 @@ try (
   (.removed // null)  as $removed |
   (.path // "")       as $path |
   (.hooks // null)    as $hooks |
+  (.events // null)   as $events |
   (.error // null)    as $error |
   (.rejected // null) as $rejected |
   (if $created != null then
@@ -28,6 +29,11 @@ try (
    else empty end),
   (if $hooks != null then
      ($hooks | map(.rel) | join("\n") | print_strings, " | ", render("hooks"))
+   else empty end),
+  (if $events != null then
+     ($events
+        | map(if .summary != "" then .name + "\n" + .summary else .name end)
+        | join("\n") | print_strings, " | ", render("events"))
    else empty end),
   (if $created == null and $appended == null and $removed == null and $path != "" then
      ("" | print_strings, " | ", render_withflags("path"; "-S " + ($path | @sh)))

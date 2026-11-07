@@ -1,33 +1,42 @@
 # Synopsis
 
-Manage session hooks: shell scripts that run when the chat session enters or
-leaves a state.
+Manage session hooks: shell scripts that run on session events, or
+explore the installed events.
+
+# Events
+
+A hookable event is a lowercase dot-separated name, e.g.
+"state.read-loop.enter". Events are installed in the llm-scripts events
+directory by the framework and by third parties; "create" requires the
+event to be installed. The events directory is a namespace tree:
+entries ending with "." are namespaces, other entries are events, and
+entries whose relative path contains an uppercase letter are documents.
+An event or namespace directory may hold a "SUMMARY" file with a short
+description. The session currently emits "state.<state>.enter" and
+"state.<state>.leave" for <state> in read-loop, agent-loop-api-call,
+agent-loop-tool-call, agent-loop-end, agent-loop-api-call-interrupted,
+agent-loop-tool-call-interrupted, end.
 
 # Operations
 
-- "create": create a hook. Requires "state" and "source". "mode" selects
-  how the hook content is provided: "command" (source is the script text),
-  "copy" (source is a file whose content is copied), "symlink" (source is
-  a file the hook links to). "name" is optional (auto-generated when
-  omitted); with "append" (requires "name"), the content is appended to
-  the existing hook instead of failing.
-- "remove": remove a hook. Requires "state" and "name"; "type" and "when"
-  identify which hook is meant (defaulting to "oneshot"/"after", so pass
-  them for hooks created with other values).
-- "list-enabled": list enabled hooks. "state", "type" and "when" can be
-  used to filter the list.
-- "path": print the absolute pathname of a hook. Requires "state" and
-  "name"; "type" and "when" identify which hook is meant (defaulting to
-  "oneshot"/"after", so pass them for hooks created with other values).
-
-# States
-
-any-state, read-loop, agent-loop-api-call, agent-loop-tool-call,
-agent-loop-end, agent-loop-api-call-interrupted,
-agent-loop-tool-call-interrupted, end.
-
-"any-state" is a wildcard: its hooks run on every state transition, in
-addition to the hooks of the state being entered or left.
+- "create": create a hook for "event". Requires "source". "mode" selects
+  how the hook content is provided: "command" (source is the script
+  text), "copy" (source is a file whose content is copied), "symlink"
+  (source is a file the hook links to). "name" has the form
+  "<name>.<type>": the type suffix selects the run policy ("oneshot"
+  runs once then is removed, other types run every time); "name" is
+  optional (an auto-generated "oneshot" name is used when omitted).
+  "append" (requires "name") appends to the existing hook instead of
+  failing.
+- "remove": remove a hook. Requires "event" and "name" (with the exact
+  type suffix of the installed hook).
+- "list": list the hooks currently installed in the session. "event" can
+  be a glob filtering the list (it matches "event/name.type" paths).
+- "list-events": list the installed events and namespaces (namespace
+  names end with "."). "event" can be a glob filtering the list;
+  "with_summary" adds each item's summary.
+- "path": print the absolute pathname of a hook. Requires "event" and
+  "name".
 
 # Approval
 
@@ -39,15 +48,16 @@ configured.
 
 A JSON object. On success: create returns
 {"created":"<rel>","path":...} ({"appended":"<rel>","path":...} when
-appending); remove returns {"removed":"<rel>","path":...}; list-enabled
-returns {"hooks":[{"rel":...,"path":...},...]}; path returns {"path":...}.
+appending); remove returns {"removed":"<rel>","path":...}; list returns
+{"hooks":[{"rel":...,"path":...},...]}; list-events returns
+{"events":[{"name":...,"summary":...},...]}; path returns {"path":...}.
 On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 
-<rel> is the relative hook path in the form state/type/when/name.
+<rel> is the relative hook path in the form event/name.type.
 
 # Notes
 
-Use this tool to install scripts that run automatically on session state
-changes (for example desktop notifications or log appends), not to run
+Use this tool to install scripts that run automatically on session
+events (for example desktop notifications or log appends), not to run
 commands directly; use the shell tool for that. Hook output goes to the
 user's terminal, not to the model.

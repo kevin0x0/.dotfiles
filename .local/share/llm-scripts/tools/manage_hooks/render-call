@@ -9,9 +9,10 @@ include "functions";
 
 try (
   fromjson |
-  ([.state, .type // "oneshot", .when // "after", (.name // empty)]
+  ([.event, (.name // empty)]
      | map(select(. != null)) | join("/")) as $summary |
   (.append == true) as $is_append |
+  (.event // "*") as $event_pattern |
   if .operation == "create" then
     (if (.mode // "command") == "command" then
        (.source // "" | print_strings, " | ",
@@ -36,8 +37,12 @@ try (
      end)
   elif .operation == "remove" then
     ("" | print_strings, " | ", render_withflags("operation"; "-A remove -S " + ($summary | @sh)))
-  elif .operation == "list-enabled" then
-    ("" | print_strings, " | ", render_withflags("operation"; "-A list-enabled"))
+  elif .operation == "list" then
+    ("" | print_strings, " | ", render_withflags("operation"; "-A list"))
+  elif .operation == "list-events" then
+    ("" | print_strings, " | ",
+      render_withflags("operation";
+        "-A list-events -S " + ($event_pattern | @sh)))
   elif .operation == "path" then
     ("" | print_strings, " | ", render_withflags("operation"; "-A path -S " + ($summary | @sh)))
   else
