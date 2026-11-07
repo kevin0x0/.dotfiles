@@ -12,7 +12,9 @@ subcommands:
   create       <event> [-L] [-a] [-c] (<command> | <hook-file>) [<name>.<type>]
   remove       <event> <name>.<type>
   list         [<glob pattern>...]
-  list-events  [-s] [<glob pattern>...]
+  list-events  [-s] [<ERE>...]
+  list-docs    <name> [<ERE>...]
+  doc          <path>...
   path         <event> <name>.<type>
 
 options:
@@ -47,7 +49,7 @@ subcommand=$1
 shift
 
 case $subcommand in
-  create|remove|list|list-events|path) ;;
+  create|remove|list|list-events|list-docs|doc|path) ;;
   *)
     printf "unsupported subcommand: %s\n" "$subcommand" >&2
     usage >&2
@@ -60,7 +62,8 @@ validate_statedir() {
   [ -d "$opt_state_dir" ] || { printf "'%s' is not a directory\n" "$opt_state_dir" >&2; return 2; }
 }
 
-# $1 result var (the matched absolute path), $2 event name.
+# $1 result var (the matched absolute path), $2 result var (the matched
+# path relative to the events directory), $3 event name.
 # An event is installed when the events directory (searched with the
 # usual config priority) contains a folding of its dot-separated
 # segments: namespace entries end with ".", the final event entry does
@@ -71,7 +74,7 @@ validate_statedir() {
 # The short e prefix is kept because sh functions share the caller's
 # variable scope, and names like "name" or "event" are meaningful there.
 event_registered() {
-  ename=$2
+  ename=$3
   # The stack holds "suffix<TAB>relative path" pairs.
   estack=$ename$'\t'
   while [ -n "$estack" ]; do
@@ -83,6 +86,7 @@ event_registered() {
     erel=${epath:+$epath/}$esuffix
     if llmcu_locate_config_item efound "events/$erel" && [ -d "$efound" ]; then
       command eval " $1"='$efound'
+      command eval " $2"='$erel'
       return 0
     fi
     # Push namespace foldings, shortest prefix first so the longest is
@@ -120,10 +124,21 @@ validate_event() {
       return 2
       ;;
   esac
-  if ! event_registered event_rel "$1"; then
+  if ! event_registered event_rel _ "$1"; then
     printf "event not installed: %s\n" "$1" >&2
     return 2
   fi
+}
+
+# $1 event or namespace name: like validate_event, but a trailing dot
+# (a namespace) is allowed.
+validate_entry_name() {
+  case $1 in
+    ''|*[![:alnum:]_.-]*|.*|*..*|*[[:upper:]]*)
+      printf "invalid entry name: %s\n" "$1" >&2
+      return 2
+      ;;
+  esac
 }
 
 # $1 hook name: <name>.<type> with exactly one dot and no empty parts.
@@ -259,6 +274,7 @@ sub_create() {
 }
 
 sub_remove() {
+  [ "$1" = "--" ] && shift
   [ "$#" -eq 2 ] || { printf "hook name not provided\n" >&2; return 2; }
 
   validate_statedir || return
@@ -285,6 +301,7 @@ sub_remove() {
 }
 
 sub_list() {
+  [ "$1" = "--" ] && shift
   [ "$#" -eq 0 ] && set -- '*'
 
   validate_statedir || return
@@ -318,7 +335,6 @@ sub_list_events() {
     esac
   done
   shift "$((OPTIND - 1))"
-  [ "$#" -eq 0 ] && set -- '*'
 
   # $1 is the events directory (with a trailing slash) of one config
   # base; print each found path relative to it and return 1 so all
@@ -328,7 +344,14 @@ sub_list_events() {
       prefix=$1
       shift
       for arg; do
-        printf "%s\n" "${arg#"$prefix"}"
+        rel=${arg#"$prefix"}
+        # A path with control characters is not a valid install;
+        # reject it here, while it is still a single argument, before
+        # any line-based processing can split it.
+        case $rel in
+          *[[:cntrl:]]*) continue ;;
+        esac
+        printf "%s\n" "$rel"
       done
     ' sh "$1" {} +
     return 1
@@ -342,20 +365,20 @@ sub_list_events() {
         while IFS= read -r rel; do
           rel=${rel#/}
           case $rel in
-            ''|*[[:upper:]]*) continue ;;
+            # Documents, the base directory, and names containing
+            # control characters (invalid installs) are skipped.
+            ''|*[[:upper:]]*|*[[:cntrl:]]*) continue ;;
           esac
           printf "%s\n" "$rel"
         done
       } \
     | tr -d '/' \
     | {
-        while IFS= read -r name; do
-          for pattern; do
-            case $name in
-              $pattern) printf "%s\n" "$name"; break ;;
-            esac
-          done
-        done
+        if [ "$#" -eq 0 ]; then
+          cat
+        else
+          grep -E -- "$(printf "%s\n" "$@")"
+        fi
       } \
     | sort -u \
     | {
@@ -363,13 +386,13 @@ sub_list_events() {
           cat
         else
           while IFS= read -r name; do
-            summary=
-            if event_registered found "$name" && [ -f "$found/SUMMARY" ]; then
-              summary=$(cat -- "$found/SUMMARY")
+            printf '%s\n' "$name"
+            if event_registered found _ "$name" && [ -f "$found/SUMMARY" ]; then
+              cat -- "$found/SUMMARY"
             fi
             # One NUL-framed record per name, so the summary may
             # contain arbitrary characters or multiple lines.
-            printf '%s\n%s\0' "$name" "$summary"
+            printf '\0'
           done
         fi
       } \
@@ -396,7 +419,137 @@ sub_list_events() {
       }
 }
 
+# Print the documents of an entry (event or namespace) and its
+# ancestors as paths "<entry name>/<doc path relative to the entry>",
+# one per line. Documents are files whose path relative to their entry
+# contains an uppercase letter; they are collected recursively. The
+# optional arguments are EREs filtering the printed paths.
+sub_list_docs() {
+  [ "$1" = "--" ] && shift
+  [ "$#" -ge 1 ] || { printf "entry name not provided\n" >&2; return 2; }
+  name=$1
+  shift
+
+  validate_entry_name "$name" || return
+  event_registered dir rel "$name" || {
+    printf "entry not installed: %s\n" "$name" >&2
+    return 2
+  }
+
+  {
+    while :; do
+      entry_name=$(printf '%s\n' "$rel" | tr -d '/')
+      # The filtering and path construction run inside find -exec so
+      # the paths are passed as arguments: the config directory itself
+      # may contain any characters (even newlines), while the entry
+      # names are portable, and only those appear in the output.
+      find -L -- "$dir" -type f \
+        -exec sh -c '
+          entry_name=$1
+          prefix=$2
+          shift 2
+          for f; do
+            drel=${f#"$prefix"}
+            case $drel in
+              *[[:cntrl:]]*)
+                # A path with control characters is not a valid
+                # install; skip it.
+                continue
+                ;;
+              */*)
+                # Every directory component must contain an uppercase
+                # letter; an all-lowercase component is another entry'\''
+                # subtree.
+                ok=1
+                rest=${drel%/*}
+                while [ -n "$rest" ]; do
+                  comp=${rest%%/*}
+                  case $comp in
+                    *[[:upper:]]*) ;;
+                    *) ok=; break ;;
+                  esac
+                  rest=${rest#"$comp"}
+                  rest=${rest#/}
+                done
+                [ -n "$ok" ] || continue
+                ;;
+              *)
+                # A direct file is a document only if its name
+                # contains an uppercase letter.
+                case $drel in
+                  *[[:upper:]]*) ;;
+                  *) continue ;;
+                esac
+                ;;
+            esac
+            printf "%s/%s\n" "$entry_name" "$drel"
+          done
+        ' sh "$entry_name" "$dir/" {} + 2>/dev/null
+      case $rel in
+        */*)
+          rel=${rel%/*}
+          dir=${dir%/*}
+          ;;
+        *)
+          break
+          ;;
+      esac
+    done
+  } | sort -u \
+    | {
+        if [ "$#" -eq 0 ]; then
+          cat
+        else
+          grep -E -- "$(printf "%s\n" "$@")"
+        fi
+      } \
+    | {
+        if [ -n "$opt_json" ]; then
+          jq -Rsc --arg entry "$name" \
+            'split("\n") | map(select(. != "")) | {entry:$entry, doclist:.}'
+        else
+          cat
+        fi
+      }
+}
+
+# Print the content of the documents at the given paths, one path per
+# line header followed by its content. Paths have the form
+# "<entry name>/<doc path relative to the entry>"; documents that do
+# not exist are silently omitted.
+sub_doc() {
+  [ "$1" = "--" ] && shift
+  [ "$#" -ge 1 ] || { printf "document path not provided\n" >&2; return 2; }
+
+  {
+    for docpath; do
+      name=${docpath%%/*}
+      rel=${docpath#"$name"}
+      rel=${rel#/}
+      validate_entry_name "$name" || continue
+      case $rel in
+        ''|*..*|/*) continue ;;
+      esac
+      event_registered dir _ "$name" || continue
+      [ -f "$dir/$rel" ] || continue
+      if [ -n "$opt_json" ]; then
+        jq -Rsc --arg path "$docpath" '{path:$path, content:.}' "$dir/$rel"
+      else
+        printf '%s:\n' "$docpath"
+        cat -- "$dir/$rel"
+      fi
+    done
+  } | {
+        if [ -n "$opt_json" ]; then
+          jq -s '{docs:.}'
+        else
+          cat
+        fi
+      }
+}
+
 sub_path() {
+  [ "$1" = "--" ] && shift
   [ "$#" -eq 2 ] || { printf "hook name not provided\n" >&2; return 2; }
   validate_statedir || return
   . llm-chat-common
@@ -421,5 +574,7 @@ case $subcommand in
   remove)      sub_remove "$@" ;;
   list)        sub_list "$@" ;;
   list-events) sub_list_events "$@" ;;
+  list-docs)   sub_list_docs "$@" ;;
+  doc)         sub_doc "$@" ;;
   path)        sub_path "$@" ;;
 esac
