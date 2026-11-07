@@ -45,8 +45,8 @@ default_renderer_file_image() {
     file_id=$(jq -ejn --argjson data "$data" '$data.file_id'; echo x)
     file_id=${file_id%x}
     set --
-    [ -n "$llm_chat_persistent_fileids" ] && set -- "$@" "$llm_chat_persistent_fileids"
-    [ -n "$llm_chat_volatile_fileids" ] && set -- "$@" "$llm_chat_volatile_fileids"
+    [ -n "$llmcc_persistent_fileids" ] && set -- "$@" "$llmcc_persistent_fileids"
+    [ -n "$llmcc_volatile_fileids" ] && set -- "$@" "$llmcc_volatile_fileids"
     if [ "$#" -ne 0 ]; then
       jq -j --arg id "$file_id" -- \
         'select(.id == $id).filename' "$@"

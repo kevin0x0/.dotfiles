@@ -234,7 +234,7 @@ file_input() {
 
   for file; do
     if ! path2uri -u -- "$file"; then
-      if fileid=$(trap - INT; llm_chat_get_fileid "$opt_files_base_url" "$opt_api_key" "$opt_cache_key" "$opt_files_default_purpose" "$file" && echo x); then
+      if fileid=$(trap - INT; llmcc_get_fileid "$opt_files_base_url" "$opt_api_key" "$opt_cache_key" "$opt_files_default_purpose" "$file" && echo x); then
         fileid=${fileid%$'\nx'}
         i18n -n llm-scripts 'file selected, file id: $1' "$fileid"
         llm-make-mcontent -e "$file_detail" "$mkcontent_id_opt" -- "$fileid" >&3
@@ -271,7 +271,7 @@ save_session() {
   fi
 
   if ! cp -- "$conversation" "$1" || \
-    ! cat -- "$llm_chat_persistent_fileids" "$llm_chat_volatile_fileids" >"$2"; then
+    ! cat -- "$llmcc_persistent_fileids" "$llmcc_volatile_fileids" >"$2"; then
   i18n -n llm-scripts 'failed to save as $1 and $2' "$1" "$2" >&2
   fi
 }
@@ -370,7 +370,7 @@ dispatch_command() {
         if [ -x "$cmdpath" ]; then
           shift
           (
-            export conversation llm_chat_volatile_fileids llm_chat_persistent_fileids this_turn llm_chat_tool_list
+            export conversation llmcc_volatile_fileids llmcc_persistent_fileids this_turn llmcc_tool_list
             "$cmdpath" "$@"
           )
         elif [ -r "$cmdpath" ]; then
@@ -391,7 +391,7 @@ update_file_id() (
 
   jq --slurpfile changed "$changed" -- \
     'if IN(.id; $changed[].id) then empty else . end' \
-    "$llm_chat_volatile_fileids" "$llm_chat_persistent_fileids" >"$unchanged"
+    "$llmcc_volatile_fileids" "$llmcc_persistent_fileids" >"$unchanged"
 
   trap ':' INT
   {
@@ -417,18 +417,18 @@ EOF
 
   cp -- "$tmp" "$conversation"
 
-  jq -nc -- '[inputs | select(has("expires_at"))] | unique_by(.id)[]' "$unchanged" "$new" >"$llm_chat_volatile_fileids"
-  jq -nc -- '[inputs | select(has("expires_at") | not)] | unique_by(.id)[]' "$unchanged" "$new" >"$llm_chat_persistent_fileids"
+  jq -nc -- '[inputs | select(has("expires_at"))] | unique_by(.id)[]' "$unchanged" "$new" >"$llmcc_volatile_fileids"
+  jq -nc -- '[inputs | select(has("expires_at") | not)] | unique_by(.id)[]' "$unchanged" "$new" >"$llmcc_persistent_fileids"
 
   rm -- "$unchanged" "$new" "$idmap"
 )
 
 check_file_id() {
-  [ -f "$llm_chat_volatile_fileids" ] || return 0
+  [ -f "$llmcc_volatile_fileids" ] || return 0
 
   changed=$opt_state_dir/tmp.changed
   jq 'if .expires_at < now + 300 then . else empty end' \
-    <"$llm_chat_volatile_fileids" >"$changed"
+    <"$llmcc_volatile_fileids" >"$changed"
 
   [ ! -s "$changed" ] && return 0
 
@@ -444,7 +444,7 @@ call() (
     exit 1
   fi
 
-  [ -s "$llm_chat_tool_list" ] && set -- "$@" -T "$llm_chat_tool_list"
+  [ -s "$llmcc_tool_list" ] && set -- "$@" -T "$llmcc_tool_list"
 
   cat -- "$conversation" "$this_turn" >"$response_input_fifo" &
   dispatch_render_event "$render_event_fifo" <"$response_event_output_fifo" &
@@ -580,18 +580,18 @@ read_loop() {
 }
 
 generate_tool_list() {
-  llm-expand-toolspec -- "$opt_default_tools" >"$llm_chat_default_tool_name_list"
+  llm-expand-toolspec -- "$opt_default_tools" >"$llmcc_default_tool_name_list"
   if [ -z "$opt_extra_tools_defer_loading" ]; then
-    llm_chat_generate_tool_list
+    llmcc_generate_tool_list
     return
   fi
-  llm_chat_operate_extra_tool -m add -- "$opt_extra_tools"
+  llmcc_operate_extra_tool -m add -- "$opt_extra_tools"
   case ${opt_extra_tools_defer_loading_mode:-inject} in
     builtin)
-      llm_chat_generate_tool_list -l
+      llmcc_generate_tool_list -l
       ;;
     inject)
-      llm_chat_generate_tool_list -l \
+      llmcc_generate_tool_list -l \
         -d "$opt_extra_tools_description" \
         -p "$opt_extra_tools_parameters"
       ;;
@@ -610,7 +610,7 @@ unset_vars_and_run_hook() {
 }
 
 run_hooks() {
-  llm_chat_run_hooks unset_vars_and_run_hook "$1"
+  llmcc_run_hooks unset_vars_and_run_hook "$1"
 }
 
 create_state_dir() {
@@ -630,8 +630,8 @@ create_state_dir() {
 
 state_init() {
   : >"$conversation"
-  : >"$llm_chat_volatile_fileids"
-  : >"$llm_chat_persistent_fileids"
+  : >"$llmcc_volatile_fileids"
+  : >"$llmcc_persistent_fileids"
   : >"$this_turn"
   : >"$response_output"
   : >"$tool_output"
@@ -665,8 +665,8 @@ state_init_from_session() {
   done
   cp -- "$opt_session_conversation" "$conversation"
 
-  if ! jq -nc -- '[inputs | select(has("expires_at"))] | unique_by(.id)[]' "$opt_session_fileids" >"$llm_chat_volatile_fileids" ||
-    ! jq -nc -- '[inputs | select(has("expires_at") | not)] | unique_by(.id)[]' "$opt_session_fileids" >"$llm_chat_persistent_fileids"; then
+  if ! jq -nc -- '[inputs | select(has("expires_at"))] | unique_by(.id)[]' "$opt_session_fileids" >"$llmcc_volatile_fileids" ||
+    ! jq -nc -- '[inputs | select(has("expires_at") | not)] | unique_by(.id)[]' "$opt_session_fileids" >"$llmcc_persistent_fileids"; then
     i18n -n llm-scripts 'failed to extract file ids from $1' "$opt_session_fileids" >&2
     exit 1
   fi
@@ -703,13 +703,13 @@ response_input_fifo=$opt_state_dir/response-input-fifo
 response_event_output_fifo=$opt_state_dir/response-output-fifo
 tmp=$opt_state_dir/tmp
 # Set:
-# llm_chat_volatile_fileids
-# llm_chat_persistent_fileids
-# llm_chat_tool_list
-# llm_chat_default_tool_name_list
-# llm_chat_extra_tool_name_list
-# llm_chat_hooks_dir
-llm_chat_set_public_files_var "$opt_state_dir"
+# llmcc_volatile_fileids
+# llmcc_persistent_fileids
+# llmcc_tool_list
+# llmcc_default_tool_name_list
+# llmcc_extra_tool_name_list
+# llmcc_hooks_dir
+llmcc_set_public_files_var "$opt_state_dir"
 generate_tool_list
 mkfifo -- "$render_event_fifo" || exit
 mkfifo -- "$response_input_fifo" || exit

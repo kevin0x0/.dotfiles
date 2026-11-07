@@ -154,8 +154,8 @@ validate_name() {
 
 # Print matching hooks as relative paths (event/name.type).
 list_hooks() {
-  find "$llm_chat_hooks_dir/" \( -type f -o -type l \) -print0 \
-    | jq --arg prefix "$llm_chat_hooks_dir/" \
+  find "$llmcc_hooks_dir/" \( -type f -o -type l \) -print0 \
+    | jq --arg prefix "$llmcc_hooks_dir/" \
         -Rsr 'split("\u0000")[] | ltrimstr($prefix) | select(length != 0)' \
     | {
         while IFS= read -r line; do
@@ -189,7 +189,7 @@ sub_create() {
 
   validate_statedir || return
   . llm-chat-common
-  llm_chat_set_public_files_var "$opt_state_dir"
+  llmcc_set_public_files_var "$opt_state_dir"
 
   validate_event "$event" || return
   if [ -n "$opt_append" ] && [ -n "$opt_symlink" ]; then
@@ -239,7 +239,7 @@ sub_create() {
     esac
   fi
 
-  d=$llm_chat_hooks_dir/$event
+  d=$llmcc_hooks_dir/$event
   mkdir -p -- "$d" || return 1
 
   if [ -n "$name" ]; then
@@ -296,14 +296,14 @@ sub_remove() {
 
   validate_statedir || return
   . llm-chat-common
-  llm_chat_set_public_files_var "$opt_state_dir"
+  llmcc_set_public_files_var "$opt_state_dir"
 
   event=$1
   name=$2
   validate_event "$event" || return
   validate_name "$name" || return
 
-  f=$llm_chat_hooks_dir/$event/$name
+  f=$llmcc_hooks_dir/$event/$name
   if [ ! -e "$f" ]; then
     printf "hook doesn't exist: %s\n" "$f" >&2
     return 1
@@ -323,11 +323,11 @@ sub_list() {
 
   validate_statedir || return
   . llm-chat-common
-  llm_chat_set_public_files_var "$opt_state_dir"
+  llmcc_set_public_files_var "$opt_state_dir"
 
-  if [ -d "$llm_chat_hooks_dir" ]; then
+  if [ -d "$llmcc_hooks_dir" ]; then
     if [ -n "$opt_json" ]; then
-      list_hooks "$@" | jq -Rsc --arg hooks_dir "$llm_chat_hooks_dir" \
+      list_hooks "$@" | jq -Rsc --arg hooks_dir "$llmcc_hooks_dir" \
         'split("\n") | map(select(. != "") | {rel:., path: ($hooks_dir + "/" + .)}) | {hooks:.}'
     else
       list_hooks "$@"
@@ -570,14 +570,14 @@ sub_path() {
   [ "$#" -eq 2 ] || { printf "hook name not provided\n" >&2; return 2; }
   validate_statedir || return
   . llm-chat-common
-  llm_chat_set_public_files_var "$opt_state_dir"
+  llmcc_set_public_files_var "$opt_state_dir"
 
   event=$1
   name=$2
   validate_event "$event" || return
   validate_name "$name" || return
 
-  f=$llm_chat_hooks_dir/$event/$name
+  f=$llmcc_hooks_dir/$event/$name
   [ -e "$f" ] || { printf "hook doesn't exist: %s\n" "$f" >&2; return 1; }
   if [ -n "$opt_json" ]; then
     jq -cn --arg path "$f" '{path:$path}'

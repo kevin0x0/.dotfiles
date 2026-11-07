@@ -1,16 +1,16 @@
 #!/bin/sh
 
-llm_chat_set_public_files_var() {
-  llm_chat_volatile_fileids=$1/volatile-file-ids
-  llm_chat_persistent_fileids=$1/persistent-file-ids
-  llm_chat_tool_list=$1/tool-list
-  llm_chat_default_tool_name_list=$1/default-tool-name-list
-  llm_chat_extra_tool_name_list=$1/extra-tool-name-list
-  llm_chat_hooks_dir=$1/hooks
-  llm_chat_tool_state_dir=$1/tool-state
+llmcc_set_public_files_var() {
+  llmcc_volatile_fileids=$1/volatile-file-ids
+  llmcc_persistent_fileids=$1/persistent-file-ids
+  llmcc_tool_list=$1/tool-list
+  llmcc_default_tool_name_list=$1/default-tool-name-list
+  llmcc_extra_tool_name_list=$1/extra-tool-name-list
+  llmcc_hooks_dir=$1/hooks
+  llmcc_tool_state_dir=$1/tool-state
 }
 
-llm_chat_helper_set_tmp() {
+llmcc_helper_set_tmp() {
   if [ "$1" = -d ]; then
     tmp=$(tmpfile -d) || exit 1
   else
@@ -33,7 +33,7 @@ llm_chat_helper_set_tmp() {
   done
 }
 
-llm_chat_operate_extra_tool() (
+llmcc_operate_extra_tool() (
   OPTIND=1
   opt_print=
   opt_mode=
@@ -52,13 +52,13 @@ llm_chat_operate_extra_tool() (
   # extralist ∩ defaultlist = Ø
   # both lists are sorted
 
-  extralist=$llm_chat_extra_tool_name_list
-  defaultlist=$llm_chat_default_tool_name_list
+  extralist=$llmcc_extra_tool_name_list
+  defaultlist=$llmcc_default_tool_name_list
   for list in "$extralist" "$defaultlist"; do
     [ -f "$list" ] || : >"$list" || exit 1
   done
 
-  llm_chat_helper_set_tmp -d
+  llmcc_helper_set_tmp -d
   case $opt_mode in
     add)
       llm-expand-toolspec -- "$@" \
@@ -88,7 +88,7 @@ llm_chat_operate_extra_tool() (
   esac
 )
 
-llm_chat_generate_tool_list() (
+llmcc_generate_tool_list() (
   OPTIND=1
   opt_parameters=
   opt_description=
@@ -110,42 +110,42 @@ llm_chat_generate_tool_list() (
 
   trap '' INT
   {
-    if [ -f "$llm_chat_default_tool_name_list" ]; then
-      tr '\n' '\000' <"$llm_chat_default_tool_name_list" \
+    if [ -f "$llmcc_default_tool_name_list" ]; then
+      tr '\n' '\000' <"$llmcc_default_tool_name_list" \
         | xargs -r0 -- llm-tool-list --
     fi
-    if [ -f "$llm_chat_extra_tool_name_list" ]; then
-      tr '\n' '\000' <"$llm_chat_extra_tool_name_list" \
+    if [ -f "$llmcc_extra_tool_name_list" ]; then
+      tr '\n' '\000' <"$llmcc_extra_tool_name_list" \
         | xargs -r0 -- llm-tool-list "$@" --
     fi
-  } | jq -cs -- 'select(length != 0)' >"$llm_chat_tool_list"
+  } | jq -cs -- 'select(length != 0)' >"$llmcc_tool_list"
 )
 
-llm_chat_get_tool_state_dir() {
-  command eval " $1"='$llm_chat_tool_state_dir/$2'
+llmcc_get_tool_state_dir() {
+  command eval " $1"='$llmcc_tool_state_dir/$2'
   command eval "[ -e \"\$$1\" ] || mkdir -p -- \"\$$1\""
 }
 
-llm_chat_hook_default_runner() {
+llmcc_hook_default_runner() {
   trap - INT
   . -- "$1"
 }
 
-llm_chat_run_hooks() {
-  llm_chat_hook_runner=${1:-llm_chat_hook_default_runner}
+llmcc_run_hooks() {
+  llmcc_hook_runner=${1:-llmcc_hook_default_runner}
   shift
-  for llm_chat_hookable_event; do
-    for llm_chat_hook_script in "$llm_chat_hooks_dir/$llm_chat_hookable_event"/*; do
-      [ -f "$llm_chat_hook_script" ] || continue
-      ("$llm_chat_hook_runner" "$llm_chat_hook_script")
-      case $llm_chat_hook_script in
-        *.oneshot) rm -f -- "$llm_chat_hook_script" ;;
+  for llmcc_hookable_event; do
+    for llmcc_hook_script in "$llmcc_hooks_dir/$llmcc_hookable_event"/*; do
+      [ -f "$llmcc_hook_script" ] || continue
+      ("$llmcc_hook_runner" "$llmcc_hook_script")
+      case $llmcc_hook_script in
+        *.oneshot) rm -f -- "$llmcc_hook_script" ;;
       esac
     done
   done
 }
 
-llm_chat_get_fileid() (
+llmcc_get_fileid() (
   if [ -z "$1" ]; then
     printf "base url for Files API not provided\n" >&2
     exit 1
@@ -177,7 +177,7 @@ llm_chat_get_fileid() (
   fi
 
   trap '' INT
-  llm_chat_helper_set_tmp
+  llmcc_helper_set_tmp
 
   if ! llm-file-manager -u "$1" -FNk 0 -K "$3" -p "$4" -Ulm -- "$5" >"$tmp" <<EOF
 $2
@@ -188,9 +188,9 @@ EOF
 
   add_to_file=
   if jq -e -- '.expires_at' "$tmp" >/dev/null 2>&1; then
-    add_to_file=$llm_chat_volatile_fileids
+    add_to_file=$llmcc_volatile_fileids
   else
-    add_to_file=$llm_chat_persistent_fileids
+    add_to_file=$llmcc_persistent_fileids
   fi
 
   trap '' INT
