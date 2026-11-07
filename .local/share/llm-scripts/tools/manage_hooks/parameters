@@ -3,16 +3,33 @@
   "properties": {
     "operation": {
       "type": "string",
-      "enum": ["create", "remove", "list", "list-events", "path"],
+      "enum": ["create", "remove", "list", "list-events", "list-docs", "doc", "path"],
       "description": "The operation to perform."
     },
     "event": {
       "type": "string",
-      "description": "Hookable event the hook is attached to. Required for create, remove and path (must be installed); optional for list and list-events, where a glob filters the listed items."
+      "description": "Hookable event the hook is attached to. Required for create, remove, path and list-docs (must be installed; for list-docs it can also be a namespace); optional for list, where a glob filters the listed hooks, and for list-events, where an ERE filters the listed events."
+    },
+    "pattern": {
+      "type": "string",
+      "description": "Only for list-docs: an ERE filtering the document paths."
     },
     "name": {
       "type": "string",
       "description": "Hook name with its type suffix, e.g. \"notify.oneshot\" (runs once then is removed) or \"notify.always\" (runs every time). Required for remove and path. Optional for create (an auto-generated name is used); required when append is true."
+    },
+    "docpaths": {
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "Document path in the form \"<entry name>/<doc path relative to the entry>\". Optional for doc."
+        },
+        {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Document path list. Optional for doc."
+        }
+      ]
     },
     "with_summary": {
       "type": "boolean",

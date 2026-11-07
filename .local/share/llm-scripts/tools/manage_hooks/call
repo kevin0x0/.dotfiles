@@ -22,14 +22,15 @@ argfile=$tmpdir/arg
 outfile=$tmpdir/stdout
 errfile=$tmpdir/stderr
 approval_out=$tmpdir/approval-out
+docpaths=$tmpdir/docpaths
 
 cat >"$argfile"
 
 op=$(jq -j '.operation // ""' <"$argfile")
 case $op in
-  create|remove|list|list-events|path) ;;
+  create|remove|list|list-events|list-docs|doc|path) ;;
   *)
-    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, list, list-events or path"}'
+    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, list, list-events, list-docs, doc or path"}'
     exit 0
     ;;
 esac
@@ -71,10 +72,12 @@ if [ "$op" = create ] || [ "$op" = remove ]; then
 fi
 
 event=$(jq -j '.event // ""' <"$argfile")
+pattern=$(jq -j '.pattern // ""' <"$argfile")
 with_summary=$(jq -j '(.with_summary and true) or false' <"$argfile")
 mode=$(jq -j '.mode // "command"' <"$argfile")
 source=$(jq -j '.source // ""' <"$argfile")
 name=$(jq -j '.name // ""' <"$argfile")
+jq -r '.docpaths // empty | if type != "array" then [.] end | .[]' <"$argfile" >"$docpaths"
 
 set -- -jd "$2" "$op"
 
@@ -86,13 +89,12 @@ case $op in
     fi
     case $mode in
       command)
-        [ -n "$source" ] && set -- "$@" -c -- "$source"
+        set -- "$@" -c
         ;;
       copy)
-        set -- "$@" -- "$source"
         ;;
       symlink)
-        set -- "$@" -L -- "$source"
+        set -- "$@" -L
         ;;
       *)
         jq -cn --arg mode "$mode" '{error:"invalid mode: " + $mode}' \
@@ -100,18 +102,28 @@ case $op in
         exit 0
         ;;
     esac
+    set -- "$@" -- "$source"
     [ -n "$name" ] && set -- "$@" "$name"
     ;;
   remove|path)
-    [ -n "$event" ] && set -- "$@" "$event"
-    set -- "$@" "$name"
+    set -- "$@" -- "$event" "$name"
     ;;
   list)
-    [ -n "$event" ] && set -- "$@" "$event"
+    [ -n "$event" ] && set -- "$@" -- "$event"
     ;;
   list-events)
     [ "$with_summary" = true ] && set -- "$@" -s
-    [ -n "$event" ] && set -- "$@" "$event"
+    [ -n "$event" ] && set -- "$@" -- "$event"
+    ;;
+  list-docs)
+    set -- "$@" -- "$event"
+    [ -n "$pattern" ] && set -- "$@" "$pattern"
+    ;;
+  doc)
+    set -- "$@" --
+    while IFS= read -r docpath; do
+      set -- "$@" "$docpath"
+    done <"$docpaths"
     ;;
 esac
 

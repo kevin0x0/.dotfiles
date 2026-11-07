@@ -27,6 +27,16 @@ The session currently emits "builtin.state.<state>.enter" and
 agent-loop-tool-call, agent-loop-end, agent-loop-api-call-interrupted,
 agent-loop-tool-call-interrupted, end.
 
+# Documents
+
+A document path has the form "<entry name>/<doc path relative to the
+entry>", e.g. "builtin.state./STATES.md". "list-docs" collects the
+documents of the given entry (an event or a namespace) and of all its
+ancestors, recursively including those under uppercase directories such
+as "DOCS/"; the optional "pattern" is an ERE filtering the paths.
+"doc" reads the documents at the given paths; paths that do not exist
+are silently omitted.
+
 # Hooks
 
 - A hook name has the form "<name>.<type>" with exactly one dot: the

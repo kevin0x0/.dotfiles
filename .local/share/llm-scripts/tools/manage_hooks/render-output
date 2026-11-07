@@ -14,8 +14,11 @@ try (
   (.appended // null) as $appended |
   (.removed // null)  as $removed |
   (.path // "")       as $path |
+  (.entry // "")      as $entry |
   (.hooks // null)    as $hooks |
   (.events // null)   as $events |
+  (.doclist // null)  as $doclist |
+  (.docs // null)     as $docs |
   (.error // null)    as $error |
   (.rejected // null) as $rejected |
   (if $created != null then
@@ -34,6 +37,13 @@ try (
      ($events
         | map(if .summary != "" then .name + "\n" + .summary else .name end)
         | join("\n") | print_strings, " | ", render("events"))
+   else empty end),
+  (if $doclist != null then
+     (.doclist | join("\n") | print_strings, " | ",
+      render_withflags("docs"; "-A listed -S " + ($entry | @sh)))
+   else empty end),
+  (if $docs != null then
+     ($docs | map(.path) | join("\n") | print_strings, " | ", render("docs"))
    else empty end),
   (if $created == null and $appended == null and $removed == null and $path != "" then
      ("" | print_strings, " | ", render_withflags("path"; "-S " + ($path | @sh)))

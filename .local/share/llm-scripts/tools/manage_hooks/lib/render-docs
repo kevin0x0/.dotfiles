@@ -1,0 +1,22 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+opt_action=
+opt_subject=
+parse_my_option_A() {
+  opt_action=$OPTARG
+}
+parse_my_option_S() {
+  opt_subject=$OPTARG
+}
+llmtr_parse_options "A:S:" "$@"
+
+case $opt_action in
+  listed) llmtr_render_header '36;1' "listed documents${opt_subject:+: $opt_subject}" ;;
+  *)      llmtr_render_header '36;1' "read documents:" ;;
+esac
+
+llmtr_complete_newline \
+  | llmtr_run_filter_on_color llmtr_filter_color_line '36' \
+  | llmtr_render_lines
