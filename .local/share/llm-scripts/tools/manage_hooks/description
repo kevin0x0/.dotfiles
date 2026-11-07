@@ -12,8 +12,8 @@ event to be installed. The events directory is a namespace tree:
 entries ending with "." are namespaces, other entries are events, and
 entries whose relative path contains an uppercase letter are documents.
 An event or namespace directory may hold a "SUMMARY" file with a short
-description. The session currently emits "state.<state>.enter" and
-"state.<state>.leave" for <state> in read-loop, agent-loop-api-call,
+description. The session currently emits "builtin.state.<state>.enter" and
+"builtin.state.<state>.leave" for <state> in read-loop, agent-loop-api-call,
 agent-loop-tool-call, agent-loop-end, agent-loop-api-call-interrupted,
 agent-loop-tool-call-interrupted, end.
 

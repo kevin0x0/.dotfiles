@@ -22,8 +22,8 @@ uppercase letter (e.g. "DOCS/"). An event or namespace directory may
 hold a "SUMMARY" file whose content is its summary; "list-events" with
 "with_summary" includes it (empty when missing).
 
-The session currently emits "state.<state>.enter" and
-"state.<state>.leave" for <state> in read-loop, agent-loop-api-call,
+The session currently emits "builtin.state.<state>.enter" and
+"builtin.state.<state>.leave" for <state> in read-loop, agent-loop-api-call,
 agent-loop-tool-call, agent-loop-end, agent-loop-api-call-interrupted,
 agent-loop-tool-call-interrupted, end.
 

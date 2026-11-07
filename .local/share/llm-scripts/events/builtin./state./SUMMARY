@@ -1,0 +1,1 @@
+The state machine of the chat session: "<state>.enter" fires when the session enters a state, "<state>.leave" when it leaves it.
