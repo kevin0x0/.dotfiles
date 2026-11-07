@@ -7,12 +7,17 @@ explains the interface details.
 # Tool sets
 
 - The default tool set is loaded with full signatures when the session
-  starts.
+  starts. It is configured by the user at session start and is usually
+  small.
 - The extra tool set is loaded with stub signatures; call "describe" to
   retrieve the full signature of one of its tools before calling it.
-- The enabled tool set is the union of the two, and is what the model
-  can see in the session. "list" with "ignore_extra_set" can also list
-  tools outside the enabled tool set. The hidden "enable" and "disable"
+- The enabled tool set is the union of the two, and is exactly the set
+  of tools visible to you in the session: every tool you can see in
+  your tool list is in either the default or the extra tool set, and a
+  tool that is not in your tool list is in neither of them and can not
+  be called, no matter what "list" reports. "list" with
+  "ignore_extra_set" can list the whole catalog, including tools that
+  are not available in this session. The hidden "enable" and "disable"
   operations adjust the extra tool set; see "enable-disable.md".
 
 # Patterns

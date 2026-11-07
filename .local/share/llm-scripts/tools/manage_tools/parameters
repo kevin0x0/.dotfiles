@@ -31,7 +31,7 @@
     },
     "ignore_extra_set": {
       "type": "boolean",
-      "description": "Only for list: when true, list all tools instead of only those of the extra tool set."
+      "description": "Only for list: when true, list the whole catalog, including tools that are not in the session."
     },
     "with_summary": {
       "type": "boolean",
