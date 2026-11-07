@@ -89,7 +89,7 @@ sub_operate_tool_list() {
   validate_globpattern "$@" || return
 
   . llm-chat-common
-  llm_chat_set_public_files_var "$opt_state_dir"
+  llmcc_set_public_files_var "$opt_state_dir"
 
   set -o pipefail
   {
@@ -97,7 +97,7 @@ sub_operate_tool_list() {
       create builtin.state.agent-loop-tool-call.leave \
       -c generate_tool_list >/dev/null || exit 1
 
-    if ! llm_chat_operate_extra_tool -pm "$action" -- "$@"; then
+    if ! llmcc_operate_extra_tool -pm "$action" -- "$@"; then
       printf "failed to %s extra tool\n" "$action" >&2
       exit 1
     fi
@@ -132,8 +132,8 @@ sub_describe() {
   if [ -z "$opt_describe_all_match" ]; then
     validate_statedir || return 2
     . llm-chat-common
-    llm_chat_set_public_files_var "$opt_state_dir"
-    llm_chat_get_tool_state_dir my_state_dir manage_tools || return
+    llmcc_set_public_files_var "$opt_state_dir"
+    llmcc_get_tool_state_dir my_state_dir manage_tools || return
     described=$my_state_dir/described
   fi
 
@@ -144,8 +144,8 @@ sub_describe() {
       comm -23 -- - "$1"
     }
     in_extra() {
-      [ -f "$llm_chat_extra_tool_name_list" ] || { cat >/dev/null; return; }
-      comm -12 -- - "$llm_chat_extra_tool_name_list"
+      [ -f "$llmcc_extra_tool_name_list" ] || { cat >/dev/null; return; }
+      comm -12 -- - "$llmcc_extra_tool_name_list"
     }
     [ ! -f "$described" ] && : >"$described"
     in_extra \
@@ -205,19 +205,19 @@ sub_list() {
     [ "$#" -eq 0 ] || { printf "too many arguments\n" >&2; return 2; }
     validate_statedir || return
     . llm-chat-common
-    llm_chat_set_public_files_var "$opt_state_dir"
+    llmcc_set_public_files_var "$opt_state_dir"
   else
     validate_globpattern "$@" || return
     if [ -z "$opt_ignore_extralist" ]; then
       validate_statedir || return
       . llm-chat-common
-      llm_chat_set_public_files_var "$opt_state_dir"
+      llmcc_set_public_files_var "$opt_state_dir"
     fi
   fi
 
   if [ -n "$opt_list_enabled" ]; then
     set --
-    for f in  "$llm_chat_extra_tool_name_list" "$llm_chat_default_tool_name_list"; do
+    for f in  "$llmcc_extra_tool_name_list" "$llmcc_default_tool_name_list"; do
       [ -f "$f" ] || continue
       set -- "$@" "$f"
     done
@@ -227,10 +227,10 @@ sub_list() {
     llm-expand-toolspec -t -- "$@" | {
       if [ -n "$opt_ignore_extralist" ]; then
         cat
-      elif [ ! -f "$llm_chat_extra_tool_name_list" ]; then
+      elif [ ! -f "$llmcc_extra_tool_name_list" ]; then
         cat >/dev/null
       else
-        jq -Rr --rawfile extralist "$llm_chat_extra_tool_name_list" -- '
+        jq -Rr --rawfile extralist "$llmcc_extra_tool_name_list" -- '
         (reduce ($extralist | split("\n")[] | select(. != ""))
           as $name ({}; .[$name] = true)) as $extra |
           select(endswith("/") or $extra[.[(rindex("/") // -1) + 1:]])
