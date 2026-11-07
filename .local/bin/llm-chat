@@ -498,10 +498,9 @@ render_prompter() {
 # will exit with status 1 and not actually read anything on next read from
 # the same file descriptor if the descriptor not redirected.
 read_wrapper() {
-  if [ -s "$cmdline_input" ]; then
-    IFS= read -r "$1" <"$cmdline_input"
-    tail -n +2 -- "$cmdline_input" >"$tmp"
-    cp -- "$tmp" "$cmdline_input"
+  if [ "${#pending_input}" -ne 0 ]; then
+    command eval " $1=\${pending_input%%\$'\\n'*}"
+    pending_input=${pending_input#*$'\n'}
     return 0
   fi
   render_prompter cmdline_prompt # used in $opt_repl_reader
@@ -689,7 +688,6 @@ response_output=$opt_state_dir/response-output
 tool_output=$opt_state_dir/tool-output
 input_content=$opt_state_dir/input-content
 text_input=$opt_state_dir/text-input
-cmdline_input=$opt_state_dir/cmdline-input
 render_event_fifo=$opt_state_dir/render-event-fifo
 response_input_fifo=$opt_state_dir/response-input-fifo
 response_event_output_fifo=$opt_state_dir/response-output-fifo
@@ -703,7 +701,6 @@ tmp=$opt_state_dir/tmp
 # llm_chat_hooks_dir
 llm_chat_set_public_files_var "$opt_state_dir"
 generate_tool_list
-[ "$#" -ne 0 ] && printf "%s\n" "$@" >"$cmdline_input"
 mkfifo -- "$render_event_fifo" || exit
 mkfifo -- "$response_input_fifo" || exit
 mkfifo -- "$response_event_output_fifo" || exit
@@ -716,6 +713,11 @@ if [ -n "$opt_session_conversation" ] && [ -f "$opt_session_conversation" ]; the
 else
   state_init
 fi
+
+pending_input=
+for cmdline_input; do
+  pending_input=$pending_input$cmdline_input$'\n'
+done
 
 set -- \
   -u "$opt_responses_base_url" \
