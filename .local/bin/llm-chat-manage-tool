@@ -85,22 +85,7 @@ sub_operate_tool_list() {
   validate_statedir || return
   action=$1
   shift
-  OPTIND=1
-  opt_parameters=
-  opt_description=
-  opt_parameters_given=
-  opt_description_given=
-  opt_defer_loading=
-  while getopts "d:p:l" opt; do
-    case $opt in
-      d) opt_description=$OPTARG; opt_description_given=1 ;;
-      p) opt_parameters=$OPTARG; opt_parameters_given=1 ;;
-      l) opt_defer_loading=1 ;;
-      \?) exit 2 ;;
-    esac
-  done
-  shift "$((OPTIND - 1))"
-
+  [ "$1" = "--" ] && shift
   validate_globpattern "$@" || return
 
   . llm-chat-common
@@ -108,16 +93,14 @@ sub_operate_tool_list() {
 
   set -o pipefail
   {
+    llm-chat-manage-hook -d "$opt_state_dir" \
+      create builtin.state.agent-loop-tool-call.leave \
+      -c generate_tool_list >/dev/null || exit 1
+
     if ! llm_chat_operate_extra_tool -pm "$action" -- "$@"; then
       printf "failed to %s extra tool\n" "$action" >&2
       exit 1
     fi
-
-    set --
-    [ -n "$opt_description_given" ] && set -- "$@" -d "$opt_description"
-    [ -n "$opt_parameters_given" ] && set -- "$@" -p "$opt_parameters"
-    [ -n "$opt_defer_loading" ] && set -- "$@" -l
-    llm_chat_generate_tool_list "$@"
   } | {
     case $action in
       add)    key=added_tools ;;
