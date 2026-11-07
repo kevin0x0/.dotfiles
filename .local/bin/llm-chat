@@ -417,8 +417,8 @@ EOF
 
   cp -- "$tmp" "$conversation"
 
-  jq -c -- '[select(has("expires_at"))] | unique_by(.id)[]' "$unchanged" "$new" >"$llm_chat_volatile_fileids"
-  jq -c -- '[select(has("expires_at") | not)] | unique_by(.id)[]' "$unchanged" "$new" >"$llm_chat_persistent_fileids"
+  jq -nc -- '[inputs | select(has("expires_at"))] | unique_by(.id)[]' "$unchanged" "$new" >"$llm_chat_volatile_fileids"
+  jq -nc -- '[inputs | select(has("expires_at") | not)] | unique_by(.id)[]' "$unchanged" "$new" >"$llm_chat_persistent_fileids"
 
   rm -- "$unchanged" "$new" "$idmap"
 )
@@ -655,8 +655,8 @@ state_init_from_session() {
   done
   cp -- "$opt_session_conversation" "$conversation"
 
-  if ! jq -c -- '[select(has("expires_at"))] | unique_by(.id)[]' "$opt_session_fileids" >"$llm_chat_volatile_fileids" ||
-    ! jq -c -- '[select(has("expires_at") | not)] | unique_by(.id)[]' "$opt_session_fileids" >"$llm_chat_persistent_fileids"; then
+  if ! jq -nc -- '[inputs | select(has("expires_at"))] | unique_by(.id)[]' "$opt_session_fileids" >"$llm_chat_volatile_fileids" ||
+    ! jq -nc -- '[inputs | select(has("expires_at") | not)] | unique_by(.id)[]' "$opt_session_fileids" >"$llm_chat_persistent_fileids"; then
     i18n -n llm-scripts 'failed to extract file ids from $1' "$opt_session_fileids" >&2
     exit 1
   fi
