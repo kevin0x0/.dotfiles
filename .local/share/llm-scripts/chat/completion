@@ -1,10 +1,10 @@
 @nop
 @break
 @add
-@cancel
 @go
+@drop-content
+@drop-this-turn
 @retry
-@drop
 @role
 @text
 @file

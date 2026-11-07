@@ -309,11 +309,14 @@ dispatch_command() {
     add)
       input_end_action=add
       ;;
-    cancel)
-      input_end_action=cancel
-      ;;
     go)
       input_end_action=go
+      ;;
+    drop-content)
+      input_end_action=drop-content
+      ;;
+    drop-this-turn)
+      input_end_action=drop-this-turn
       ;;
     retry)
       shift
@@ -331,9 +334,6 @@ dispatch_command() {
       esac
       last_error_state=
       input_end_action=retry
-      ;;
-    drop)
-      : >"$this_turn"
       ;;
     role)
       case $2 in
@@ -509,41 +509,76 @@ read_wrapper() {
 }
 
 read_loop() {
-  input_end_action=
-  input_message_role=${opt_default_role:-user}
-  : >"$text_input"
-  need_break_word=
-  while read_wrapper line; do
-    case $line in
-      '')
-        need_break_word=
-        printf "\n" >>"$text_input"
-        ;;
-      [!@]*|@@*)
-        line=${line#@}
-        if [ -n "$need_break_word" ]; then
+  while :; do
+    input_end_action=
+    input_message_role=${opt_default_role:-user}
+    : >"$text_input"
+    need_break_word=
+    while read_wrapper line; do
+      case $line in
+        '')
+          need_break_word=
+          printf "\n" >>"$text_input"
+          ;;
+        [!@]*|@@*)
+          line=${line#@}
+          if [ -n "$need_break_word" ]; then
+            case $line in
+              [[:alnum:]]*) line=" $line" ;;
+            esac
+          fi
           case $line in
-            [[:alnum:]]*) line=" $line" ;;
+            *[[:alnum:]]) need_break_word=1 ;;
+            *)            need_break_word= ;;
           esac
-        fi
-        case $line in
-          *[[:alnum:]]) need_break_word=1 ;;
-          *)            need_break_word= ;;
-        esac
-        printf "%s" "$line" >>"$text_input"
-        ;;
-      *)
-        [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >&3
-        : >"$text_input"
+          printf "%s" "$line" >>"$text_input"
+          ;;
+        *)
+          [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >&3
+          : >"$text_input"
 
-        dispatch_command "$line"
-        [ -n "$input_end_action" ] && break
+          dispatch_command "$line"
+          [ -n "$input_end_action" ] && break
+          ;;
+      esac
+    done 3>"$input_content"
+    [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >"$input_content"
+
+    if [ -z "$input_end_action" ]; then
+      if [ -s "$input_content" ] || [ -s "$this_turn" ]; then
+        input_end_action=go
+      else
+        input_end_action=break
+      fi
+    fi
+
+    case $input_end_action in
+      drop-content)
+        : >"$input_content"
+        ;;
+      drop-this-turn)
+        : >"$this_turn"
+        ;;
+      break)
+        next_state=end
+        break
+        ;;
+      retry)
+        break
+        ;;
+      go|add)
+        if [ "$input_end_action" = go ] && [ -s "$input_content" ] || [ "$input_end_action" = add ]; then
+          llm-make-message -r "$input_message_role" -p <"$input_content" \
+            | tee -a "$this_turn" | llm-render-events | dispatch_render_event "$render_event_fifo"
+        fi
+        if [ "$input_end_action" = go ]; then
+          next_state=agent-loop-api-call
+          break
+        fi
         ;;
     esac
   done
-
-  [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >&3
-} 3>"$input_content"
+}
 
 generate_tool_list() {
   llm-expand-toolspec -- "$opt_default_tools" >"$llm_chat_default_tool_name_list"
@@ -704,28 +739,6 @@ while :; do
   case $state in
     read-loop)
       read_loop
-      if [ -z "$input_end_action" ]; then
-        if [ -s "$input_content" ] || [ -s "$this_turn" ]; then
-          input_end_action=go
-        else
-          input_end_action=break
-        fi
-      fi
-
-      case $input_end_action in
-        retry|cancel)
-          ;;
-        break)
-          next_state=end
-          ;;
-        *)
-          if [ "$input_end_action" = go ] && [ -s "$input_content" ] || [ "$input_end_action" = add ]; then
-            llm-make-message -r "$input_message_role" -p <"$input_content" \
-              | tee -a "$this_turn" | llm-render-events | dispatch_render_event "$render_event_fifo"
-          fi
-          [ "$input_end_action" = go ] && next_state=agent-loop-api-call
-          ;;
-      esac
       ;;
     agent-loop-api-call)
       call "$@"
