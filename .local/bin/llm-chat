@@ -34,13 +34,10 @@ opt_session_writeback=
 
 opt_state_dir=
 
-opt_enable_hook=
-
 llmcuopt_fromfile=
 llmcuopt_fromfd=
 
 opt_print_options=
-opt_print_states=
 
 renderer_opt_tool_output_lines=15
 
@@ -127,13 +124,6 @@ done
 
 if [ -n "$opt_print_options" ]; then
   printf "%s\n" "$llm_chat_options"
-  exit 0
-fi
-
-if [ -n "$opt_print_states" ]; then
-  # Single source of truth for the states hooks can target
-  hook_states='any-state agent-loop-api-call agent-loop-tool-call read-loop agent-loop-end end agent-loop-api-call-interrupted agent-loop-tool-call-interrupted'
-  printf "%s\n" "$hook_states"
   exit 0
 fi
 
@@ -555,26 +545,6 @@ read_loop() {
   [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >&3
 } 3>"$input_content"
 
-run_hooks() {
-  [ -z "$opt_enable_hook" ] && return 0
-  for hooked_state in any-state "$state"; do
-    [ -d "$llm_chat_hooks_dir/$hooked_state" ] || continue
-    for hook_type in oneshot always; do
-      if [ -e "$llm_chat_hooks_dir/$hooked_state/$hook_type/$1" ]; then
-        for hook_script in "$llm_chat_hooks_dir/$hooked_state/$hook_type/$1"/*; do
-          [ -f "$hook_script" ] || continue
-          (trap - INT; . -- "$hook_script")
-        done
-        if [ "$hook_type" = oneshot ]; then
-          rm -rf -- "$llm_chat_hooks_dir/$hooked_state/$hook_type/$1"
-        fi
-      fi
-    done
-    # Clean empty directories
-    find "$llm_chat_hooks_dir/$hooked_state" -depth -type d -exec rmdir {} \; 2>/dev/null
-  done
-}
-
 generate_tool_list() {
   llm-expand-toolspec -- "$opt_default_tools" >"$llm_chat_default_tool_name_list"
   if [ -z "$opt_extra_tools_defer_loading" ]; then
@@ -712,7 +682,6 @@ else
   state_init
 fi
 
-
 set -- \
   -u "$opt_responses_base_url" \
   -i "$response_input_fifo" \
@@ -731,7 +700,7 @@ last_error_state=
 state=read-loop
 next_state=read-loop
 while :; do
-  run_hooks before
+  llm_chat_run_hooks "builtin.state.$state.enter"
   case $state in
     read-loop)
       read_loop
@@ -852,6 +821,8 @@ while :; do
       next_state=read-loop
       ;;
   esac
-  run_hooks after
+  llm_chat_run_hooks "builtin.state.$state.leave"
   state=$next_state
 done
+
+llm_chat_run_hooks "builtin.state.end.leave"

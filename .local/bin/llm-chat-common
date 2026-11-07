@@ -126,15 +126,16 @@ llm_chat_get_tool_state_dir() {
   command eval "[ -e \"\$$1\" ] || mkdir -p -- \"\$$1\""
 }
 
-# $2 state, $3 type, $4 when, $5 name (optional)
-llm_chat_get_hook_relpath() {
-  command eval " $1"='$2/$3/$4${5:+/$5}'
-}
-
-# $2 state, $3 type, $4 when, $5 name (optional)
-llm_chat_get_hook() {
-  llm_chat_get_hook_relpath "$@"
-  command eval " $1"='$llm_chat_hooks_dir/$'"$1"
+llm_chat_run_hooks() {
+  for llm_chat_hookable_event; do
+    for llm_chat_hook_script in "$llm_chat_hooks_dir/$llm_chat_hookable_event"/*; do
+      [ -f "$llm_chat_hook_script" ] || continue
+      (trap - INT; . -- "$llm_chat_hook_script")
+      case $llm_chat_hook_script in
+        *.oneshot) rm -f -- "$llm_chat_hook_script" ;;
+      esac
+    done
+  done
 }
 
 llm_chat_get_fileid() (
