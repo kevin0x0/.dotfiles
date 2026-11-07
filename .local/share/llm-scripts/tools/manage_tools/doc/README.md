@@ -12,7 +12,8 @@ explains the interface details.
   retrieve the full signature of one of its tools before calling it.
 - The enabled tool set is the union of the two, and is what the model
   can see in the session. "list" with "ignore_extra_set" can also list
-  tools outside the enabled tool set.
+  tools outside the enabled tool set. The hidden "enable" and "disable"
+  operations adjust the extra tool set; see "enable-disable.md".
 
 # Patterns
 
