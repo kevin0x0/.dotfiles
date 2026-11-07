@@ -79,7 +79,7 @@ llm_chat_operate_extra_tool() (
 
   case $opt_mode in
     add)
-      cat -- "$tmp/delta" >>"$extralist"
+      sort -mo "$extralist" -- "$tmp/delta" "$extralist"
       ;;
     remove)
       comm -13 --  "$tmp/delta" "$extralist" >"$tmp/result"
