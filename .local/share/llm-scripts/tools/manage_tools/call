@@ -105,9 +105,8 @@ case $op in
     [ "$with_summary" = true ] && set -- "$@" -s
     if [ "$ignore_extra_set" = true ]; then
       set -- "$@" -E
-    else
-      [ -n "$pattern" ] && set -- "$@" -- "$pattern"
     fi
+    [ -n "$pattern" ] && set -- "$@" -- "$pattern"
     ;;
   doc)
     set -- "$@" -- "$name"
