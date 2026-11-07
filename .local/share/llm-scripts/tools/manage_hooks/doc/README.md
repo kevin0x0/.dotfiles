@@ -3,29 +3,37 @@
 Supplementary reference for managing session hooks. The tool description
 covers the operations; this document explains the interface details.
 
-# States
+# Events
 
-The session is a state machine. Hooks run when a state is entered
-("before") or left ("after").
+A hookable event is a lowercase dot-separated name (e.g.
+"state.read-loop.enter"). Events are installed in the llm-scripts
+events directory (in the config and data dirs, config takes priority);
+"create" requires the event to be installed, while "list", "remove" and
+"path" only validate the name syntactically.
 
-- read-loop: waiting for user input; entered on session start and after
-  every agent turn.
-- agent-loop-api-call: an API call to the model is being made.
-- agent-loop-tool-call: a tool call returned by the model is being
-  executed.
-- agent-loop-end: the agent turn is finished and is committed; read-loop
-  is entered next.
-- agent-loop-api-call-interrupted: the user interrupted during an API
-  call.
-- agent-loop-tool-call-interrupted: the user interrupted during a tool
-  call.
-- end: the session is ending. Its "before" hooks run; its "after" hooks
-  do not.
-- any-state: a wildcard. Its hooks run on every transition, in addition
-  to the hooks of the specific state.
+The events directory is a namespace tree: entries ending with "." are
+namespaces, other entries are events, and consecutive segments of an
+event name can be folded into one entry ("state.read-loop.enter" can be
+installed as "state./read-loop.enter", as "state.read-loop.enter", or
+as any other folding). Entries whose relative path contains an uppercase
+letter are documents, never events or namespaces; a document with an
+arbitrary name can be placed under a directory whose name contains an
+uppercase letter (e.g. "DOCS/"). An event or namespace directory may
+hold a "SUMMARY" file whose content is its summary; "list-events" with
+"with_summary" includes it (empty when missing).
 
-# Hook execution
+The session currently emits "state.<state>.enter" and
+"state.<state>.leave" for <state> in read-loop, agent-loop-api-call,
+agent-loop-tool-call, agent-loop-end, agent-loop-api-call-interrupted,
+agent-loop-tool-call-interrupted, end.
 
+# Hooks
+
+- A hook name has the form "<name>.<type>" with exactly one dot: the
+  type suffix selects the run policy. "oneshot" runs once and is then
+  removed; other types run every time.
+- "remove" and "path" identify the hook by its full name, including the
+  type suffix: removing "notify.always" as "notify.oneshot" fails.
 - A hook is a POSIX sh script run by the session. It runs synchronously:
   the session waits for it to finish, so keep hooks short.
 - The hook inherits the session's environment and working directory; it
@@ -40,15 +48,10 @@ The session is a state machine. Hooks run when a state is entered
 - "append" requires "name" and can not be used with mode "symlink".
 - In "copy" and "symlink" modes, the source pathname is resolved
   relative to the working directory of the session.
-- Hook names can not contain "/" or newlines, and can not be "." or
-  "..".
-- "remove" and "path" locate the hook by "state", "type" and "when" as
-  well as "name"; "type" defaults to "oneshot" and "when" to "after", so
-  pass them explicitly for hooks created with other values.
-
-# Interface notes
-
-- "path" returns the absolute pathname of the hook file; pass it to the
-  shell tool to inspect or edit the hook directly.
-- "list-enabled" without filters lists all hooks; "state", "type" and
-  "when" filter the list.
+- A hook name can not contain "/", more than one dot, or empty parts; a
+  "name" omitted from "create" is auto-generated
+  ("unnamed-<pid>.oneshot").
+- "create" rejects events that are not registered; an event name can not
+  contain empty segments ("state..enter" is invalid).
+- "list" without arguments lists all installed hooks; glob arguments
+  filter by the "event/name.type" path.

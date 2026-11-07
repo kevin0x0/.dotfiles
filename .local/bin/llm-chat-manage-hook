@@ -1,28 +1,33 @@
 #!/bin/sh
 
+. llm-config-utils
+
 usage() {
   cat <<'EOF'
 usage: llm-chat-manage-hook [-d <statedir>] <subcommand> [<options>] [<args>]
 
-Manage hooks that run on session state transitions.
+Manage hooks that run on session events.
 
 subcommands:
-  create        -s <state> [-t oneshot|always] [-A|-B] [-L] [-a] [-c]
-                (<command> | <hook-file>) [<name>]
-  remove        -s <state> [-t oneshot|always] [-A|-B] <name>
-  list-enabled  [-s <state>] [-t oneshot|always] [-A|-B]
-  path          [-s <state>] [-t oneshot|always] [-A|-B] <name>
+  create       <event> [-L] [-a] [-c] (<command> | <hook-file>) [<name>.<type>]
+  remove       <event> <name>.<type>
+  list         [<glob pattern>...]
+  list-events  [-s] [<glob pattern>...]
+  path         <event> <name>.<type>
 
 options:
   -d <statedir>  session state directory; hooks live under <statedir>/hooks
-  -s <state>     session state; available states are listed by
-                 `llm-chat -o print-states`
-  -t <type>      oneshot (run once, default) or always
-  -A / -B        run after (default) / before the state
   -L             symlink the hook to <hook-file> instead of copying
   -a             append to the existing hook instead of failing
   -c             treat the hook content argument as the command itself
   -j             print results as a single JSON object
+  -h             print this help
+
+A hook name has the form <name>.<type>; the type suffix selects the run
+policy ("oneshot" runs once and is removed, other types run every time).
+Events are installed under the llm-scripts events directory (in the
+config and data dirs), as lowercase dot-separated names; entries
+containing uppercase letters are documents.
 EOF
 }
 
@@ -42,7 +47,7 @@ subcommand=$1
 shift
 
 case $subcommand in
-  create|remove|list-enabled|path) ;;
+  create|remove|list|list-events|path) ;;
   *)
     printf "unsupported subcommand: %s\n" "$subcommand" >&2
     usage >&2
@@ -50,80 +55,114 @@ case $subcommand in
     ;;
 esac
 
-states=
-get_states() {
-  if [ -z "$states" ]; then
-    states=$(llm-chat -o print-states) || {
-      printf "failed to get supported states from llm-chat\n" >&2
-      exit 1
-    }
-  fi
-}
-
 validate_statedir() {
   [ -n "$opt_state_dir" ] || { printf "statedir not provided (use -d)\n" >&2; return 2; }
   [ -d "$opt_state_dir" ] || { printf "'%s' is not a directory\n" "$opt_state_dir" >&2; return 2; }
 }
 
-validate_state() {
-  [ -n "$1" ] || { printf "state not specified (use -s)\n" >&2; return 2; }
-  get_states
-  case " $states " in
-    *" $1 "*) return 0 ;;
-  esac
-  printf "unsupported state: %s\n" "$1" >&2
-  return 2
+# $1 result var (the matched absolute path), $2 event name.
+# An event is installed when the events directory (searched with the
+# usual config priority) contains a folding of its dot-separated
+# segments: namespace entries end with ".", the final event entry does
+# not. Foldings are tried in longest-prefix order; entries containing
+# uppercase letters are documents and never match. Iterative DFS, as
+# the llmcu functions can not be used recursively.
+#
+# The short e prefix is kept because sh functions share the caller's
+# variable scope, and names like "name" or "event" are meaningful there.
+event_registered() {
+  ename=$2
+  # The stack holds "suffix<TAB>relative path" pairs.
+  estack=$ename$'\t'
+  while [ -n "$estack" ]; do
+    eentry=${estack%%$'\n'*}
+    estack=${estack#"$eentry"}
+    estack=${estack#$'\n'}
+    esuffix=${eentry%%$'\t'*}
+    epath=${eentry#*$'\t'}
+    erel=${epath:+$epath/}$esuffix
+    if llmcu_locate_config_item efound "events/$erel" && [ -d "$efound" ]; then
+      command eval " $1"='$efound'
+      return 0
+    fi
+    # Push namespace foldings, shortest prefix first so the longest is
+    # popped first.
+    case $esuffix in
+      *.*)
+        erest=${esuffix#*.}
+        eprefix=${esuffix%%.*}.
+        while [ -n "$erest" ]; do
+          eentry=$erest$'\t'${epath:+$epath/}$eprefix
+          estack=$eentry$'\n'$estack
+          case $erest in
+            *.*)
+              eprefix=$eprefix${erest%%.*}.
+              erest=${erest#*.}
+              ;;
+            *)
+              break
+              ;;
+          esac
+        done
+        ;;
+    esac
+  done
+  return 1
 }
 
-validate_type() {
+# $1 event name: dot-separated lowercase segments of portable filename
+# characters, no empty segments. Additionally checks that the event is
+# installed in the events directory.
+validate_event() {
   case $1 in
-    oneshot|always) return 0 ;;
+    ''|*[![:alnum:]_.-]*|.*|*.|*..*|*[[:upper:]]*)
+      printf "invalid event name: %s\n" "$1" >&2
+      return 2
+      ;;
   esac
-  printf "unsupported hook type: %s\n" "$1" >&2
-  return 2
+  if ! event_registered event_rel "$1"; then
+    printf "event not installed: %s\n" "$1" >&2
+    return 2
+  fi
 }
 
+# $1 hook name: <name>.<type> with exactly one dot and no empty parts.
 validate_name() {
   case $1 in
-    *$'\n'*|*/*|'..'|'.'|'')
+    ''|*[![:alnum:]_.-]*|.*|*.|*.*.*)
       printf "invalid hook name: %s\n" "$1" >&2
       return 2
       ;;
   esac
 }
 
-# Print matching hooks as relative paths (state/type/when/name);
-# empty opt_state/opt_type/opt_when act as wildcards.
-# The pattern is built from validated enum values, so it is safe unquoted.
+# Print matching hooks as relative paths (event/name.type).
 list_hooks() {
-  llm_chat_get_hook_relpath pattern "${opt_state:-*}" "${opt_type:-*}" "${opt_when:-*}"
-  pattern=$pattern/
   find "$llm_chat_hooks_dir/" \( -type f -o -type l \) -print0 \
     | jq --arg prefix "$llm_chat_hooks_dir/" \
         -Rsr 'split("\u0000")[] | ltrimstr($prefix) | select(length != 0)' \
     | {
         while IFS= read -r line; do
-          case $line in
-            $pattern*) printf "%s\n" "$line" ;;
-          esac
+          for pattern; do
+            case $line in
+              $pattern) printf "%s\n" "$line"; break ;;
+            esac
+          done
         done
       }
 }
 
 sub_create() {
+  [ "$#" -ge 1 ] || { printf "event not specified\n" >&2; return 2; }
+  event=$1
+  shift
+
   OPTIND=1
-  opt_state=
-  opt_type=oneshot
-  opt_when=after
   opt_command=
   opt_symlink=
   opt_append=
-  while getopts "s:t:ABcLa" opt; do
+  while getopts "cLa" opt; do
     case $opt in
-      s) opt_state=$OPTARG ;;
-      t) opt_type=$OPTARG ;;
-      A) opt_when=after ;;
-      B) opt_when=before ;;
       c) opt_command=1 ;;
       L) opt_symlink=1 ;;
       a) opt_append=1 ;;
@@ -133,8 +172,10 @@ sub_create() {
   shift "$((OPTIND - 1))"
 
   validate_statedir || return
-  validate_state "$opt_state" || return
-  validate_type "$opt_type" || return
+  . llm-chat-common
+  llm_chat_set_public_files_var "$opt_state_dir"
+
+  validate_event "$event" || return
   if [ -n "$opt_append" ] && [ -n "$opt_symlink" ]; then
     printf "options -a and -L can not be used together\n" >&2
     return 2
@@ -166,9 +207,7 @@ sub_create() {
     validate_name "$name" || return
   fi
 
-  . llm-chat-common
-  llm_chat_set_public_files_var "$opt_state_dir"
-  llm_chat_get_hook d "$opt_state" "$opt_type" "$opt_when"
+  d=$llm_chat_hooks_dir/$event
   mkdir -p -- "$d" || return 1
 
   if [ -n "$name" ]; then
@@ -179,12 +218,12 @@ sub_create() {
     fi
   else
     # llm-chat and this script never touch hooks concurrently
-    name=unnamed-$$
+    name=unnamed-$$.oneshot
     f=$d/$name
     i=0
     while [ -e "$d/$name" ]; do
       i=$((i + 1))
-      name=unnamed-$$.$i
+      name=unnamed-$$-$i.oneshot
     done
     f=$d/$name
     (set -C; : >"$f") || return 1
@@ -207,8 +246,8 @@ sub_create() {
   fi
   [ "$?" -eq 0 ] || return 1
 
+  rel=$event/$name
   if [ -n "$opt_json" ]; then
-    llm_chat_get_hook_relpath rel "$opt_state" "$opt_type" "$opt_when" "$name"
     if [ -n "$opt_append" ]; then
       jq -cn --arg rel "$rel" --arg path "$f" '{appended:$rel,path:$path}'
     else
@@ -220,111 +259,155 @@ sub_create() {
 }
 
 sub_remove() {
-  OPTIND=1
-  opt_state=
-  opt_type=oneshot
-  opt_when=after
-  while getopts "s:t:AB" opt; do
-    case $opt in
-      s) opt_state=$OPTARG ;;
-      t) opt_type=$OPTARG ;;
-      A) opt_when=after ;;
-      B) opt_when=before ;;
-      \?) exit 2 ;;
-    esac
-  done
-  shift "$((OPTIND - 1))"
-  [ "$#" -eq 1 ] || { printf "hook name not provided\n" >&2; return 2; }
+  [ "$#" -eq 2 ] || { printf "hook name not provided\n" >&2; return 2; }
 
   validate_statedir || return
-  validate_state "$opt_state" || return
-  validate_type "$opt_type" || return
-  name=$1
-  validate_name "$name" || return
-
   . llm-chat-common
   llm_chat_set_public_files_var "$opt_state_dir"
-  llm_chat_get_hook f "$opt_state" "$opt_type" "$opt_when" "$name"
+
+  event=$1
+  name=$2
+  validate_event "$event" || return
+  validate_name "$name" || return
+
+  f=$llm_chat_hooks_dir/$event/$name
   if [ ! -e "$f" ]; then
     printf "hook doesn't exist: %s\n" "$f" >&2
     return 1
   fi
   rm -f -- "$f"
+  rel=$event/$name
   if [ -n "$opt_json" ]; then
-    llm_chat_get_hook_relpath rel "$opt_state" "$opt_type" "$opt_when" "$name"
-    jq -cn \
-      --arg rel "$rel" --arg path "$f" \
-      '{removed:$rel,path:$path}'
+    jq -cn --arg rel "$rel" --arg path "$f" '{removed:$rel,path:$path}'
   else
     printf "removed hook: %s\n" "$f"
   fi
 }
 
 sub_list() {
-  OPTIND=1
-  opt_state=
-  opt_type=
-  opt_when=
-  while getopts "s:t:AB" opt; do
-    case $opt in
-      s) opt_state=$OPTARG ;;
-      t) opt_type=$OPTARG ;;
-      A) opt_when=after ;;
-      B) opt_when=before ;;
-      \?) exit 2 ;;
-    esac
-  done
-  shift "$((OPTIND - 1))"
-  [ "$#" -eq 0 ] || { printf "too many arguments\n" >&2; return 2; }
+  [ "$#" -eq 0 ] && set -- '*'
 
   validate_statedir || return
-  if [ -n "$opt_state" ]; then
-    validate_state "$opt_state" || return
-  fi
-  if [ -n "$opt_type" ]; then
-    validate_type "$opt_type" || return
-  fi
-
   . llm-chat-common
   llm_chat_set_public_files_var "$opt_state_dir"
+
   if [ -d "$llm_chat_hooks_dir" ]; then
     if [ -n "$opt_json" ]; then
-      list_hooks | jq -Rsc --arg hooks_dir "$llm_chat_hooks_dir" \
+      list_hooks "$@" | jq -Rsc --arg hooks_dir "$llm_chat_hooks_dir" \
         'split("\n") | map(select(. != "") | {rel:., path: ($hooks_dir + "/" + .)}) | {hooks:.}'
     else
-      list_hooks
+      list_hooks "$@"
     fi
   else
     [ -n "$opt_json" ] && printf '{"hooks":[]}\n'
   fi
 }
 
-sub_path() {
+# Print the installed events and namespaces as synthesized full names:
+# the tree paths are folded with "/" deleted so the namespace dots
+# become the separators (namespaces keep their trailing dot). Entries
+# whose relative path contains an uppercase letter are documents and are
+# skipped. Names are deduplicated and sorted.
+sub_list_events() {
   OPTIND=1
-  opt_state=
-  opt_type=oneshot
-  opt_when=after
-  while getopts "s:t:AB" opt; do
+  opt_summary=
+  while getopts "s" opt; do
     case $opt in
-      s) opt_state=$OPTARG ;;
-      t) opt_type=$OPTARG ;;
-      A) opt_when=after ;;
-      B) opt_when=before ;;
+      s) opt_summary=1 ;;
       \?) exit 2 ;;
     esac
   done
   shift "$((OPTIND - 1))"
-  [ "$#" -eq 1 ] || { printf "hook name not provided\n" >&2; return 2; }
+  [ "$#" -eq 0 ] && set -- '*'
 
+  # $1 is the events directory (with a trailing slash) of one config
+  # base; print each found path relative to it and return 1 so all
+  # config bases are visited.
+  do_find() {
+    find -L -- "$1" \( -type d -o -type l \) -exec sh -c '
+      prefix=$1
+      shift
+      for arg; do
+        printf "%s\n" "${arg#"$prefix"}"
+      done
+    ' sh "$1" {} +
+    return 1
+  }
+
+  # A namespace entry ends with "." and is always followed by "/";
+  # deleting the slashes makes the namespace dots the separators,
+  # yielding the full name.
+  llmcu_for_config_item "events/" do_find \
+    | {
+        while IFS= read -r rel; do
+          rel=${rel#/}
+          case $rel in
+            ''|*[[:upper:]]*) continue ;;
+          esac
+          printf "%s\n" "$rel"
+        done
+      } \
+    | tr -d '/' \
+    | {
+        while IFS= read -r name; do
+          for pattern; do
+            case $name in
+              $pattern) printf "%s\n" "$name"; break ;;
+            esac
+          done
+        done
+      } \
+    | sort -u \
+    | {
+        if [ -z "$opt_summary" ]; then
+          cat
+        else
+          while IFS= read -r name; do
+            summary=
+            if event_registered found "$name" && [ -f "$found/SUMMARY" ]; then
+              summary=$(cat -- "$found/SUMMARY")
+            fi
+            # One NUL-framed record per name, so the summary may
+            # contain arbitrary characters or multiple lines.
+            printf '%s\n%s\0' "$name" "$summary"
+          done
+        fi
+      } \
+    | {
+        if [ -n "$opt_json" ]; then
+          if [ -z "$opt_summary" ]; then
+            jq -Rsc \
+              'split("\n") | map(select(. != "") | {name:.}) | {events:.}'
+          else
+            jq -Rsc '
+              [ split("\u0000")[] | select(. != "") |
+                index("\n") as $i | {name: .[:$i], summary: .[$i+1:]} ]
+              | {events:.}'
+          fi
+        else
+          if [ -z "$opt_summary" ]; then
+            cat
+          else
+            jq -Rrs '
+              split("\u0000")[] | select(. != "") |
+                index("\n") as $i | .[:$i], .[$i+1:]'
+          fi
+        fi
+      }
+}
+
+sub_path() {
+  [ "$#" -eq 2 ] || { printf "hook name not provided\n" >&2; return 2; }
   validate_statedir || return
-  validate_state "$opt_state" || return
-  validate_type "$opt_type" || return
-  name=$1
-  validate_name "$name" || return
-
   . llm-chat-common
   llm_chat_set_public_files_var "$opt_state_dir"
-  llm_chat_get_hook f "$opt_state" "$opt_type" "$opt_when" "$name"
+
+  event=$1
+  name=$2
+  validate_event "$event" || return
+  validate_name "$name" || return
+
+  f=$llm_chat_hooks_dir/$event/$name
   [ -e "$f" ] || { printf "hook doesn't exist: %s\n" "$f" >&2; return 1; }
   if [ -n "$opt_json" ]; then
     jq -cn --arg path "$f" '{path:$path}'
@@ -334,8 +417,9 @@ sub_path() {
 }
 
 case $subcommand in
-  create) sub_create "$@" ;;
-  remove) sub_remove "$@" ;;
-  list-enabled) sub_list "$@" ;;
-  path) sub_path "$@" ;;
+  create)      sub_create "$@" ;;
+  remove)      sub_remove "$@" ;;
+  list)        sub_list "$@" ;;
+  list-events) sub_list_events "$@" ;;
+  path)        sub_path "$@" ;;
 esac

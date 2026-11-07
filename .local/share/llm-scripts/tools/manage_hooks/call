@@ -27,9 +27,9 @@ cat >"$argfile"
 
 op=$(jq -j '.operation // ""' <"$argfile")
 case $op in
-  create|remove|list-enabled|path) ;;
+  create|remove|list|list-events|path) ;;
   *)
-    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, list-enabled or path"}'
+    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, list, list-events or path"}'
     exit 0
     ;;
 esac
@@ -38,7 +38,7 @@ append=$(jq -j '.append // false' <"$argfile")
 
 # create and remove need approval
 if [ "$op" = create ] || [ "$op" = remove ]; then
-  summary=$(jq -j '[.state, .type // "oneshot", .when // "after", (.name // empty)] | map(select(. != null)) | join("/")' <"$argfile")
+  summary=$(jq -j '[.event, (.name // empty)] | map(select(. != null)) | join("/")' <"$argfile")
   preview_command="$(shell-escape -- sh -- "$1/render-call" -d "$1" -s "$2")"
   colored_preview_command="$preview_command -c always"
   if [ "$append" = true ]; then
@@ -70,28 +70,17 @@ if [ "$op" = create ] || [ "$op" = remove ]; then
   esac
 fi
 
-state=$(jq -j '.state // ""' <"$argfile")
-type=$(jq -j '.type // ""' <"$argfile")
-when=$(jq -j '.when // ""' <"$argfile")
+event=$(jq -j '.event // ""' <"$argfile")
+with_summary=$(jq -j '(.with_summary and true) or false' <"$argfile")
 mode=$(jq -j '.mode // "command"' <"$argfile")
 source=$(jq -j '.source // ""' <"$argfile")
 name=$(jq -j '.name // ""' <"$argfile")
 
 set -- -jd "$2" "$op"
-if [ -n "$state" ]; then
-  set -- "$@" -s "$state"
-fi
-if [ -n "$type" ]; then
-  set -- "$@" -t "$type"
-fi
-if [ "$when" = before ]; then
-  set -- "$@" -B
-elif [ "$when" = after ]; then
-  set -- "$@" -A
-fi
 
 case $op in
   create)
+    [ -n "$event" ] && set -- "$@" "$event"
     if [ "$append" = true ]; then
       set -- "$@" -a
     fi
@@ -114,9 +103,15 @@ case $op in
     [ -n "$name" ] && set -- "$@" "$name"
     ;;
   remove|path)
-    set -- "$@" -- "$name"
+    [ -n "$event" ] && set -- "$@" "$event"
+    set -- "$@" "$name"
     ;;
-  list-enabled)
+  list)
+    [ -n "$event" ] && set -- "$@" "$event"
+    ;;
+  list-events)
+    [ "$with_summary" = true ] && set -- "$@" -s
+    [ -n "$event" ] && set -- "$@" "$event"
     ;;
 esac
 
