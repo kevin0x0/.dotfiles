@@ -1,7 +1,7 @@
 # Synopsis
 
 Manage session hooks: shell scripts that run on session events, or
-explore the installed events.
+explore the installed events and their documents.
 
 # Events
 
@@ -33,10 +33,18 @@ agent-loop-tool-call-interrupted, end.
 - "list": list the hooks currently installed in the session. "event" can
   be a glob filtering the list (it matches "event/name.type" paths).
 - "list-events": list the installed events and namespaces (namespace
-  names end with "."). "event" can be a glob filtering the list;
+  names end with "."). "event" can be an ERE filtering the list;
   "with_summary" adds each item's summary.
+- "list-docs": list the documents of an entry (an event or a namespace)
+  and of its ancestors. Requires "event" (the entry name); "pattern"
+  can be an ERE filtering the document paths.
+- "doc": read documents. "docpaths" lists the document paths; documents
+  that do not exist are silently omitted.
 - "path": print the absolute pathname of a hook. Requires "event" and
   "name".
+
+A document path has the form "<entry name>/<doc path relative to the
+entry>", e.g. "builtin.state./STATES.md".
 
 # Approval
 
@@ -50,7 +58,9 @@ A JSON object. On success: create returns
 {"created":"<rel>","path":...} ({"appended":"<rel>","path":...} when
 appending); remove returns {"removed":"<rel>","path":...}; list returns
 {"hooks":[{"rel":...,"path":...},...]}; list-events returns
-{"events":[{"name":...,"summary":...},...]}; path returns {"path":...}.
+{"events":[{"name":...,"summary":...},...]}; list-docs returns
+{"entry":...,"doclist":[...]}; doc returns
+{"docs":[{"path":...,"content":...},...]}; path returns {"path":...}.
 On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 
 <rel> is the relative hook path in the form event/name.type.
