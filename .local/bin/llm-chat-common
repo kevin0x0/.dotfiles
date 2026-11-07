@@ -126,11 +126,18 @@ llm_chat_get_tool_state_dir() {
   command eval "[ -e \"\$$1\" ] || mkdir -p -- \"\$$1\""
 }
 
+llm_chat_hook_default_runner() {
+  trap - INT
+  . -- "$1"
+}
+
 llm_chat_run_hooks() {
+  llm_chat_hook_runner=${1:-llm_chat_hook_default_runner}
+  shift
   for llm_chat_hookable_event; do
     for llm_chat_hook_script in "$llm_chat_hooks_dir/$llm_chat_hookable_event"/*; do
       [ -f "$llm_chat_hook_script" ] || continue
-      (trap - INT; . -- "$llm_chat_hook_script")
+      ("$llm_chat_hook_runner" "$llm_chat_hook_script")
       case $llm_chat_hook_script in
         *.oneshot) rm -f -- "$llm_chat_hook_script" ;;
       esac

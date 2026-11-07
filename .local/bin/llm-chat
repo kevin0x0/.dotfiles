@@ -603,6 +603,16 @@ generate_tool_list() {
   esac
 }
 
+unset_vars_and_run_hook() {
+  unset -v opt_api_key opt_api_key_cmd
+  trap - INT
+  . -- "$1"
+}
+
+run_hooks() {
+  llm_chat_run_hooks unset_vars_and_run_hook "$1"
+}
+
 create_state_dir() {
   dirprefix=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/llm-chat-$$
   dir=$dirprefix
@@ -737,7 +747,7 @@ last_error_state=
 state=read-loop
 next_state=read-loop
 while :; do
-  llm_chat_run_hooks "builtin.state.$state.enter"
+  run_hooks "builtin.state.$state.enter"
   case $state in
     read-loop)
       read_loop
@@ -836,8 +846,8 @@ while :; do
       next_state=read-loop
       ;;
   esac
-  llm_chat_run_hooks "builtin.state.$state.leave"
+  run_hooks "builtin.state.$state.leave"
   state=$next_state
 done
 
-llm_chat_run_hooks "builtin.state.end.leave"
+run_hooks "builtin.state.end.leave"

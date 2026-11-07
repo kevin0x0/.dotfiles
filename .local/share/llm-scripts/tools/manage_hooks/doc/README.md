@@ -46,8 +46,11 @@ are silently omitted.
   type suffix: removing "notify.always" as "notify.oneshot" fails.
 - A hook is a POSIX sh script run by the session. It runs synchronously:
   the session waits for it to finish, so keep hooks short.
-- The hook inherits the session's environment and working directory; it
+- The hook inherits the session's execution environment and working
+  directory; some sensitive variables are unset before it runs. It
   receives no arguments.
+- When the document of the relevant event describes the execution
+  environment explicitly, that description takes precedence.
 - Its output goes to the user's terminal; it is not seen by the model.
 - Hooks exist only within the current session.
 
