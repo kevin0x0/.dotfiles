@@ -16,7 +16,7 @@
     },
     "name": {
       "type": "string",
-      "description": "Hook name with its type suffix, e.g. \"notify.oneshot\" (runs once then is removed) or \"notify.always\" (runs every time). Required for remove and path. Optional for create (an auto-generated name is used); required when append is true."
+      "description": "Hook name with its type suffix, e.g. \"notify.oneshot\" (runs once then is removed) or \"notify.always\" (runs every time). Required for remove and path. Optional for create (an auto-generated name is used; a name of the form \".<type>\" uses the auto-generated name with the given type); required when append is true."
     },
     "docpaths": {
       "anyOf": [
