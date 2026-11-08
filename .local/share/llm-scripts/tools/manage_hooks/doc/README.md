@@ -28,9 +28,11 @@ are silently omitted. An entry that is not installed is an error
 
 # Hooks
 
-- A hook name has the form "<name>.<type>" with exactly one dot: the
+- A hook name has the form "<base>.<type>" with exactly one dot: the
   type suffix selects the run policy. "oneshot" runs once and is then
-  removed; "always" runs every time.
+  removed; "always" runs every time. Other types are accepted and
+  currently run every time, like "always"; do not rely on this
+  behavior.
 - "remove", "hook-dump" and "hook-source" identify the hook by its
   full name, including the type suffix: removing "notify.always" as
   "notify.oneshot" fails.
@@ -45,6 +47,9 @@ are silently omitted. An entry that is not installed is an error
   event is unspecified.
 - The hook inherits the session's execution environment and working
   directory. It receives no arguments.
+- The hook's exit status is ignored by the session. When the document
+  of the relevant event describes the exit status handling, that
+  description takes precedence.
 - Three names describe the run to the hook: llmcc_event holds the
   event name, llmcc_hook_script the hook's own pathname, and
   llmcc_hook_log is the logging function.
@@ -80,7 +85,7 @@ them are fictitious. The results never reveal the hook locations.
 
 ## create
 
-Fields: "created"/"appended" (the hook as "event/name.type").
+Fields: "created"/"appended" (the hook as "event/base.type").
 
 For {"operation":"create","event":"builtin.state.read-loop.enter","mode":"command","source":"echo hi","name":"notify.always"}:
 
@@ -102,7 +107,7 @@ For {"operation":"remove","event":"builtin.state.read-loop.enter","name":"notify
 
 ## list
 
-Fields: "hooks" (the installed hooks as "event/name.type" paths, each
+Fields: "hooks" (the installed hooks as "event/base.type" paths, each
 with "kind": "regular" or "symlink").
 
 For {"operation":"list"}:
@@ -204,4 +209,4 @@ No matching line:
 - "create" rejects events that are not registered; an event name can not
   contain empty segments ("state..enter" is invalid).
 - "list" without arguments lists all installed hooks; glob arguments
-  filter by the "event/name.type" path.
+  filter by the "event/base.type" path.
