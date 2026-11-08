@@ -43,6 +43,8 @@ description.
 - "hook-dump": write the hook's script content to the file named by
   "output_file", which must not exist yet. Requires "event", "name"
   and "output_file".
+- "hook-source": print the source file of a "symlink" hook. Requires
+  "event" and "name"; the hook must be a symlink (an error otherwise).
 - "log-dump": write the hook log lines whose "[<event>/<hook name>]"
   prefix matches "pattern" (an ERE; all lines when "pattern" is
   omitted) to the file named by "output_file", which must not exist
@@ -66,7 +68,7 @@ A JSON object. On success: create returns {"created":"<rel>"}
 list-events returns {"events":[{"name":...,"summary":...},...]};
 list-docs returns {"entry":...,"doclist":[...]}; doc returns
 {"docs":[{"path":...,"content":...},...]}; hook-dump and log-dump return
-{"dump":{"path":...,"count":...}}.
+{"dump":{"path":...,"count":...}}; hook-source returns {"source":...}.
 On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 
 <rel> is the relative hook path in the form event/name.type.

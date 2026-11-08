@@ -19,6 +19,7 @@ try (
   (.doclist // null)  as $doclist |
   (.docs // null)     as $docs |
   (.dump // null)     as $dump |
+  (.source // null)   as $source |
   (.error // null)    as $error |
   (.rejected // null) as $rejected |
   (if $created != null then
@@ -47,6 +48,9 @@ try (
   (if $dump != null then
      (($dump.count | tostring) + " lines -> " + $dump.path
        | print_strings, " | ", render("dump"))
+   else empty end),
+  (if $source != null then
+     ($source | print_strings, " | ", render("source"))
    else empty end),
   (if $error != null then
      ($error | print_strings, " | ", render("error"))
