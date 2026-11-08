@@ -46,8 +46,6 @@
 > 已中断
 # unknown state: $1
 > 未知状态：$1
-# hooks are disabled; created hooks will not run until you enable hooks with -o enable-hook=1
-> 钩子未启用，已创建的钩子不会执行；用 -o enable-hook=1 启用后才会生效
 # target language (-t) not specified
 > 未指定目标语言（-t）
 # invalid language name or code

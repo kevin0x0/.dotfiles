@@ -2,13 +2,4 @@
 
 shift
 
-if [ -z "$opt_enable_hook" ]; then
-  case $1 in
-    create)
-      i18n -n llm-scripts \
-        'hooks are disabled; created hooks will not run until you enable hooks with -o enable-hook=1' >&2
-      ;;
-  esac
-fi
-
 llm-chat-manage-hook -d "$opt_state_dir" "$@"
