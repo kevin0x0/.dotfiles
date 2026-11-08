@@ -12,10 +12,8 @@ them are fictitious. Empty results are usually empty lists.
 
 ## describe
 
-- A stub signature has a placeholder description (such as
-  "[deferred]") and empty parameters. When a tool's description looks
-  like a placeholder rather than a description of the tool, retrieve
-  the full signature with "describe" before calling the tool.
+- When a tool's signature is a stub, retrieve the full one with
+  "describe" before calling the tool.
 - Each returned tool carries a tool signature. "name" and "description"
   are present for "function" and "custom" tools: "name" is the tool's
   name, "description" explains what the tool does and how to call it
