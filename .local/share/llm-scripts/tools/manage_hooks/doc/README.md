@@ -8,8 +8,9 @@ covers the operations; this document explains the interface details.
 A hookable event is a lowercase dot-separated name (e.g.
 "state.read-loop.enter"). A hook can only be attached to an installed
 event; "create" requires the event to be installed (a namespace can
-not hold a hook), while "list", "remove" and "hook-dump" only validate
-the name syntactically.
+not hold a hook). "remove", "hook-dump" and "hook-source" validate the
+event name only syntactically, but require the hook itself to exist
+("hook doesn't exist" otherwise); "list" needs neither.
 
 The events form a namespace tree: entries ending with "." are
 namespaces and other entries are events. An event or namespace entry
@@ -21,9 +22,11 @@ with "with_summary" includes it (empty when missing).
 A document path has the form "<entry name>/<doc path relative to the
 entry>", e.g. "builtin.state./STATES.md". "list-docs" collects the
 documents of the given entry (an event or a namespace) and of all its
-ancestors; the optional "pattern" is an ERE filtering the paths.
+ancestors; the optional "pattern" is a POSIX ERE filtering the paths;
+non-POSIX extensions are not supported.
 "doc" reads the documents at the given paths; paths that do not exist,
-and paths whose entry is not installed, are silently omitted.
+paths naming a directory, and paths whose entry is not installed, are
+silently omitted.
 "list-docs" requires the entry to be installed; an uninstalled entry
 is an error ("entry not installed").
 
@@ -42,12 +45,14 @@ is an error ("entry not installed").
   "symlink" hook, the content of the file it links to is dumped.
 - A hook is a POSIX sh script run by the session. It runs synchronously
   and has no timeout: the session waits for it to finish, so keep
-  hooks short.
+  hooks short; a hook that does not finish blocks the session.
 - Hooks never run concurrently: the session runs them one at a time,
   event by event. The relative order of several hooks on the same
   event is unspecified.
 - The hook inherits the session's execution environment and working
-  directory. It receives no arguments.
+  directory. It receives no arguments; its standard input is /dev/null.
+- Hooks are not re-entered: a hook can install other hooks, but they
+  do not run until their event next fires.
 - The hook's exit status is ignored by the session. When the document
   of the relevant event describes the exit status handling, that
   description takes precedence.
@@ -73,7 +78,7 @@ is an error ("entry not installed").
 - The hook log is a session file; each standard error line of a hook is
   appended to it prefixed with "[<event>/<hook name>] ".
 - "log-dump" writes the log lines matching "pattern" to "output_file".
-  "pattern" is an ERE matched against the "[<event>/<hook name>]" line
+  "pattern" is a POSIX ERE matched against the "[<event>/<hook name>]" line
   prefix; all lines are dumped when it is omitted. "output_file" must
   not exist yet; no matching lines produce an empty dump, not an error.
 - The log grows with each hook run and has no size limit; read the
@@ -121,7 +126,7 @@ No installed hook:
 
 ## list-events
 
-- "pattern" is an ERE matching the full listed names, including the
+- "pattern" is a POSIX ERE matching the full listed names, including the
   trailing "." of namespaces.
 
 Fields: "events" (the matching events and namespaces, each with "name"
@@ -206,11 +211,13 @@ No matching line:
   on a hook installed as a symlink; in "copy" mode, "append" appends
   the source file's content.
 - In "copy" and "symlink" modes, the source pathname is resolved
-  relative to the working directory of the session.
+  relative to the working directory of the session, and must be a
+  readable regular file; otherwise the create fails ("'<path>' doesn't
+  exist or not a file").
 - A hook name can not contain "/", more than one dot, or empty parts; a
   "name" omitted from "create" is auto-generated
   ("unnamed-<number>.oneshot").
 - "create" rejects events that are not registered; an event name can not
   contain empty segments ("state..enter" is invalid).
 - "list" without "pattern" lists all installed hooks; the "pattern"
-  ERE filters by the "event/base.type" path.
+  POSIX ERE filters by the "event/base.type" path.

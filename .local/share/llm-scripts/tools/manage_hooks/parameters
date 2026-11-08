@@ -22,11 +22,11 @@
     },
     "pattern": {
       "type": "string",
-      "description": "An ERE. Only for list: matches the \"event/base.type\" hook paths. Only for list-events: matches the full listed event and namespace names (including the trailing \".\" of namespaces). Only for list-docs: filters the document paths. Only for log-dump: matches the \"[<event>/<hook name>]\" line prefix of the hook log; all lines are dumped when omitted."
+      "description": "A POSIX ERE; do not use non-POSIX extensions. Only for list: matches the \"event/base.type\" hook paths. Only for list-events: matches the full listed event and namespace names (including the trailing \".\" of namespaces). Only for list-docs: filters the document paths. Only for log-dump: matches the \"[<event>/<hook name>]\" line prefix of the hook log; all lines are dumped when omitted."
     },
     "output_file": {
       "type": "string",
-      "description": "Only for hook-dump and log-dump: the pathname of the file to write the result to. The file must not exist yet; its directory must exist."
+      "description": "Only for hook-dump and log-dump: the pathname of the file to write the result to. The file must not exist yet; its directory must exist. The pathname may be relative to the session's working directory."
     },
     "name": {
       "type": "string",
