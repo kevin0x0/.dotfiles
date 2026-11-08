@@ -22,8 +22,8 @@ results.
   "ignore_extra_set" can list the whole catalog, including tools that
   are not available in this session. Do not set "ignore_extra_set" on
   your own unless the user asks for it or the user's request needs it.
-  The hidden "enable" and "disable"
-  operations adjust the extra tool set; see "enable-disable.md".
+  The "enable" and "disable" operations adjust the extra tool set; use
+  them only when the user explicitly asks; see "enable-disable.md".
 
 # Operations
 
@@ -107,6 +107,12 @@ For {"operation":"listdoc","toolname":"some_tool"}:
 A tool without documents:
 
     {"toolname":"some_tool","doclist":[]}
+
+## enable / disable
+
+They adjust the session's extra tool set, require approval, and must
+only be used when the user explicitly asks; see "enable-disable.md"
+for their interface and result examples. Run them one at a time.
 
 # Patterns
 
