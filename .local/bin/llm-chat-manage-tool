@@ -133,26 +133,12 @@ sub_describe() {
     validate_statedir || return 2
     . llm-chat-common
     llmcc_set_public_files_var "$opt_state_dir"
-    llmcc_get_tool_state_dir my_state_dir manage_tools || return
-    described=$my_state_dir/described
   fi
 
   filter() {
     [ -n "$opt_describe_all_match" ] && { cat; return; }
-    not_in() {
-      [ -f "$1" ] || { cat; return; }
-      comm -23 -- - "$1"
-    }
-    in_extra() {
-      [ -f "$llmcc_extra_tool_name_list" ] || { cat >/dev/null; return; }
-      comm -12 -- - "$llmcc_extra_tool_name_list"
-    }
-    [ ! -f "$described" ] && : >"$described"
-    in_extra \
-      | not_in "$described" \
-      | tee -- "$my_state_dir/tmp"
-    sort -o "$described" -- "$my_state_dir/tmp" "$described"
-    rm -f -- "$my_state_dir/tmp"
+    [ -f "$llmcc_extra_tool_name_list" ] || { cat >/dev/null; return; }
+    comm -12 -- - "$llmcc_extra_tool_name_list"
   }
 
   llm-expand-toolspec -- "$@" \
