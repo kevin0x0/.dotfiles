@@ -18,11 +18,11 @@
     },
     "event": {
       "type": "string",
-      "description": "Hookable event the hook is attached to. Required for create, remove, hook-dump, hook-source and list-docs (must be installed; for list-docs it can also be a namespace); optional for list, where a glob filters the listed hooks."
+      "description": "Hookable event the hook is attached to. Required for create, remove, hook-dump, hook-source and list-docs (must be installed; for list-docs it can also be a namespace)."
     },
     "pattern": {
       "type": "string",
-      "description": "An ERE. Only for list-events: matches the full listed event and namespace names (including the trailing \".\" of namespaces). Only for list-docs: filters the document paths. Only for log-dump: matches the \"[<event>/<hook name>]\" line prefix of the hook log; all lines are dumped when omitted."
+      "description": "An ERE. Only for list: matches the \"event/base.type\" hook paths. Only for list-events: matches the full listed event and namespace names (including the trailing \".\" of namespaces). Only for list-docs: filters the document paths. Only for log-dump: matches the \"[<event>/<hook name>]\" line prefix of the hook log; all lines are dumped when omitted."
     },
     "output_file": {
       "type": "string",

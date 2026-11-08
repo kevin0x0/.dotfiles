@@ -42,7 +42,8 @@ try (
   elif .operation == "remove" then
     ("" | print_strings, " | ", render_withflags("operation"; "-A remove -S " + ($summary | @sh)))
   elif .operation == "list" then
-    ("" | print_strings, " | ", render_withflags("operation"; "-A list"))
+    ($pattern_arg | print_strings, " | ",
+      render_withflags("operation"; "-A list -K plain"))
   elif .operation == "list-events" then
     ("" | print_strings, " | ",
       render_withflags("operation";

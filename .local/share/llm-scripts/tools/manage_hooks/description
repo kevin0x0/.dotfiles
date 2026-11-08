@@ -32,8 +32,9 @@ description.
   failing.
 - "remove": remove a hook. Requires "event" and "name" (with the exact
   type suffix of the installed hook).
-- "list": list the hooks currently installed in the session. "event" can
-  be a glob filtering the list (it matches "event/base.type" paths).
+- "list": list the hooks currently installed in the session. "pattern"
+  can be an ERE matching the "event/base.type" hook paths (all of them
+  when omitted).
 - "list-events": list the installed events and namespaces (namespace
   names end with "."). "pattern" can be an ERE matching the full listed
   names (including the trailing "." of namespaces); "with_summary" adds
