@@ -10,8 +10,9 @@ The tools of a session form three sets:
 - The default tool set is loaded with full signatures when the session
   starts. It is configured by the user at session start and is usually
   small.
-- The extra tool set is loaded with stub signatures; call "describe" to
-  retrieve the full signature of one of its tools before calling it.
+- The extra tool set is loaded with stub signatures (a placeholder
+  description and empty parameters); call "describe" to retrieve the
+  full signature of one of its tools before calling it.
 - The enabled tool set is the union of the two, and is exactly the set
   of tools visible to you in the session: every tool you can see in
   your tool list is in either the default or the extra tool set, and a
@@ -33,8 +34,8 @@ The tools of a session form three sets:
   of the result.
 - "doc": read documents of a tool. Requires "toolname"; "docpaths"
   selects the documents to read (defaults to "README.md"; several
-  documents can be read in one call). Documents that do not exist are
-  silently omitted from the result.
+  documents can be read in one call). The paths are literal, not globs.
+  Documents that do not exist are silently omitted from the result.
 - "listdoc": list the documents of a tool. Requires "toolname";
   "pattern" can be used to filter by document path globs.
 
@@ -70,7 +71,8 @@ describe returns {"described":...,"tools":[{...}, ...]}; list returns
 "start_index":...,"count":...}; doc returns
 {"toolname":...,"docs":[{"docpath":...,"content":...},...]}; listdoc returns
 {"toolname":...,"doclist":[...]}.
-On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
+On failure: {"error": <reason>}; when the user rejects the approval
+request of "enable" or "disable": {"rejected": <reason>}.
 
 # Notes
 
