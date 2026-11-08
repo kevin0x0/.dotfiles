@@ -46,7 +46,7 @@ try (
   elif .operation == "list-events" then
     ("" | print_strings, " | ",
       render_withflags("operation";
-        "-A list-events -S " + ($event_pattern | @sh)))
+        "-A list-events -S " + ($pattern_arg | @sh)))
   elif .operation == "list-docs" then
     ("" | print_strings, " | ",
       render_withflags("operation";

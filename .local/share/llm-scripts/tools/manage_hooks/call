@@ -121,7 +121,7 @@ case $op in
     ;;
   list-events)
     [ "$with_summary" = true ] && set -- "$@" -s
-    [ -n "$event" ] && set -- "$@" -- "$event"
+    [ -n "$pattern" ] && set -- "$@" -- "$pattern"
     ;;
   list-docs)
     set -- "$@" -- "$event"

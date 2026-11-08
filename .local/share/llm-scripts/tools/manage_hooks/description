@@ -31,7 +31,7 @@ description.
 - "list": list the hooks currently installed in the session. "event" can
   be a glob filtering the list (it matches "event/name.type" paths).
 - "list-events": list the installed events and namespaces (namespace
-  names end with "."). "event" can be an ERE matching the full listed
+  names end with "."). "pattern" can be an ERE matching the full listed
   names (including the trailing "." of namespaces); "with_summary" adds
   each item's summary.
 - "list-docs": list the documents of an entry (an event or a namespace)
