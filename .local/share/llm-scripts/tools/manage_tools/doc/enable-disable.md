@@ -1,8 +1,7 @@
 # enable / disable
 
 The operations "enable" and "disable" adjust the session's extra tool
-set. They are not listed in the tool schema, but this tool accepts them
-when they are needed.
+set. They are listed in the tool schema like the other operations.
 
 Unless the user explicitly asks for it, do not use these operations.
 

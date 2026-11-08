@@ -37,17 +37,31 @@ The tools of a session form three sets:
   Documents that do not exist are silently omitted from the result.
 - "listdoc": list the documents of a tool. Requires "toolname";
   "pattern" can be used to filter by document path globs.
+- "enable": add the tools matching "pattern" to the session's extra
+  tool set; requires "pattern". Only use it when the user explicitly
+  asks for it.
+- "disable": remove the tools matching "pattern" from the session's
+  extra tool set; requires "pattern". Only use it when the user
+  explicitly asks for it.
+
+# Approval
+
+"enable" and "disable" require approval on the controlling terminal; in
+non-interactive sessions they are rejected unless automatic approval is
+configured. When the approval is rejected, the result is
+{"rejected": <reason>}.
 
 # Patterns
 
 "pattern" is a list of space separated glob patterns. The matching target
-depends on the operation: for describe and list, patterns without "/"
-match tool names while patterns containing "/" match paths in the tool
-tree (e.g. "builtin/*"), for listing items under the root of the tool
-tree, prefix your pattern with a "/" (e.g. "/*"); for listdoc it matches
-document pathnames under the tool's doc directory. A word starting with
-"@" names a tool preset (a named list of patterns, e.g. "@default"); it
-is expanded in place and can be mixed with other words.
+depends on the operation: for describe, list, enable and disable,
+patterns without "/" match tool names while patterns containing "/"
+match paths in the tool tree (e.g. "builtin/*"), for listing items
+under the root of the tool tree, prefix your pattern with a "/" (e.g.
+"/*"); for listdoc it matches document pathnames under the tool's doc
+directory. A word starting with "@" names a tool preset (a named list
+of patterns, e.g. "@default"); it is expanded in place and can be mixed
+with other words.
 
 # Tool tree
 
@@ -69,7 +83,9 @@ describe returns {"described":...,"tools":[{...}, ...]}; list returns
 {"list":[{"name" or "path":..., "summary"?:...},...],"total":...,
 "start_index":...,"count":...}; doc returns
 {"toolname":...,"docs":[{"docpath":...,"content":...},...]}; listdoc returns
-{"toolname":...,"doclist":[...]}.
+{"toolname":...,"doclist":[...]}; enable returns
+{"added_tools":[...],"count":...}; disable returns
+{"removed_tools":[...],"count":...}.
 On failure: {"error": <reason>}; when the user rejects the approval
 request of "enable" or "disable": {"rejected": <reason>}.
 
