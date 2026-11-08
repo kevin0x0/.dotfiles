@@ -7,8 +7,9 @@ covers the operations; this document explains the interface details.
 
 A hookable event is a lowercase dot-separated name (e.g.
 "state.read-loop.enter"). A hook can only be attached to an installed
-event; "create" requires the event to be installed, while "list",
-"remove" and "hook-dump" only validate the name syntactically.
+event; "create" requires the event to be installed (a namespace can
+not hold a hook), while "list", "remove" and "hook-dump" only validate
+the name syntactically.
 
 The events form a namespace tree: entries ending with "." are
 namespaces and other entries are events. An event or namespace entry
@@ -22,7 +23,8 @@ entry>", e.g. "builtin.state./STATES.md". "list-docs" collects the
 documents of the given entry (an event or a namespace) and of all its
 ancestors; the optional "pattern" is an ERE filtering the paths.
 "doc" reads the documents at the given paths; paths that do not exist
-are silently omitted.
+are silently omitted. An entry that is not installed is an error
+("entry not installed").
 
 # Hooks
 
@@ -33,11 +35,14 @@ are silently omitted.
   including the type suffix: removing "notify.always" as
   "notify.oneshot" fails.
 - "hook-dump" writes the hook's script content to "output_file", which
-  must not exist yet; the hook's location is never revealed.
-- A hook is a POSIX sh script run by the session. It runs synchronously:
-  the session waits for it to finish, so keep hooks short.
-- Several hooks on the same event run one after another, never
-  concurrently; their relative order is unspecified.
+  must not exist yet; the hook's location is never revealed. For a
+  "symlink" hook, the content of the file it links to is dumped.
+- A hook is a POSIX sh script run by the session. It runs synchronously
+  and has no timeout: the session waits for it to finish, so keep
+  hooks short.
+- Hooks never run concurrently: the session runs them one at a time,
+  event by event. The relative order of several hooks on the same
+  event is unspecified.
 - The hook inherits the session's execution environment and working
   directory; some sensitive variables are unset before it runs. It
   receives no arguments.
@@ -46,13 +51,17 @@ are silently omitted.
   llmcc_hook_log is the logging function.
 - Its standard output goes to the user's terminal; it is not seen by
   the model. Its standard error is appended to the hook log; each
-  line is prefixed with "[<event>/<hook name>] ".
-- llmcc_hook_log <level> <message>... appends "[<level>] <time>:
+  line is prefixed with "[<event>/<hook name>] " (the full hook name,
+  including the type suffix).
+- llmcc_hook_log <level> <message>... writes "[<level>] <time>:
   <message>" lines to the hook log, one per line of a multi-line
-  message. <level> is any word; INFO and ERROR are conventional.
+  message. <level> is any word; INFO and ERROR are conventional. These
+  are standard error lines, so each also gets the "[<event>/<hook
+  name>] " prefix.
 - When the document of the relevant event describes the execution
   environment explicitly, that description takes precedence.
-- Hooks exist only within the current session.
+- Hooks exist only within the current session; there is no limit on
+  the number of hooks.
 
 # Hook log
 
@@ -62,7 +71,8 @@ are silently omitted.
   "pattern" is an ERE matched against the "[<event>/<hook name>]" line
   prefix; all lines are dumped when it is omitted. "output_file" must
   not exist yet; no matching lines produce an empty dump, not an error.
-- The log grows with each hook run; read the dump with tail or grep.
+- The log grows with each hook run and has no size limit; read the
+  dump with tail or grep.
 
 # Operations
 
@@ -105,6 +115,9 @@ No installed hook:
 
 ## list-events
 
+- "event" is an ERE matching the full listed names, including the
+  trailing "." of namespaces.
+
 Fields: "events" (the matching events and namespaces, each with "name"
 and a "summary" when "with_summary" is true).
 
@@ -144,6 +157,8 @@ All requested documents missing:
 
 ## hook-dump
 
+- "output_file" must not exist yet; its directory must exist.
+
 Fields: "dump" ("path": the file the script was written to, "count":
 its line count).
 
@@ -152,6 +167,8 @@ For {"operation":"hook-dump","event":"builtin.state.read-loop.enter","name":"not
     {"dump":{"path":"/tmp/hook.sh","count":2}}
 
 ## log-dump
+
+- "output_file" must not exist yet; its directory must exist.
 
 For {"operation":"log-dump","pattern":"^\\[builtin\\.state\\.agent-loop-end\\.","output_file":"/tmp/hook.log"}:
 
@@ -164,8 +181,10 @@ No matching line:
 # Edge cases
 
 - Creating a hook with a name that already exists fails
-  ("hook already exists") unless "append" is true.
-- "append" requires "name" and can not be used with mode "symlink".
+  ("hook already exists") unless "append" is true; with "append", a
+  hook that does not exist yet is created.
+- "append" requires "name" and can not be used with mode "symlink"; in
+  "copy" mode, "append" appends the source file's content.
 - In "copy" and "symlink" modes, the source pathname is resolved
   relative to the working directory of the session.
 - A hook name can not contain "/", more than one dot, or empty parts; a

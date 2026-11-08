@@ -15,7 +15,8 @@ description.
 
 # Operations
 
-- "create": create a hook for "event". Requires "source". "mode" selects
+- "create": create a hook for an event (not a namespace). Requires
+  "source". "mode" selects
   how the hook content is provided: "command" (source is the script
   text), "copy" (source is a file whose content is copied: a snapshot
   taken at creation time), "symlink" (source is a file the hook links
@@ -30,11 +31,13 @@ description.
 - "list": list the hooks currently installed in the session. "event" can
   be a glob filtering the list (it matches "event/name.type" paths).
 - "list-events": list the installed events and namespaces (namespace
-  names end with "."). "event" can be an ERE filtering the list;
-  "with_summary" adds each item's summary.
+  names end with "."). "event" can be an ERE matching the full listed
+  names (including the trailing "." of namespaces); "with_summary" adds
+  each item's summary.
 - "list-docs": list the documents of an entry (an event or a namespace)
   and of its ancestors. Requires "event" (the entry name); "pattern"
-  can be an ERE filtering the document paths.
+  can be an ERE filtering the document paths. An entry that is not
+  installed is an error.
 - "doc": read documents. "docpaths" lists the document paths; documents
   that do not exist are silently omitted.
 - "hook-dump": write the hook's script content to the file named by
