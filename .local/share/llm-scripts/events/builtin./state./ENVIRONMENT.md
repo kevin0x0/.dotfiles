@@ -5,7 +5,8 @@ subshell of it: changes to shell variables do not affect the session.
 The only ways a hook affects the session are its output and the input
 channel below. Its standard output goes to the user's terminal; its
 standard error is appended to the hook log. Some sensitive variables
-are unset before the hook runs.
+are unset before the hook runs; the documented symbols below and the
+symbols they depend on are not.
 
 ## Names
 
