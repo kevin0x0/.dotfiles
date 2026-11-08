@@ -1,1 +1,1 @@
-Manage session state hooks: scripts that run when the chat session enters or leaves a state.
+Manage session hooks: scripts that run on session events.
