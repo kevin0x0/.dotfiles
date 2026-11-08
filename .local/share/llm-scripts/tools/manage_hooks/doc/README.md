@@ -9,7 +9,7 @@ A hookable event is a lowercase dot-separated name (e.g.
 "state.read-loop.enter"). Events are installed in the llm-scripts
 events directory (in the config and data dirs, config takes priority);
 "create" requires the event to be installed, while "list", "remove" and
-"path" only validate the name syntactically.
+"hook-dump" only validate the name syntactically.
 
 The events directory is a namespace tree: entries ending with "." are
 namespaces, other entries are events, and consecutive segments of an
@@ -42,8 +42,11 @@ are silently omitted.
 - A hook name has the form "<name>.<type>" with exactly one dot: the
   type suffix selects the run policy. "oneshot" runs once and is then
   removed; other types run every time.
-- "remove" and "path" identify the hook by its full name, including the
-  type suffix: removing "notify.always" as "notify.oneshot" fails.
+- "remove" and "hook-dump" identify the hook by its full name,
+  including the type suffix: removing "notify.always" as
+  "notify.oneshot" fails.
+- "hook-dump" writes the hook's script content to "output_file", which
+  must not exist yet; the hook's location is never revealed.
 - A hook is a POSIX sh script run by the session. It runs synchronously:
   the session waits for it to finish, so keep hooks short.
 - The hook inherits the session's execution environment and working

@@ -54,8 +54,8 @@ try (
     ("" | print_strings, " | ",
       render_withflags("operation";
         "-A doc -S " + ($docpaths_arg | @sh)))
-  elif .operation == "path" then
-    ("" | print_strings, " | ", render_withflags("operation"; "-A path -S " + ($summary | @sh)))
+  elif .operation == "hook-dump" then
+    ("" | print_strings, " | ", render_withflags("operation"; "-A hook-dump -S " + ($summary | @sh)))
   elif .operation == "log-dump" then
     ("" | print_strings, " | ",
       render_withflags("operation";

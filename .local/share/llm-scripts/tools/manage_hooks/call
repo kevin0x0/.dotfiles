@@ -28,9 +28,9 @@ cat >"$argfile"
 
 op=$(jq -j '.operation // ""' <"$argfile")
 case $op in
-  create|remove|list|list-events|list-docs|doc|path|log-dump) ;;
+  create|remove|list|list-events|list-docs|doc|hook-dump|log-dump) ;;
   *)
-    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, list, list-events, list-docs, doc, path or log-dump"}'
+    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, list, list-events, list-docs, doc, hook-dump or log-dump"}'
     exit 0
     ;;
 esac
@@ -80,7 +80,7 @@ source=$(jq -j '.source // ""' <"$argfile")
 name=$(jq -j '.name // ""' <"$argfile")
 jq -r '.docpaths // empty | if type != "array" then [.] end | .[]' <"$argfile" >"$docpaths"
 
-set -- -jd "$2" "$op"
+set -- -jP -d "$2" "$op"
 
 case $op in
   create)
@@ -106,8 +106,15 @@ case $op in
     set -- "$@" -- "$source"
     [ -n "$name" ] && set -- "$@" "$name"
     ;;
-  remove|path)
+  remove)
     set -- "$@" -- "$event" "$name"
+    ;;
+  hook-dump)
+    if [ -z "$output_file" ]; then
+      llm-make-mcontent -t -- '{"error":"bad argument: output_file is not given or is empty"}'
+      exit 0
+    fi
+    set -- "$@" -- "$event" "$name" "$output_file"
     ;;
   list)
     [ -n "$event" ] && set -- "$@" -- "$event"

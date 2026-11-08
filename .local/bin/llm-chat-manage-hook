@@ -15,7 +15,7 @@ subcommands:
   list-events  [-s] [<ERE>...]
   list-docs    <name> [<ERE>...]
   doc          <path>...
-  path         <event> <name>.<type>
+  hook-dump    <event> <name>.<type> <output-file>
   log-dump     [<ERE>...] <output-file>
 
 options:
@@ -24,6 +24,7 @@ options:
   -a             append to the existing hook instead of failing
   -c             treat the hook content argument as the command itself
   -j             print results as a single JSON object
+  -P             omit internal pathnames from JSON results
   -h             print this help
 
 A hook name has the form <name>.<type>; the type suffix selects the run
@@ -37,10 +38,12 @@ EOF
 
 opt_state_dir=
 opt_json=
-while getopts "d:jh" opt; do
+opt_no_path=
+while getopts "d:hjP" opt; do
   case $opt in
     d) opt_state_dir=$OPTARG ;;
     j) opt_json=1 ;;
+    P) opt_no_path=1 ;;
     h) usage; exit 0 ;;
     \?) exit 2 ;;
   esac
@@ -51,7 +54,7 @@ subcommand=$1
 shift
 
 case $subcommand in
-  create|remove|list|list-events|list-docs|doc|path|log-dump) ;;
+  create|remove|list|list-events|list-docs|doc|hook-dump|log-dump) ;;
   *)
     printf "unsupported subcommand: %s\n" "$subcommand" >&2
     usage >&2
@@ -62,6 +65,17 @@ esac
 validate_statedir() {
   [ -n "$opt_state_dir" ] || { printf "statedir not provided (use -d)\n" >&2; return 2; }
   [ -d "$opt_state_dir" ] || { printf "'%s' is not a directory\n" "$opt_state_dir" >&2; return 2; }
+}
+
+# With -P, omit the internal pathname fields of JSON results; the
+# results of doc, hook-dump and log-dump only carry paths the caller
+# provided and are left alone.
+strip_paths() {
+  if [ -n "$opt_no_path" ]; then
+    jq -c 'del(.path) | if .hooks then .hooks |= map(del(.path)) else . end'
+  else
+    cat -u
+  fi
 }
 
 # $1 result var (the matched absolute path), $2 result var (the matched
@@ -246,7 +260,7 @@ sub_create() {
   if [ -n "$name" ]; then
     f=$d/$name
     if [ -z "$opt_append" ] && [ -e "$f" ]; then
-      printf "hook already exists: %s\n" "$f" >&2
+      printf "hook already exists: %s\n" "$event/$name" >&2
       return 1
     fi
   else
@@ -285,7 +299,7 @@ sub_create() {
       jq -cn --arg rel "$rel" --arg path "$f" '{appended:$rel,path:$path}'
     else
       jq -cn --arg rel "$rel" --arg path "$f" '{created:$rel,path:$path}'
-    fi
+    fi | strip_paths
   else
     printf "%s hook at: %s\n" "$action" "$f"
   fi
@@ -306,13 +320,13 @@ sub_remove() {
 
   f=$llmcc_hooks_dir/$event/$name
   if [ ! -e "$f" ]; then
-    printf "hook doesn't exist: %s\n" "$f" >&2
+    printf "hook doesn't exist: %s\n" "$event/$name" >&2
     return 1
   fi
   rm -f -- "$f"
   rel=$event/$name
   if [ -n "$opt_json" ]; then
-    jq -cn --arg rel "$rel" --arg path "$f" '{removed:$rel,path:$path}'
+    jq -cn --arg rel "$rel" --arg path "$f" '{removed:$rel,path:$path}' | strip_paths
   else
     printf "removed hook: %s\n" "$f"
   fi
@@ -329,7 +343,8 @@ sub_list() {
   if [ -d "$llmcc_hooks_dir" ]; then
     if [ -n "$opt_json" ]; then
       list_hooks "$@" | jq -Rsc --arg hooks_dir "$llmcc_hooks_dir" \
-        'split("\n") | map(select(. != "") | {rel:., path: ($hooks_dir + "/" + .)}) | {hooks:.}'
+        'split("\n") | map(select(. != "") | {rel:., path: ($hooks_dir + "/" + .)}) | {hooks:.}' \
+        | strip_paths
     else
       list_hooks "$@"
     fi
@@ -566,24 +581,37 @@ sub_doc() {
       }
 }
 
-sub_path() {
+# Dump a hook's script content into a new file, so the hook's
+# location is never revealed.
+sub_hook_dump() {
   [ "$1" = "--" ] && shift
-  [ "$#" -eq 2 ] || { printf "hook name not provided\n" >&2; return 2; }
+  [ "$#" -eq 3 ] || { printf "output file not provided\n" >&2; return 2; }
   validate_statedir || return
   . llm-chat-common
   llmcc_set_public_files_var "$opt_state_dir"
 
   event=$1
   name=$2
+  output_file=$3
   validate_event "$event" || return
   validate_name "$name" || return
 
   f=$llmcc_hooks_dir/$event/$name
-  [ -e "$f" ] || { printf "hook doesn't exist: %s\n" "$f" >&2; return 1; }
+  [ -e "$f" ] || { printf "hook doesn't exist: %s\n" "$event/$name" >&2; return 1; }
+  if [ -e "$output_file" ]; then
+    printf "file exists: %s\n" "$output_file" >&2
+    return 1
+  fi
+
+  cp -- "$f" "$output_file" || return 1
+
+  count=$(wc -l <"$output_file")
+  count=${count##* }
   if [ -n "$opt_json" ]; then
-    jq -cn --arg path "$f" '{path:$path}'
+    jq -cn --arg path "$output_file" --argjson count "$count" \
+      '{dump:{path:$path,count:$count}}'
   else
-    printf "%s\n" "$f"
+    printf "dumped %s lines to: %s\n" "$count" "$output_file"
   fi
 }
 
@@ -638,6 +666,6 @@ case $subcommand in
   list-events) sub_list_events "$@" ;;
   list-docs)   sub_list_docs "$@" ;;
   doc)         sub_doc "$@" ;;
-  path)        sub_path "$@" ;;
+  hook-dump)   sub_hook_dump "$@" ;;
   log-dump)    sub_log_dump "$@" ;;
 esac
