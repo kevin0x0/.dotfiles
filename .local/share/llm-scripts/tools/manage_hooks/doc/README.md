@@ -183,8 +183,9 @@ No matching line:
 - Creating a hook with a name that already exists fails
   ("hook already exists") unless "append" is true; with "append", a
   hook that does not exist yet is created.
-- "append" requires "name" and can not be used with mode "symlink"; in
-  "copy" mode, "append" appends the source file's content.
+- "append" requires "name" and can not be used with mode "symlink", nor
+  on a hook installed as a symlink; in "copy" mode, "append" appends
+  the source file's content.
 - In "copy" and "symlink" modes, the source pathname is resolved
   relative to the working directory of the session.
 - A hook name can not contain "/", more than one dot, or empty parts; a
