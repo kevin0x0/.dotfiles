@@ -171,23 +171,6 @@ if [ -z "$opt_repl_reader" ]; then
   fi'
 fi
 
-llmcu_eval_api_key
-
-if [ -z "$opt_api_key" ]; then
-  i18n -n llm-scripts 'API key not provided' >&2
-  exit 1
-fi
-
-if [ -z "$opt_responses_base_url" ]; then
-  i18n -n llm-scripts 'base URL not provided' >&2
-  exit 1
-fi
-
-if [ -z "$opt_model" ]; then
-  i18n -n llm-scripts 'model not provided' >&2
-  exit 1
-fi
-
 case $opt_color in
   auto)
     [ -t 1 ] && opt_color_ansi=1 || opt_color_ansi=
@@ -201,6 +184,23 @@ case $opt_color in
 esac
 
 shift "$((OPTIND - 1))"
+
+check_required_options() {
+  if [ -z "$opt_api_key" ]; then
+    i18n -n llm-scripts 'API key not provided' >&2
+    exit 1
+  fi
+
+  if [ -z "$opt_responses_base_url" ]; then
+    i18n -n llm-scripts 'base URL not provided' >&2
+    exit 1
+  fi
+
+  if [ -z "$opt_model" ]; then
+    i18n -n llm-scripts 'model not provided' >&2
+    exit 1
+  fi
+}
 
 file_input() {
   is_image=
@@ -798,6 +798,9 @@ if [ -n "$opt_session" ] && [ -e "$opt_session" ]; then
 else
   state_init
 fi
+
+llmcu_eval_api_key
+check_required_options
 
 pending_input=
 for cmdline_input; do
