@@ -15,7 +15,7 @@
     },
     "pattern": {
       "type": "string",
-      "description": "Space separated glob pattern list. Optional for describe, where it matches tool names or tree paths (nothing is described when omitted); optional for list, where patterns without \"/\" match tool names and patterns containing \"/\" match paths in the tool tree (e.g. \"builtin/*\"; the extra tool set is listed when omitted); optional for listdoc, where it matches document paths (all documents when omitted). Required for enable and disable, where it matches tool names or tree paths."
+      "description": "Space separated glob pattern list. Optional for describe, list and listdoc; required for enable and disable. The matching semantics are in the tool description."
     },
     "toolname": {
       "type": "string",
