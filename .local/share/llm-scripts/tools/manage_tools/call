@@ -78,7 +78,7 @@ if [ "$op" = enable ] || [ "$op" = disable ]; then
   esac
 fi
 
-ignore_extra_set=$(jq -j '(.ignore_extra_set and true) or false' <"$argfile")
+whole_catalog=$(jq -j '(.whole_catalog and true) or false' <"$argfile")
 with_summary=$(jq -j '(.with_summary and true) or false' <"$argfile")
 name=$(jq -j '.toolname // "" | tostring' <"$argfile")
 jq -r '.docpaths // empty | if type != "array" then [.] end | .[]' <"$argfile" >"$docpaths"
@@ -86,10 +86,16 @@ start_index=$(jq -j '.start_index | select(type == "number")' <"$argfile")
 count=$(jq -j '.count | select(type == "number")' <"$argfile")
 
 case $start_index in
-  *[!0123456789]*|'') start_index=0 ;;
+  '') start_index=0 ;;
+  *[!0123456789]*)
+    error "bad argument: start_index must be a non-negative integer"
+    ;;
 esac
 case $count in
-  *[!0123456789]*|'') count=20 ;;
+  '') count=20 ;;
+  *[!0123456789]*)
+    error "bad argument: count must be a non-negative integer"
+    ;;
 esac
 
 set -- -jd "$statedir" "$op"
@@ -103,7 +109,7 @@ case $op in
   list)
     set -- "$@" -i "$start_index" -c "$count"
     [ "$with_summary" = true ] && set -- "$@" -s
-    if [ "$ignore_extra_set" = true ]; then
+    if [ "$whole_catalog" = true ]; then
       set -- "$@" -E
     fi
     [ -n "$pattern" ] && set -- "$@" -- "$pattern"
