@@ -263,6 +263,10 @@ sub_create() {
       printf "hook already exists: %s\n" "$event/$name" >&2
       return 1
     fi
+    if [ -n "$opt_append" ] && [ -L "$f" ]; then
+      printf "can not append to a symlink hook: %s\n" "$event/$name" >&2
+      return 1
+    fi
   else
     # llm-chat and this script never touch hooks concurrently
     name=unnamed-$$.$type
