@@ -27,8 +27,10 @@ The tools of a session form three sets:
 - "list": list the tools of the extra tool set matching "pattern" (all
   of them when "pattern" is omitted); set "ignore_extra_set" to list
   the whole catalog instead, including tools that are not available in
-  this session. "with_summary" adds each tool's short summary;
-  "start_index" and "count" select a page of the result.
+  this session. Do not set "ignore_extra_set" on your own unless the
+  user asks for it or the user's request needs it. "with_summary" adds
+  each tool's short summary; "start_index" and "count" select a page
+  of the result.
 - "doc": read documents of a tool. Requires "toolname"; "docpaths"
   selects the documents to read (defaults to "README.md"; several
   documents can be read in one call). Documents that do not exist are
