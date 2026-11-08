@@ -49,6 +49,8 @@ are silently omitted.
 - The hook inherits the session's execution environment and working
   directory; some sensitive variables are unset before it runs. It
   receives no arguments.
+- Two variables describe the run to the hook: llmcc_event holds the
+  event name, llmcc_hook_script the hook's own pathname.
 - When the document of the relevant event describes the execution
   environment explicitly, that description takes precedence.
 - Its output goes to the user's terminal; it is not seen by the model.
