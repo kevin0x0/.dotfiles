@@ -1,29 +1,10 @@
 # enable / disable
 
 The operations "enable" and "disable" adjust the session's extra tool
-set. They are listed in the tool schema like the other operations.
+set.
 
 Unless the user explicitly asks for it, do not use these operations,
 and do not consider using them.
-
-# Operations
-
-- "enable": add the tools matching "pattern" to the session's extra
-  tool set. Requires "pattern".
-- "disable": remove the tools matching "pattern" from the session's
-  extra tool set. Requires "pattern".
-
-# Patterns
-
-"pattern" is a space separated glob pattern list. Patterns without "/"
-match tool names; patterns containing "/" match paths in the tool tree.
-A word starting with "@" names a tool preset.
-
-# Approval
-
-Both operations require approval on the controlling terminal; in
-non-interactive sessions they are rejected unless automatic approval is
-configured.
 
 # Returns
 
@@ -52,5 +33,3 @@ Ignored tools (do not exist, or the operation has no effect on them):
 - The default tool set is not affected by enable or disable.
 - After enabling a tool, use "describe" to retrieve its full signature
   when the session loads extra tools as stubs.
-- Run "enable" and "disable" one at a time: they change the extra tool
-  set.

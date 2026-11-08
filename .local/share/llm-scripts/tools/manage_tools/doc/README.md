@@ -1,48 +1,18 @@
 # manage_tools
 
 Supplementary reference for managing the session tool sets and
-exploring the tool system. The tool description covers the operations;
-this document explains the interface details and shows example
-results.
-
-# Tool sets
-
-- The default tool set is loaded with full signatures when the session
-  starts. It is configured by the user at session start and is usually
-  small. No operation lists it on its own: its tools are already
-  visible to you with their full signatures.
-- The extra tool set is loaded with stub signatures: each tool has a
-  placeholder description (such as "[deferred]") and empty parameters,
-  which do not describe the tool. Call "describe" to retrieve the full
-  signature of an extra-set tool before calling it.
-- The enabled tool set is the union of the two, and is exactly the set
-  of tools visible to you in the session: every tool you can see in
-  your tool list is in either the default or the extra tool set, and a
-  tool that is not in your tool list is in neither of them and can not
-  be called, no matter what "list" reports. "list" with
-  "whole_catalog" can list the whole catalog, including tools that
-  are not available in this session. Do not set "whole_catalog" on
-  your own unless the user asks for it or the user's request needs it.
-  Unless the user asks, do not consider operating on tools outside the
-  extra tool set. The "enable" and "disable" operations adjust the
-  extra tool set; do not use them, and do not consider using them,
-  unless the user explicitly asks; see "enable-disable.md".
+exploring the tool system. The tool description covers the operations
+and the tool sets; this document explains the interface details and
+shows example results.
 
 # Operations
 
 The examples pair a call with the result it returns; the tool names in
-them are fictitious. Empty results are usually empty lists. The
-read-only operations (describe, list, doc, listdoc) can be issued in
-parallel; "enable" and "disable" change the extra tool set and must
-run one at a time.
+them are fictitious. Empty results are usually empty lists.
 
 ## describe
 
-- Scope: always the extra tool set only ("whole_catalog" does not
-  apply to "describe"), filtered by "pattern", which matches tool
-  names or paths in the tool tree (see Patterns); with no "pattern",
-  nothing is described. Tools outside the extra tool set can not be
-  described directly.
+- Tools outside the extra tool set can not be described directly.
 - A stub signature has a placeholder description (such as
   "[deferred]") and empty parameters. When a tool's description looks
   like a placeholder rather than a description of the tool, retrieve
@@ -74,11 +44,7 @@ A tool without a parameters schema:
 
 ## list
 
-- Default: the extra tool set; without "pattern", all of its tools are
-  listed. With "whole_catalog": the whole catalog, including tools
-  not available in this session (see the caution in Tool sets).
-- "pattern" filters the listed tools; "with_summary" adds each tool's
-  short summary. Paging: see Pagination.
+- Paging: see Pagination.
 
 Fields: "list" (the entries of this page; each entry has a "name" or a
 "path", plus a "summary" when requested), "total" (the number of all
@@ -108,18 +74,7 @@ No matching tool, or an empty extra tool set:
 
 ## doc
 
-- "toolname" names the tool. "docpaths" lists the documents to read:
-  paths relative to the tool's doc directory, "README.md" by default;
-  several documents can be read in one call.
-- The paths are literal: glob patterns are not expanded. The docpaths
-  to pass are the file paths reported by "listdoc" (not its directory
-  entries).
-- Documents that do not exist are silently omitted; the result lists
-  only the found ones. Paths naming a directory are silently omitted
-  as well. A "toolname" that names no installed tool is silently
-  ignored too: the result is then an empty list, not an error.
-- The documents of a tool are organized freely; by convention
-  "README.md" is the main entry point.
+- Paths naming a directory are silently omitted as well.
 
 Fields: "toolname" (the named tool), "docs" (the found documents; each
 entry has "docpath" and "content").
@@ -137,15 +92,9 @@ All requested documents missing:
 
 ## listdoc
 
-- "toolname" names the tool. The documents of a tool live in a
-  directory of their own; the listed paths are relative to that
-  directory. "pattern" filters them with globs following the
-  semantics of POSIX pathname expansion; without it, all documents
-  are listed.
-- Directory entries are listed with a trailing "/"; the list is sorted
-  and deduplicated.
-- A "toolname" that names no installed tool is silently ignored: the
-  result is an empty list, not an error.
+- The documents of a tool live in a directory of their own; the listed
+  paths are relative to that directory.
+- The list is sorted and deduplicated.
 
 Fields: "toolname" (the named tool), "doclist" (the listed document
 paths).
@@ -160,27 +109,16 @@ A tool without documents, or no matching document:
 
 ## enable / disable
 
-They adjust the session's extra tool set and require approval. Do not
-use them, and do not consider using them, unless the user explicitly
-asks; see "enable-disable.md" for their interface and result
-examples. Run them one at a time.
+See "enable-disable.md" for their interface and result examples.
 
 # Patterns
 
-"pattern" is a space separated list of glob patterns; an entry matches
-when it matches any of them. Patterns without "/" match tool names of
-the extra tool set (of the whole catalog when "whole_catalog" is set);
-patterns containing "/" match paths in the tool tree (tree mode). Glob
-matching fully supports the semantics of POSIX pathname expansion;
-non-POSIX extensions such as "**" are not supported. A pattern that is
-only whitespace matches nothing. A word starting
-with "@" expands a tool preset in place: a named list of patterns
-stored by the user; a preset name that does not exist is ignored (it
-matches nothing).
-Presets are referenced by name in patterns; they can not be enumerated
-with this tool. The preset names come mainly from the user, or from
-other tools that expose them. When you do not know of any preset, do
-not worry about presets: there is nothing to do with them.
+The pattern semantics are in the tool description. A pattern that is
+only whitespace matches nothing. Presets are referenced by name in
+patterns; they can not be enumerated with this tool. The preset names
+come mainly from the user, or from other tools that expose them. When
+you do not know of any preset, do not worry about presets: there is
+nothing to do with them.
 
 Recipes:
 
@@ -198,12 +136,6 @@ Recipes:
 - "shell"       the exact tool name
 - "*"           all tools (name mode)
 - "@default"    the tools of a named preset; can be mixed with other words
-
-In tree mode, entries are paths: the last segment of a file entry is the
-tool name, and directory entries are categories and end with "/". A
-pattern ending with "/" matches only directories; otherwise files and
-directories are matched alike. A file directly under the tree root is a
-general-purpose tool that belongs to no category.
 
 # Pagination
 
@@ -227,10 +159,5 @@ result is large.
   performed), the result is {"error":"<reason>"}, e.g. from "enable" or
   "disable" without a "pattern":
   {"error":"bad argument: pattern is not given or is empty"}.
-- When the user rejects the approval request of "enable" or "disable",
-  the result is {"rejected":"<reason>"}. No other operation asks for
-  approval, and no other operation returns "rejected".
-- Parameters that do not apply to the requested operation are silently
-  ignored.
 - Glob patterns can not match dot-prefixed (hidden) names; such
   patterns are rejected.
