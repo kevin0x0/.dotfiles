@@ -646,6 +646,10 @@ build_env_and_run_hook() {
     trap - INT
     . -- "$1"
   )
+  exitcode=$?
+  if [ "$exitcode" -ne 0 ]; then
+    llmcc_hook_log ERROR "exited with status $exitcode"
+  fi
 
   if [ -s "$llm_chat_hook_input" ]; then
     hook_input=
