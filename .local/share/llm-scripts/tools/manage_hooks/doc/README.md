@@ -22,9 +22,10 @@ A document path has the form "<entry name>/<doc path relative to the
 entry>", e.g. "builtin.state./STATES.md". "list-docs" collects the
 documents of the given entry (an event or a namespace) and of all its
 ancestors; the optional "pattern" is an ERE filtering the paths.
-"doc" reads the documents at the given paths; paths that do not exist
-are silently omitted. An entry that is not installed is an error
-("entry not installed").
+"doc" reads the documents at the given paths; paths that do not exist,
+and paths whose entry is not installed, are silently omitted.
+"list-docs" requires the entry to be installed; an uninstalled entry
+is an error ("entry not installed").
 
 # Hooks
 
@@ -149,6 +150,9 @@ An entry without documents:
     {"entry":"builtin.state.read-loop.","doclist":[]}
 
 ## doc
+
+- "docpaths" must name at least one document; an empty list is an
+  error.
 
 Fields: "docs" (the found documents, each with "path" and "content").
 

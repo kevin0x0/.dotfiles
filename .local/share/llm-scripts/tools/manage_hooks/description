@@ -29,7 +29,7 @@ description.
   name of the form ".<type>" uses an auto-generated name with the
   given type).
   "append" (requires "name") appends to the existing hook instead of
-  failing.
+  failing. The result reports the hook as "event/base.type".
 - "remove": remove a hook. Requires "event" and "name" (with the exact
   type suffix of the installed hook).
 - "list": list the hooks currently installed in the session. "pattern"
@@ -43,8 +43,9 @@ description.
   and of its ancestors. Requires "event" (the entry name); "pattern"
   can be an ERE filtering the document paths. An entry that is not
   installed is an error.
-- "doc": read documents. "docpaths" lists the document paths; documents
-  that do not exist are silently omitted.
+- "doc": read documents. "docpaths" lists the document paths (at least
+  one is required; an empty list is an error); documents that do not
+  exist, and paths whose entry is not installed, are silently omitted.
 - "hook-dump": write the hook's script content to the file named by
   "output_file", which must not exist yet. Requires "event", "name"
   and "output_file".
@@ -82,7 +83,9 @@ On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 
 Use this tool to install scripts that run automatically on session
 events (for example desktop notifications or log appends), not to run
-commands directly; use the shell tool for that. A hook's standard
+commands directly; use the shell tool for that. Use "list-events" to
+discover the installed events, and "list-docs" or "doc" to read their
+documents. A hook's standard
 output goes to the user's terminal, not to the model; its standard
 error is appended to the hook log, which "log-dump" can filter into a
 file. The hook log can grow; read the dump with tail or grep.

@@ -36,14 +36,14 @@
       "anyOf": [
         {
           "type": "string",
-          "description": "Document path in the form \"<entry name>/<doc path relative to the entry>\". Optional for doc."
+          "description": "Document path in the form \"<entry name>/<doc path relative to the entry>\". Required for doc."
         },
         {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Document path list. Optional for doc."
+          "description": "Document path list. Required for doc; an empty list is an error."
         }
       ]
     },
