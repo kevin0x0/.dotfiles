@@ -167,7 +167,8 @@ validate_name() {
   esac
 }
 
-# Print matching hooks as relative paths (event/name.type).
+# Print matching hooks as "kind<TAB>relative path" lines (kind is
+# "regular" or "symlink"; the path is event/name.type).
 list_hooks() {
   find "$llmcc_hooks_dir/" \( -type f -o -type l \) -print0 \
     | jq --arg prefix "$llmcc_hooks_dir/" \
@@ -176,7 +177,14 @@ list_hooks() {
         while IFS= read -r line; do
           for pattern; do
             case $line in
-              $pattern) printf "%s\n" "$line"; break ;;
+              $pattern)
+                if [ -L "$llmcc_hooks_dir/$line" ]; then
+                  printf "symlink\t%s\n" "$line"
+                else
+                  printf "regular\t%s\n" "$line"
+                fi
+                break
+                ;;
             esac
           done
         done
@@ -346,8 +354,9 @@ sub_list() {
 
   if [ -d "$llmcc_hooks_dir" ]; then
     if [ -n "$opt_json" ]; then
-      list_hooks "$@" | jq -Rsc --arg hooks_dir "$llmcc_hooks_dir" \
-        'split("\n") | map(select(. != "") | {rel:., path: ($hooks_dir + "/" + .)}) | {hooks:.}' \
+      list_hooks "$@" | jq -Rsc \
+        'split("\n") | map(select(. != "") | split("\t") |
+           {kind:.[0], rel:.[1]}) | {hooks:.}' \
         | strip_paths
     else
       list_hooks "$@"
