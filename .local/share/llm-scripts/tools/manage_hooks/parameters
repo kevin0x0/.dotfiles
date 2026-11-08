@@ -3,12 +3,21 @@
   "properties": {
     "operation": {
       "type": "string",
-      "enum": ["create", "remove", "list", "list-events", "list-docs", "doc", "hook-dump", "log-dump"],
+      "enum": [
+        "create",
+        "remove",
+        "list",
+        "list-events",
+        "list-docs",
+        "doc",
+        "hook-dump",
+        "log-dump"
+      ],
       "description": "The operation to perform."
     },
     "event": {
       "type": "string",
-      "description": "Hookable event the hook is attached to. Required for create, remove, hook-dump and list-docs (must be installed; for list-docs it can also be a namespace); optional for list, where a glob filters the listed hooks, and for list-events, where an ERE filters the listed events."
+      "description": "Hookable event the hook is attached to. Required for create, remove, hook-dump and list-docs (must be installed; for list-docs it can also be a namespace); optional for list, where a glob filters the listed hooks, and for list-events, where an ERE matches the full listed names."
     },
     "pattern": {
       "type": "string",
@@ -16,7 +25,7 @@
     },
     "output_file": {
       "type": "string",
-      "description": "Only for hook-dump and log-dump: the pathname of the file to write the result to. The file must not exist yet."
+      "description": "Only for hook-dump and log-dump: the pathname of the file to write the result to. The file must not exist yet; its directory must exist."
     },
     "name": {
       "type": "string",
@@ -30,7 +39,9 @@
         },
         {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Document path list. Optional for doc."
         }
       ]
@@ -45,7 +56,11 @@
     },
     "mode": {
       "type": "string",
-      "enum": ["command", "copy", "symlink"],
+      "enum": [
+        "command",
+        "copy",
+        "symlink"
+      ],
       "description": "command: source is the shell script text. copy: copy the file content. symlink: link the hook to the file. Defaults to command."
     },
     "append": {
@@ -53,5 +68,7 @@
       "description": "Only for create: append to the existing hook with the same name instead of failing. Cannot be used with mode=symlink."
     }
   },
-  "required": ["operation"]
+  "required": [
+    "operation"
+  ]
 }
