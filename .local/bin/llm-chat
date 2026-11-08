@@ -326,10 +326,10 @@ dispatch_command() {
       fi
       case $1 in
         agent-loop-api-call|agent-loop-tool-call)
-          next_state=$1
+          llm_chat_next_state=$1
           ;;
         *)
-          next_state=$last_error_state
+          llm_chat_next_state=$last_error_state
           ;;
       esac
       last_error_state=
@@ -559,7 +559,7 @@ read_loop() {
         : >"$this_turn"
         ;;
       break)
-        next_state=end
+        llm_chat_next_state=end
         break
         ;;
       retry)
@@ -571,7 +571,7 @@ read_loop() {
             | tee -a "$this_turn" | llm-render-events | dispatch_render_event "$render_event_fifo"
         fi
         if [ "$input_end_action" = go ]; then
-          next_state=agent-loop-api-call
+          llm_chat_next_state=agent-loop-api-call
           break
         fi
         ;;
@@ -579,7 +579,7 @@ read_loop() {
   done
 }
 
-generate_tool_list() {
+llm_chat_gen_tool_list() {
   llm-expand-toolspec -- "$opt_default_tools" >"$llmcc_default_tool_name_list"
   if [ -z "$opt_extra_tools_defer_loading" ]; then
     llmcc_generate_tool_list
@@ -603,14 +603,62 @@ generate_tool_list() {
   esac
 }
 
-unset_vars_and_run_hook() {
-  unset -v opt_api_key opt_api_key_cmd
-  trap - INT
-  . -- "$1"
+llm_chat_add_input_content() {
+  case $1 in
+    text|image|file|text-from-file|text-from-command)
+      printf "@%s " "$1"
+      ;;
+    *)
+      printf "unknown content type: %s\n" "$1" >&2
+      return 2
+      ;;
+  esac
+  shift
+  shell-escape -- "$@"
+  echo
+} >>"$llm_chat_hook_input"
+
+llm_chat_commit_input_content() {
+  case $1 in
+    user|developer|system|assistant|'')
+      printf "@role %s\n@add\n" "${1:-system}"
+      ;;
+    *)
+      printf "unknown role: %s\n" "$1" >&2
+      return 2
+      ;;
+  esac
+} >>"$llm_chat_hook_input"
+
+build_env_and_run_hook() {
+  llm_chat_conversation=$conversation
+  llm_chat_this_turn=$this_turn
+  llm_chat_response_output=$response_output
+  llm_chat_tool_output=$tool_output
+  llm_chat_volatile_fileids=$llmcc_volatile_fileids
+  llm_chat_persistent_fileids=$llmcc_persistent_fileids
+  llm_chat_tool_list=$llmcc_tool_list
+  llm_chat_default_tool_set=$llmcc_default_tool_name_list
+  llm_chat_extra_tool_set=$llmcc_extra_tool_name_list
+
+  (
+    unset -v opt_api_key opt_api_key_cmd
+    trap - INT
+    . -- "$1"
+  )
+
+  if [ -s "$llm_chat_hook_input" ]; then
+    hook_input=
+    while read -r line; do
+      hook_input=$hook_input$line$'\n'
+    done <"$llm_chat_hook_input"
+    : >"$llm_chat_hook_input"
+    pending_input=$hook_input$pending_input
+  fi
 }
 
 run_hooks() {
-  llmcc_run_hooks unset_vars_and_run_hook "$1"
+  llmcc_run_hooks build_env_and_run_hook "$1"
 }
 
 create_state_dir() {
@@ -702,6 +750,7 @@ render_event_fifo=$opt_state_dir/render-event-fifo
 response_input_fifo=$opt_state_dir/response-input-fifo
 response_event_output_fifo=$opt_state_dir/response-output-fifo
 tmp=$opt_state_dir/tmp
+llm_chat_hook_input=$opt_state_dir/hook-input
 # Set:
 # llmcc_volatile_fileids
 # llmcc_persistent_fileids
@@ -710,7 +759,7 @@ tmp=$opt_state_dir/tmp
 # llmcc_extra_tool_name_list
 # llmcc_hooks_dir
 llmcc_set_public_files_var "$opt_state_dir"
-generate_tool_list
+llm_chat_gen_tool_list
 mkfifo -- "$render_event_fifo" || exit
 mkfifo -- "$response_input_fifo" || exit
 mkfifo -- "$response_event_output_fifo" || exit
@@ -739,16 +788,16 @@ set -- \
 
 # REPL
 error_to() {
-  last_error_state=$state
-  next_state=$1
+  last_error_state=$llm_chat_state
+  llm_chat_next_state=$1
 }
 
 last_error_state=
-state=read-loop
-next_state=read-loop
+llm_chat_state=read-loop
+llm_chat_next_state=read-loop
 while :; do
-  run_hooks "builtin.state.$state.enter"
-  case $state in
+  run_hooks "builtin.state.$llm_chat_state.enter"
+  case $llm_chat_state in
     read-loop)
       read_loop
       ;;
@@ -759,7 +808,7 @@ while :; do
         0) # Append to input
           if [ -s "$response_output" ]; then
             llm-o2i "$response_output" >>"$this_turn"
-            next_state=agent-loop-tool-call
+            llm_chat_next_state=agent-loop-tool-call
           else
             i18n -n llm-scripts \
               'The API call exit code is 0, but the returned response output is empty.' >&2
@@ -768,7 +817,7 @@ while :; do
           ;;
         5)
           llm-o2i "$response_output" >>"$this_turn"
-          next_state=agent-loop-api-call-interrupted
+          llm_chat_next_state=agent-loop-api-call-interrupted
           ;;
         3) # response.incomplete
           echo
@@ -779,7 +828,7 @@ while :; do
                 jq -c -- 'inputs' "$response_output" >"$tmp"
                 cp -- "$tmp" "$response_output"
                 llm-o2i "$response_output" >>"$this_turn"
-                next_state=agent-loop-tool-call
+                llm_chat_next_state=agent-loop-tool-call
                 ;;
               *)
                 i18n -n llm-scripts 'response incomplete: $1' "$incomplete_reason" >&2
@@ -803,11 +852,11 @@ while :; do
       case $exitcode in
         0)
           cat -- "$tool_output" >>"$this_turn"
-          [ -s "$tool_output" ] && next_state=agent-loop-api-call || next_state=agent-loop-end
+          [ -s "$tool_output" ] && llm_chat_next_state=agent-loop-api-call || llm_chat_next_state=agent-loop-end
           ;;
         5)
           cat -- "$tool_output" >>"$this_turn"
-          next_state=agent-loop-tool-call-interrupted
+          llm_chat_next_state=agent-loop-tool-call-interrupted
           ;;
         *)
           i18n -n llm-scripts 'failed to handle tool call' >&2
@@ -823,17 +872,17 @@ while :; do
         error_to read-loop
       else
         cat -- "$tool_output" >>"$this_turn"
-        next_state=read-loop
+        llm_chat_next_state=read-loop
       fi
       ;;
     agent-loop-tool-call-interrupted)
       i18n -n llm-scripts 'interrupted' >&2
-      next_state=read-loop
+      llm_chat_next_state=read-loop
       ;;
     agent-loop-end)
       cat -- "$this_turn" >>"$conversation"
       : >"$this_turn"
-      next_state=read-loop
+      llm_chat_next_state=read-loop
       ;;
     end)
       if [ -n "$opt_session_writeback" ]; then
@@ -842,12 +891,12 @@ while :; do
       break
       ;;
     *)
-      i18n -n llm-scripts 'unknown state: $1' "$state" >&2
-      next_state=read-loop
+      i18n -n llm-scripts 'unknown state: $1' "$llm_chat_state" >&2
+      llm_chat_next_state=read-loop
       ;;
   esac
-  run_hooks "builtin.state.$state.leave"
-  state=$next_state
+  run_hooks "builtin.state.$llm_chat_state.leave"
+  llm_chat_state=$llm_chat_next_state
 done
 
 run_hooks "builtin.state.end.leave"
