@@ -17,7 +17,9 @@ explains the interface details.
   tool that is not in your tool list is in neither of them and can not
   be called, no matter what "list" reports. "list" with
   "ignore_extra_set" can list the whole catalog, including tools that
-  are not available in this session. The hidden "enable" and "disable"
+  are not available in this session. Do not set "ignore_extra_set" on
+  your own unless the user asks for it or the user's request needs it.
+  The hidden "enable" and "disable"
   operations adjust the extra tool set; see "enable-disable.md".
 
 # Patterns
