@@ -70,9 +70,9 @@ The tools of a session form three sets:
 
 # Approval
 
-"enable" and "disable" require approval on the controlling terminal; in
-non-interactive sessions they are rejected unless automatic approval is
-configured. When the approval is rejected, the result is
+"enable" and "disable" require the user's approval; in non-interactive
+sessions they are rejected unless automatic approval is configured.
+When the approval is rejected, the result is
 {"rejected": <reason>}.
 
 # Patterns

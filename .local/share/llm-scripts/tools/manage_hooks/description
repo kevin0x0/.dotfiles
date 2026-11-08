@@ -6,25 +6,22 @@ explore the installed events and their documents.
 # Events
 
 A hookable event is a lowercase dot-separated name, e.g.
-"state.read-loop.enter". Events are installed in the llm-scripts events
-directory by the framework and by third parties; "create" requires the
-event to be installed. The events directory is a namespace tree:
-entries ending with "." are namespaces, other entries are events, and
-entries whose relative path contains an uppercase letter are documents.
-An event or namespace directory may hold a "SUMMARY" file with a short
-description. The session currently emits "builtin.state.<state>.enter" and
-"builtin.state.<state>.leave" for <state> in read-loop, agent-loop-api-call,
-agent-loop-tool-call, agent-loop-end, agent-loop-api-call-interrupted,
-agent-loop-tool-call-interrupted, end.
+"state.read-loop.enter". Events are installed by the framework and by
+third parties; "create" requires the event to be installed. The events
+form a namespace tree: entries ending with "." are namespaces, other
+entries are events.
+An event or namespace entry may hold a "SUMMARY" file with a short
+description.
 
 # Operations
 
 - "create": create a hook for "event". Requires "source". "mode" selects
   how the hook content is provided: "command" (source is the script
-  text), "copy" (source is a file whose content is copied), "symlink"
-  (source is a file the hook links to). "name" has the form
+  text), "copy" (source is a file whose content is copied: a snapshot
+  taken at creation time), "symlink" (source is a file the hook links
+  to: it follows later changes to the file). "name" has the form
   "<name>.<type>": the type suffix selects the run policy ("oneshot"
-  runs once then is removed, other types run every time); "name" is
+  runs once then is removed, "always" runs every time); "name" is
   optional (an auto-generated "oneshot" name is used when omitted).
   "append" (requires "name") appends to the existing hook instead of
   failing.
@@ -54,9 +51,8 @@ entry>", e.g. "builtin.state./STATES.md".
 
 # Approval
 
-"create" and "remove" require approval on the controlling terminal. In
-non-interactive sessions they are rejected unless automatic approval is
-configured.
+"create" and "remove" require the user's approval. In non-interactive
+sessions they are rejected unless automatic approval is configured.
 
 # Returns
 
