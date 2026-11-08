@@ -27,7 +27,8 @@ case $opt_action in
   list-events)  llmtr_render_header '36;1' "list events${opt_subject:+: $opt_subject}" ;;
   list-docs)    llmtr_render_header '36;1' "list documents${opt_subject:+: $opt_subject}" ;;
   doc)          llmtr_render_header '36;1' "read documents${opt_subject:+: $opt_subject}" ;;
-  path)   llmtr_render_header '36;1' "get hook path${opt_subject:+: $opt_subject}" ;;
+  path)         llmtr_render_header '36;1' "get hook path${opt_subject:+: $opt_subject}" ;;
+  log-dump)     llmtr_render_header '36;1' "dump hook log${opt_subject:+: $opt_subject}" ;;
 esac
 
 case $opt_content_kind in

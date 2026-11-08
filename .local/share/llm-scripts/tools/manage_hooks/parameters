@@ -3,7 +3,7 @@
   "properties": {
     "operation": {
       "type": "string",
-      "enum": ["create", "remove", "list", "list-events", "list-docs", "doc", "path"],
+      "enum": ["create", "remove", "list", "list-events", "list-docs", "doc", "path", "log-dump"],
       "description": "The operation to perform."
     },
     "event": {
@@ -12,7 +12,11 @@
     },
     "pattern": {
       "type": "string",
-      "description": "Only for list-docs: an ERE filtering the document paths."
+      "description": "An ERE. Only for list-docs: filters the document paths. Only for log-dump: matches the \"[<event>/<hook name>]\" line prefix of the hook log; all lines are dumped when omitted."
+    },
+    "output_file": {
+      "type": "string",
+      "description": "Only for log-dump: the pathname of the file to write the matching hook log lines to. The file must not exist yet."
     },
     "name": {
       "type": "string",

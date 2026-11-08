@@ -63,6 +63,16 @@ are silently omitted.
   environment explicitly, that description takes precedence.
 - Hooks exist only within the current session.
 
+# Hook log
+
+- The hook log is a session file; each standard error line of a hook is
+  appended to it prefixed with "[<event>/<hook name>] ".
+- "log-dump" writes the log lines matching "pattern" to "output_file".
+  "pattern" is an ERE matched against the "[<event>/<hook name>]" line
+  prefix; all lines are dumped when it is omitted. "output_file" must
+  not exist yet; no matching lines produce an empty dump, not an error.
+- The log grows with each hook run; read the dump with tail or grep.
+
 # Edge cases
 
 - Creating a hook with a name that already exists fails
