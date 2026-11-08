@@ -26,6 +26,8 @@ The tools of a session form three sets:
 - "describe": return the full signature (description and parameters) of
   the tools of the extra tool set matching "pattern" (tool names or
   tree paths); with no "pattern", nothing is described.
+  "whole_catalog" does not apply to "describe": tools outside the
+  extra tool set can not be described directly.
 - "list": list the tools of the extra tool set matching "pattern" (all
   of them when "pattern" is omitted); set "whole_catalog" to list
   the whole catalog instead, including tools that are not available in
@@ -71,17 +73,19 @@ configured. When the approval is rejected, the result is
 "pattern" is a list of space separated glob patterns; an entry matches
 when it matches any of them. The glob semantics are those of POSIX
 pathname expansion; non-POSIX extensions such as "**" are not
-supported. The matching target
-depends on the operation: for describe, list, enable and disable,
-patterns without "/" match tool names of the extra tool set (of the
-whole catalog when "whole_catalog" is set), while patterns
-containing "/" match paths in the tool tree (e.g. "builtin/*"), for
-listing items under the root of the tool tree, prefix your pattern with
-a "/" (e.g. "/*"); for listdoc it matches document pathnames under the
-tool's doc directory. A word starting with "@" names a tool preset (a
-named list of patterns, e.g. "@default"); it is expanded in place and
-can be mixed with other words. A preset name that does not exist is
-ignored.
+supported. The patterns match the whole catalog: patterns without "/"
+match tool names of the whole catalog, while patterns containing "/"
+match paths in the tool tree (e.g. "builtin/*"), for listing items
+under the root of the tool tree, prefix your pattern with a "/" (e.g.
+"/*"). Each operation then narrows the matches: "describe" and "list"
+(without "whole_catalog") keep only the tools of the extra tool set,
+"list" with "whole_catalog" keeps all matches, "enable" keeps the
+tools not yet in the enabled tool set, and "disable" keeps the tools
+of the extra tool set. For "listdoc" the pattern matches document
+pathnames under the tool's doc directory. A word starting with "@"
+names a tool preset (a named list of patterns, e.g. "@default"); it is
+expanded in place and can be mixed with other words. A preset name
+that does not exist is ignored.
 
 # Tool tree
 
