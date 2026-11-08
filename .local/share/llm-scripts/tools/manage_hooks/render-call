@@ -16,6 +16,7 @@ try (
   (.docpaths // [] | if type == "array" then . else [.] end |
     map(tostring | gsub("\n"; "")) | join(" ")) as $docpaths_arg |
   (.output_file // "?") as $output_file_arg |
+  (.pattern // "") as $pattern_arg |
   if .operation == "create" then
     (if (.mode // "command") == "command" then
        (.source // "" | print_strings, " | ",
@@ -57,9 +58,9 @@ try (
   elif .operation == "hook-dump" then
     ("" | print_strings, " | ", render_withflags("operation"; "-A hook-dump -S " + ($summary | @sh)))
   elif .operation == "log-dump" then
-    ("" | print_strings, " | ",
+    ($pattern_arg | print_strings, " | ",
       render_withflags("operation";
-        "-A log-dump -S " + ($output_file_arg | @sh)))
+        "-A log-dump -K plain -S " + ($output_file_arg | @sh)))
   else
     ("unknown hook operation: " + (.operation // "?") | print_strings, " | ", render("error"))
   end
