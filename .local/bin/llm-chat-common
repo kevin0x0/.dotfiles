@@ -126,18 +126,18 @@ llmcc_get_tool_state_dir() {
   command eval "[ -e \"\$$1\" ] || mkdir -p -- \"\$$1\""
 }
 
-llmcc_hook_default_runner() {
+llmcc_hook_default_runner() (
   trap - INT
   . -- "$1"
-}
+)
 
 llmcc_run_hooks() {
   llmcc_hook_runner=${1:-llmcc_hook_default_runner}
   shift
-  for llmcc_hookable_event; do
-    for llmcc_hook_script in "$llmcc_hooks_dir/$llmcc_hookable_event"/*; do
+  for llmcc_event; do
+    for llmcc_hook_script in "$llmcc_hooks_dir/$llmcc_event"/*; do
       [ -f "$llmcc_hook_script" ] || continue
-      ("$llmcc_hook_runner" "$llmcc_hook_script")
+      "$llmcc_hook_runner" "$llmcc_hook_script"
       case $llmcc_hook_script in
         *.oneshot) rm -f -- "$llmcc_hook_script" ;;
       esac

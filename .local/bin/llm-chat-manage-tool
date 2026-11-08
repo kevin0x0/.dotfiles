@@ -95,7 +95,7 @@ sub_operate_tool_list() {
   {
     llm-chat-manage-hook -d "$opt_state_dir" \
       create builtin.state.agent-loop-tool-call.leave \
-      -c generate_tool_list >/dev/null || exit 1
+      -c llm_chat_gen_tool_list >/dev/null || exit 1
 
     if ! llmcc_operate_extra_tool -pm "$action" -- "$@"; then
       printf "failed to %s extra tool\n" "$action" >&2
