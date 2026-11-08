@@ -33,28 +33,30 @@ description.
 - "remove": remove a hook. Requires "event" and "name" (with the exact
   type suffix of the installed hook).
 - "list": list the hooks currently installed in the session. "pattern"
-  can be an ERE matching the "event/base.type" hook paths (all of them
+  can be a POSIX ERE matching the "event/base.type" hook paths (all of them
   when omitted).
 - "list-events": list the installed events and namespaces (namespace
-  names end with "."). "pattern" can be an ERE matching the full listed
-  names (including the trailing "." of namespaces); "with_summary" adds
-  each item's summary.
+  names end with "."). "pattern" can be a POSIX ERE matching the full
+  listed names (all of them when "pattern" is omitted; the names
+  include the trailing "." of namespaces); "with_summary" adds each
+  item's summary.
 - "list-docs": list the documents of an entry (an event or a namespace)
   and of its ancestors. Requires "event" (the entry name); "pattern"
-  can be an ERE filtering the document paths. An entry that is not
+  can be a POSIX ERE filtering the document paths. An entry that is not
   installed is an error.
 - "doc": read documents. "docpaths" lists the document paths (at least
   one is required; an empty list is an error); documents that do not
   exist, and paths whose entry is not installed, are silently omitted.
 - "hook-dump": write the hook's script content to the file named by
-  "output_file", which must not exist yet. Requires "event", "name"
-  and "output_file".
+  "output_file", which must not exist yet (its directory must exist).
+  Requires "event", "name" and "output_file".
 - "hook-source": print the source file of a "symlink" hook. Requires
   "event" and "name"; the hook must be a symlink (an error otherwise).
 - "log-dump": write the hook log lines whose "[<event>/<hook name>]"
-  prefix matches "pattern" (an ERE; all lines when "pattern" is
+  prefix matches "pattern" (a POSIX ERE; all lines when "pattern" is
   omitted) to the file named by "output_file", which must not exist
-  yet. Lines without a match produce an empty dump, not an error.
+  yet (its directory must exist). Lines without a match produce an
+  empty dump, not an error.
   Requires "output_file".
 
 A document path has the form "<entry name>/<doc path relative to the
@@ -80,6 +82,10 @@ On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 <rel> is the relative hook path in the form event/base.type.
 
 # Notes
+
+Parameters that do not apply to the requested operation are silently
+ignored. The "pattern" EREs are searched unanchored within the
+matched text; anchor them with "^" and "$" to require a full match.
 
 Use this tool to install scripts that run automatically on session
 events (for example desktop notifications or log appends), not to run
