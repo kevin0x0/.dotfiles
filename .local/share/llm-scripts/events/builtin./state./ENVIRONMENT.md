@@ -2,17 +2,18 @@
 
 Hooks of the builtin state events run in the llm-chat session, in a
 subshell of it: changes to shell variables do not affect the session.
-The only ways a hook affects the session are its output (which goes to
-the user's terminal) and the input channel below. Some sensitive
-variables are unset before the hook runs.
+The only ways a hook affects the session are its output and the input
+channel below. Its standard output goes to the user's terminal; its
+standard error is appended to the hook log. Some sensitive variables
+are unset before the hook runs.
 
 ## Names
 
 - Names starting with "llm" or "opt" are reserved for the session:
   hooks must not define or modify them, and must not rely on them,
-  except for the two names the hook runner exposes to every hook
-  (llmcc_event, llmcc_hook_script), described in the manage_hooks
-  documentation.
+  except for the names the hook runner exposes to every hook
+  (llmcc_event, llmcc_hook_script, llmcc_hook_log), described in the
+  manage_hooks documentation.
 - Names starting with "llm_chat_" form the exposed interface. The
   symbols documented in this file are stable; the other "llm_chat_"
   names are dependencies of the exposed functions and must not be used

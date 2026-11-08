@@ -49,11 +49,18 @@ are silently omitted.
 - The hook inherits the session's execution environment and working
   directory; some sensitive variables are unset before it runs. It
   receives no arguments.
-- Two variables describe the run to the hook: llmcc_event holds the
-  event name, llmcc_hook_script the hook's own pathname.
+- Three names describe the run to the hook: llmcc_event holds the
+  event name, llmcc_hook_script the hook's own pathname, and
+  llmcc_hook_log is the logging function.
+- Its standard output goes to the user's terminal; it is not seen by
+  the model. Its standard error is appended to the hook log, a file
+  named "hook-log" in the session's state directory; each line is
+  prefixed with "[<event>/<hook name>] ".
+- llmcc_hook_log <level> <message>... appends "[<level>] <time>:
+  <message>" lines to the hook log, one per line of a multi-line
+  message. <level> is any word; INFO and ERROR are conventional.
 - When the document of the relevant event describes the execution
   environment explicitly, that description takes precedence.
-- Its output goes to the user's terminal; it is not seen by the model.
 - Hooks exist only within the current session.
 
 # Edge cases
