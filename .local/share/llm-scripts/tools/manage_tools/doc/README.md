@@ -12,7 +12,6 @@ them are fictitious. Empty results are usually empty lists.
 
 ## describe
 
-- Tools outside the extra tool set can not be described directly.
 - A stub signature has a placeholder description (such as
   "[deferred]") and empty parameters. When a tool's description looks
   like a placeholder rather than a description of the tool, retrieve
@@ -47,9 +46,10 @@ A tool without a parameters schema:
 - Paging: see Pagination.
 
 Fields: "list" (the entries of this page; each entry has a "name" or a
-"path", plus a "summary" when requested), "total" (the number of all
-matching entries, independent of paging), "start_index" (the offset of
-this page), "count" (the number of entries in this page).
+"path", plus a "summary" when requested: the tool's short summary, or
+for a directory entry the category's own summary), "total" (the number
+of all matching entries, independent of paging), "start_index" (the
+offset of this page), "count" (the number of entries in this page).
 
 For {"operation":"list","pattern":"some_*","with_summary":true}:
 
@@ -109,7 +109,28 @@ A tool without documents, or no matching document:
 
 ## enable / disable
 
-See "enable-disable.md" for their interface and result examples.
+They adjust the session's extra tool set; their semantics, the
+approval requirement and the constraint on using them are in the tool
+description.
+
+Fields: "added_tools"/"removed_tools" (the tools that were added or
+removed) and "count" (their number).
+
+For {"operation":"enable","pattern":"some_*"}:
+
+    {"added_tools":["some_helper","some_tool"],"count":2}
+
+For {"operation":"disable","pattern":"some_*"}:
+
+    {"removed_tools":["some_helper","some_tool"],"count":2}
+
+Ignored tools (do not exist, or the operation has no effect on them):
+
+    {"added_tools":[],"count":0}
+
+- The default tool set is not affected by enable or disable.
+- After enabling a tool, use "describe" to retrieve its full signature
+  when the session loads extra tools as stubs.
 
 # Patterns
 
