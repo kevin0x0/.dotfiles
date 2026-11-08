@@ -3,7 +3,8 @@
 The operations "enable" and "disable" adjust the session's extra tool
 set. They are listed in the tool schema like the other operations.
 
-Unless the user explicitly asks for it, do not use these operations.
+Unless the user explicitly asks for it, do not use these operations,
+and do not consider using them.
 
 # Operations
 
@@ -27,19 +28,22 @@ configured.
 # Returns
 
 On success: enable returns {"added_tools":[...],"count":...}; disable
-returns {"removed_tools":[...],"count":...}. Enabling an already
-enabled tool, or disabling one that is not enabled, is a no-op: the
-result is an empty list, not an error.
+returns {"removed_tools":[...],"count":...}. A tool that does not
+exist is ignored, and so is a tool the operation has no effect on: for
+"enable", a tool already in the enabled tool set; for "disable", a
+tool that is not in the extra tool set. The result is then an empty
+list, not an error. The fields are: "added_tools"/"removed_tools" (the
+tools that were added or removed) and "count" (their number).
 
-For {"operation":"enable","pattern":"some_tool"}:
+For {"operation":"enable","pattern":"some_*"}:
 
-    {"added_tools":["some_tool"],"count":1}
+    {"added_tools":["some_helper","some_tool"],"count":2}
 
-For {"operation":"disable","pattern":"some_tool"}:
+For {"operation":"disable","pattern":"some_*"}:
 
-    {"removed_tools":["some_tool"],"count":1}
+    {"removed_tools":["some_helper","some_tool"],"count":2}
 
-A no-op (already enabled, or not enabled):
+Ignored tools (do not exist, or the operation has no effect on them):
 
     {"added_tools":[],"count":0}
 

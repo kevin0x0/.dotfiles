@@ -9,7 +9,8 @@ results.
 
 - The default tool set is loaded with full signatures when the session
   starts. It is configured by the user at session start and is usually
-  small.
+  small. No operation lists it on its own: its tools are already
+  visible to you with their full signatures.
 - The extra tool set is loaded with stub signatures: each tool has a
   placeholder description (such as "[deferred]") and empty parameters,
   which do not describe the tool. Call "describe" to retrieve the full
@@ -19,11 +20,13 @@ results.
   your tool list is in either the default or the extra tool set, and a
   tool that is not in your tool list is in neither of them and can not
   be called, no matter what "list" reports. "list" with
-  "ignore_extra_set" can list the whole catalog, including tools that
-  are not available in this session. Do not set "ignore_extra_set" on
+  "whole_catalog" can list the whole catalog, including tools that
+  are not available in this session. Do not set "whole_catalog" on
   your own unless the user asks for it or the user's request needs it.
-  The "enable" and "disable" operations adjust the extra tool set; use
-  them only when the user explicitly asks; see "enable-disable.md".
+  Unless the user asks, do not consider operating on tools outside the
+  extra tool set. The "enable" and "disable" operations adjust the
+  extra tool set; do not use them, and do not consider using them,
+  unless the user explicitly asks; see "enable-disable.md".
 
 # Operations
 
@@ -35,36 +38,71 @@ run one at a time.
 
 ## describe
 
-- Scope: the extra tool set only, filtered by "pattern"; with no
-  "pattern", nothing is described.
+- Scope: always the extra tool set only ("whole_catalog" does not
+  apply to "describe"), filtered by "pattern", which matches tool
+  names or paths in the tool tree (see Patterns); with no "pattern",
+  nothing is described. Tools outside the extra tool set can not be
+  described directly.
 - A stub signature has a placeholder description (such as
   "[deferred]") and empty parameters. When a tool's description looks
   like a placeholder rather than a description of the tool, retrieve
   the full signature with "describe" before calling the tool.
+- Each returned tool carries a tool signature. "name" and "description"
+  are always present: "name" is the tool's name, "description" explains
+  what the tool does and how to call it (it may be empty). The other
+  fields depend on "type": for "function", a "parameters" field holds
+  the JSON schema of the arguments; for "custom", there is no
+  "parameters" field.
 
-For {"operation":"describe","pattern":"some_tool"}:
+Fields: "described" (the number of entries in "tools"), "tools" (the
+tool signatures, sorted by name).
 
-    {"described":1,"tools":[{"type":"function","name":"some_tool","description":"...","parameters":{...}}]}
+For {"operation":"describe","pattern":"some_*"}:
+
+    {"described":2,"tools":[
+      {"type":"function","name":"some_helper","description":"...","parameters":{...}},
+      {"type":"function","name":"some_tool","description":"...","parameters":{...}}
+    ]}
 
 No matching tool:
 
     {"described":0,"tools":[]}
 
+A tool without a parameters schema:
+
+    {"described":1,"tools":[{"type":"custom","name":"bare_tool","description":"..."}]}
+
 ## list
 
 - Default: the extra tool set; without "pattern", all of its tools are
-  listed. With "ignore_extra_set": the whole catalog, including tools
+  listed. With "whole_catalog": the whole catalog, including tools
   not available in this session (see the caution in Tool sets).
 - "pattern" filters the listed tools; "with_summary" adds each tool's
   short summary. Paging: see Pagination.
-- Each item has either a "name" (matched by name) or a "path" (matched
-  in the tool tree).
 
-For {"operation":"list","pattern":"some_tool","with_summary":true}:
+Fields: "list" (the entries of this page; each entry has a "name" or a
+"path", plus a "summary" when requested), "total" (the number of all
+matching entries, independent of paging), "start_index" (the offset of
+this page), "count" (the number of entries in this page).
 
-    {"list":[{"name":"some_tool","summary":"..."}],"total":1,"start_index":0,"count":1}
+For {"operation":"list","pattern":"some_*","with_summary":true}:
 
-An empty extra tool set:
+    {"list":[{"name":"some_helper","summary":"..."},{"name":"some_tool","summary":"..."}],"total":2,"start_index":0,"count":2}
+
+A tree-mode match (paths in the tool tree; directory entries end
+with "/"):
+
+For {"operation":"list","pattern":"category/*"}:
+
+    {"list":[{"path":"category/sub/"},{"path":"category/some_tool"}],"total":2,"start_index":0,"count":2}
+
+A tree-mode match with summaries:
+
+For {"operation":"list","pattern":"category/*","with_summary":true}:
+
+    {"list":[{"path":"category/sub/","summary":"..."},{"path":"category/some_tool","summary":"..."}],"total":2,"start_index":0,"count":2}
+
+No matching tool, or an empty extra tool set:
 
     {"list":[],"total":0,"start_index":0,"count":0}
 
@@ -77,15 +115,21 @@ An empty extra tool set:
   to pass are the file paths reported by "listdoc" (not its directory
   entries).
 - Documents that do not exist are silently omitted; the result lists
-  only the found ones. A "toolname" that names no installed tool is
-  silently ignored as well: the result is then an empty list, not an
-  error.
+  only the found ones. Paths naming a directory are silently omitted
+  as well. A "toolname" that names no installed tool is silently
+  ignored too: the result is then an empty list, not an error.
 - The documents of a tool are organized freely; by convention
   "README.md" is the main entry point.
 
-For {"operation":"doc","toolname":"some_tool","docpaths":["README.md"]}:
+Fields: "toolname" (the named tool), "docs" (the found documents; each
+entry has "docpath" and "content").
 
-    {"toolname":"some_tool","docs":[{"docpath":"README.md","content":"# some_tool\n\n..."}]}
+For {"operation":"doc","toolname":"some_tool","docpaths":["README.md","reference/usage.md"]}:
+
+    {"toolname":"some_tool","docs":[
+      {"docpath":"README.md","content":"# some_tool\n\n..."},
+      {"docpath":"reference/usage.md","content":"..."}
+    ]}
 
 All requested documents missing:
 
@@ -93,34 +137,46 @@ All requested documents missing:
 
 ## listdoc
 
-- "toolname" names the tool. "pattern" filters the listed document
-  paths with globs; without it, all documents are listed.
+- "toolname" names the tool. The documents of a tool live in a
+  directory of their own; the listed paths are relative to that
+  directory. "pattern" filters them with globs following the
+  semantics of POSIX pathname expansion; without it, all documents
+  are listed.
 - Directory entries are listed with a trailing "/"; the list is sorted
   and deduplicated.
 - A "toolname" that names no installed tool is silently ignored: the
   result is an empty list, not an error.
 
+Fields: "toolname" (the named tool), "doclist" (the listed document
+paths).
+
 For {"operation":"listdoc","toolname":"some_tool"}:
 
     {"toolname":"some_tool","doclist":["README.md","reference/usage.md"]}
 
-A tool without documents:
+A tool without documents, or no matching document:
 
     {"toolname":"some_tool","doclist":[]}
 
 ## enable / disable
 
-They adjust the session's extra tool set, require approval, and must
-only be used when the user explicitly asks; see "enable-disable.md"
-for their interface and result examples. Run them one at a time.
+They adjust the session's extra tool set and require approval. Do not
+use them, and do not consider using them, unless the user explicitly
+asks; see "enable-disable.md" for their interface and result
+examples. Run them one at a time.
 
 # Patterns
 
-"pattern" is a space separated list of glob patterns. Patterns without
-"/" match tool names across all tools; patterns containing "/" match
-paths in the tool tree (tree mode). Glob matching follows the
-semantics of POSIX pathname expansion. A word starting with "@" expands
-a tool preset in place: a named list of patterns stored by the user.
+"pattern" is a space separated list of glob patterns; an entry matches
+when it matches any of them. Patterns without "/" match tool names of
+the extra tool set (of the whole catalog when "whole_catalog" is set);
+patterns containing "/" match paths in the tool tree (tree mode). Glob
+matching fully supports the semantics of POSIX pathname expansion;
+non-POSIX extensions such as "**" are not supported. A pattern that is
+only whitespace matches nothing. A word starting
+with "@" expands a tool preset in place: a named list of patterns
+stored by the user; a preset name that does not exist is ignored (it
+matches nothing).
 Presets are referenced by name in patterns; they can not be enumerated
 with this tool. The preset names come mainly from the user, or from
 other tools that expose them. When you do not know of any preset, do
@@ -132,6 +188,13 @@ Recipes:
 - "builtin/*"   entries directly under the builtin category
 - "cat1/*/"     category directories under cat1 (ends with "/")
 - "manage_*"    tools whose name starts with "manage_"
+- "manage_* builtin/*"  name mode and tree mode mixed in one list; an
+  entry matches when it matches either
+- "m?"          tools whose name has two characters and starts with "m"
+- "[a-z]*"      tools whose name starts with a lowercase letter
+- "[!m]*"       tools whose name does not start with "m"
+- "[![:alnum:]]*"  tools whose name does not start with an alphanumeric
+  character
 - "shell"       the exact tool name
 - "*"           all tools (name mode)
 - "@default"    the tools of a named preset; can be mixed with other words
@@ -144,18 +207,30 @@ general-purpose tool that belongs to no category.
 
 # Pagination
 
-"list" returns at most "count" items (default 20) starting at
-"start_index"; "total" is the size of the full result. "count" has no
-upper bound: set it to "total" to get everything in one call; page only
-when the result is large.
+Only "list" is paginated; describe, doc, listdoc, enable and disable
+return their complete results. "list" returns at most "count" items
+(default 20) starting at "start_index" (default 0); "count" has no
+upper bound. "total" is the size of the full result. The order of the
+full result is stable, so
+successive pages are consistent slices of it. The page is clamped to
+the result: a "start_index" beyond "total" returns an empty page, and a
+"count" beyond the remaining items returns only the rest; the returned
+"start_index" and "count" report the clamped page. A "count" of 0
+returns an empty page; negative values return an error. To obtain
+everything at once, request as many
+items as the "total" reported by a previous result; page only when the
+result is large.
 
 # Errors and edge cases
 
 - On failure (invalid arguments, or the operation could not be
-  performed), the result is {"error":"<reason>"}, e.g.
+  performed), the result is {"error":"<reason>"}, e.g. from "enable" or
+  "disable" without a "pattern":
   {"error":"bad argument: pattern is not given or is empty"}.
 - When the user rejects the approval request of "enable" or "disable",
   the result is {"rejected":"<reason>"}. No other operation asks for
   approval, and no other operation returns "rejected".
+- Parameters that do not apply to the requested operation are silently
+  ignored.
 - Glob patterns can not match dot-prefixed (hidden) names; such
   patterns are rejected.
