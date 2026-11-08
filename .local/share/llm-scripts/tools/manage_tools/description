@@ -12,8 +12,10 @@ The tools of a session form three sets:
   small. No operation lists it alone by default: its tools are already
   fully visible to you.
 - The extra tool set is loaded with stub signatures (a placeholder
-  description and empty parameters); call "describe" to retrieve the
-  full signature of one of its tools before calling it.
+  description and empty parameters): a tool whose description looks
+  like a placeholder (such as "[deferred]") rather than a description
+  of the tool carries a stub signature; call "describe" to retrieve
+  its full signature before calling it.
 - The enabled tool set is the union of the two, and is exactly the set
   of tools visible to you in the session: every tool you can see in
   your tool list is in either the default or the extra tool set, and a
