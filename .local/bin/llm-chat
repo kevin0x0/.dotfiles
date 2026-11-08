@@ -28,9 +28,10 @@ opt_repl_reader_ignore=
 
 opt_extra_request_args=
 
-opt_session_conversation=
-opt_session_fileids=
+opt_session=
 opt_session_writeback=
+opt_use_session_option=1
+opt_session_save_options='opt_files_base_url opt_files_default_purpose opt_cache_key opt_responses_base_url opt_model'
 
 opt_state_dir=
 
@@ -48,7 +49,7 @@ renderer_opt_tool_output_lines=15
 llm_scriptname=llm-chat
 [ -f "$llmcu_configdir/chat-config" ] && . -- "$llmcu_configdir/chat-config"
 
-llm_chat_options="fFnNswSh:H:o:O:r:E:k:K:m:u:t:c:" 
+llm_chat_options="fFnNswSh:o:O:r:E:k:K:m:u:t:c:" 
 while getopts "$llm_chat_options" opt; do
   case $opt in
     [oO])
@@ -84,10 +85,7 @@ while getopts "$llm_chat_options" opt; do
       llmcu_set_boolean_option opt_show_conversation_on_startup
       ;;
     h)
-      llmcu_getarg opt_session_conversation "$OPTARG"
-      ;;
-    H)
-      llmcu_getarg opt_session_fileids "$OPTARG"
+      llmcu_getarg opt_session "$OPTARG"
       ;;
     r)
       llmcu_getarg opt_reasoning "$OPTARG"
@@ -255,25 +253,52 @@ file_input() {
   done
 }
 
+print_options() {
+  for option_name; do
+    eval "option_value=\$$option_name"
+    printf "%s=" "$option_name"
+    while [ -n "$option_value" ]; do
+      part=${option_value%%[$'\n\'']*}
+      printf "'%s'" "$part"
+      option_value=${option_value#"$part"}
+      case $option_value in
+        $'\n'*)
+          printf "%s" "\$'\\n'"
+          option_value=${option_value#?}
+          ;;
+        $'\''*)
+          printf "%s" "\$'\\''"
+          option_value=${option_value#?}
+          ;;
+      esac
+    done
+    echo
+  done
+}
+
 save_session() {
   shift
 
   if [ -z "$1" ]; then
-    set -- "$opt_session_conversation" "$opt_session_fileids"
+    set -- "$opt_session"
   fi
+
   if [ -z "$1" ]; then
-    i18n -n llm-scripts 'please provide a filename to save as' >&2
-    return 0
+    i18n -n llm-scripts 'please provide a directory to save as' >&2
+    return 1
   fi
 
-  if [ -z "$2" ]; then
-    set -- "$1" "${1}.fileids"
+  if [ -e "$1" ]; then
+    if [ "$opt_session" != "$1" ]; then
+      i18n -n llm-scripts 'already exists: $1' "$1" >&2
+      return 1
+    else
+      rm -rf -- "$1" || return
+    fi
   fi
 
-  if ! cp -- "$conversation" "$1" || \
-    ! cat -- "$llmcc_persistent_fileids" "$llmcc_volatile_fileids" >"$2"; then
-  i18n -n llm-scripts 'failed to save as $1 and $2' "$1" "$2" >&2
-  fi
+  print_options $opt_session_save_options >"$dumped_session_option"
+  cp -PR -- "$opt_state_dir" "$1" || return
 }
 
 dispatch_command() {
@@ -580,12 +605,10 @@ read_loop() {
 }
 
 llm_chat_gen_tool_list() {
-  llm-expand-toolspec -- "$opt_default_tools" >"$llmcc_default_tool_name_list"
   if [ -z "$opt_extra_tools_defer_loading" ]; then
     llmcc_generate_tool_list
     return
   fi
-  llmcc_operate_extra_tool -m add -- "$opt_extra_tools"
   case ${opt_extra_tools_defer_loading_mode:-inject} in
     builtin)
       llmcc_generate_tool_list -l
@@ -691,6 +714,16 @@ state_init() {
   : >"$text_input"
   : >"$tmp"
 
+  mkfifo -- "$render_event_fifo" || exit
+  mkfifo -- "$response_input_fifo" || exit
+  mkfifo -- "$response_event_output_fifo" || exit
+
+  llm-expand-toolspec -- "$opt_default_tools" >"$llmcc_default_tool_name_list"
+  if [ -n "$opt_extra_tools_defer_loading" ]; then
+    llmcc_operate_extra_tool -m add -- "$opt_extra_tools"
+  fi
+  llm_chat_gen_tool_list
+
   if [ -n "$opt_prompt" ]; then
     llm-make-message -r system -tE "$opt_prompt" >"$conversation"
   fi
@@ -701,27 +734,19 @@ state_init() {
 }
 
 state_init_from_session() {
-  : >"$this_turn"
-  : >"$response_output"
-  : >"$tool_output"
-  : >"$input_content"
-  : >"$text_input"
-  : >"$tmp"
+  [ -d "$opt_session" ] || { i18n -n llm-scripts '$1 is not a directory' "$opt_session" >&2; return 1; }
+  [ -r "$opt_session" ] || { i18n -n llm-scripts '$1 is not readable' "$opt_session" >&2; return 1; }
+  [ -x "$opt_session" ] || { i18n -n llm-scripts '$1 is not executable' "$opt_session" >&2; return 1; }
 
-  [ -z "$opt_session_fileids" ] && opt_session_fileids=${opt_session_conversation}.fileids
-  for f in "$opt_session_conversation" "$opt_session_fileids"; do
-    if [ ! -f "$f" ] || [ ! -r "$f" ]; then
-      i18n -n llm-scripts '$1 does not exist or is not a readable file' "$f" >&2
-      exit 1
-    fi
+  for f in "$opt_session"/* "$opt_session"/.[!.]*; do
+    [ -e "$f" ] || continue
+    cp -PR -- "$f" "$opt_state_dir" || return
   done
-  cp -- "$opt_session_conversation" "$conversation"
 
-  if ! jq -nc -- '[inputs | select(has("expires_at"))] | unique_by(.id)[]' "$opt_session_fileids" >"$llmcc_volatile_fileids" ||
-    ! jq -nc -- '[inputs | select(has("expires_at") | not)] | unique_by(.id)[]' "$opt_session_fileids" >"$llmcc_persistent_fileids"; then
-    i18n -n llm-scripts 'failed to extract file ids from $1' "$opt_session_fileids" >&2
-    exit 1
+  if [ -n "$opt_use_session_option" ]; then
+    command . -- "$dumped_session_option"
   fi
+  rm -f -- "$dumped_session_option"
 }
 
 cleanup() {
@@ -753,6 +778,7 @@ text_input=$opt_state_dir/text-input
 render_event_fifo=$opt_state_dir/render-event-fifo
 response_input_fifo=$opt_state_dir/response-input-fifo
 response_event_output_fifo=$opt_state_dir/response-output-fifo
+dumped_session_option=$opt_state_dir/dumped-session-option
 tmp=$opt_state_dir/tmp
 llm_chat_hook_input=$opt_state_dir/hook-input
 # Set:
@@ -763,13 +789,9 @@ llm_chat_hook_input=$opt_state_dir/hook-input
 # llmcc_extra_tool_name_list
 # llmcc_hooks_dir
 llmcc_set_public_files_var "$opt_state_dir"
-llm_chat_gen_tool_list
-mkfifo -- "$render_event_fifo" || exit
-mkfifo -- "$response_input_fifo" || exit
-mkfifo -- "$response_event_output_fifo" || exit
 
-if [ -n "$opt_session_conversation" ] && [ -f "$opt_session_conversation" ]; then
-  state_init_from_session
+if [ -n "$opt_session" ] && [ -e "$opt_session" ]; then
+  state_init_from_session || exit
   if [ -n "$opt_show_conversation_on_startup" ]; then
     llm-render-events "$conversation" | dispatch_render_event "$render_event_fifo"
   fi
@@ -890,7 +912,7 @@ while :; do
       ;;
     end)
       if [ -n "$opt_session_writeback" ]; then
-        save_session "@save" "$opt_session_conversation" "$opt_session_fileids"
+        save_session "@save"
       fi
       break
       ;;
