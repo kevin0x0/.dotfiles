@@ -22,9 +22,8 @@ The tools of a session form three sets:
 # Operations
 
 - "describe": return the full signature (description and parameters) of
-  the tools of the extra tool set matching "pattern"; with no "pattern",
-  nothing is described. Tools already described in this session are
-  skipped.
+  the tools of the extra tool set matching "pattern"; with no
+  "pattern", nothing is described.
 - "list": list the tools of the extra tool set matching "pattern" (all
   of them when "pattern" is omitted); set "ignore_extra_set" to list
   the whole catalog instead, including tools that are not available in
@@ -76,8 +75,6 @@ request of "enable" or "disable": {"rejected": <reason>}.
 
 # Notes
 
-- A tool of the extra tool set can be described once per session; later
-  "describe" calls skip it.
 - The tool sets are scoped to the current session.
 - Use this tool to inspect what is available and "describe" to learn how
   to call a tool; use the shell tool to read other files.
