@@ -79,6 +79,7 @@ if [ "$op" = enable ] || [ "$op" = disable ]; then
 fi
 
 whole_catalog=$(jq -j '(.whole_catalog and true) or false' <"$argfile")
+enabled=$(jq -j '(.enabled and true) or false' <"$argfile")
 with_summary=$(jq -j '(.with_summary and true) or false' <"$argfile")
 name=$(jq -j '.toolname // "" | tostring' <"$argfile")
 jq -r '.docpaths // empty | if type != "array" then [.] end | .[]' <"$argfile" >"$docpaths"
@@ -98,6 +99,17 @@ case $count in
     ;;
 esac
 
+# The list scoping flags are mutually exclusive; checked only for
+# "list" so that irrelevant parameters stay silently ignored.
+if [ "$op" = list ]; then
+  if [ "$enabled" = true ] && [ "$whole_catalog" = true ]; then
+    error "bad argument: enabled and whole_catalog can not be used together"
+  fi
+  if [ "$enabled" = true ] && [ -n "$pattern" ]; then
+    error "bad argument: pattern can not be used with enabled"
+  fi
+fi
+
 set -- -jd "$statedir" "$op"
 case $op in
   enable|disable)
@@ -109,7 +121,9 @@ case $op in
   list)
     set -- "$@" -i "$start_index" -c "$count"
     [ "$with_summary" = true ] && set -- "$@" -s
-    if [ "$whole_catalog" = true ]; then
+    if [ "$enabled" = true ]; then
+      set -- "$@" -e
+    elif [ "$whole_catalog" = true ]; then
       set -- "$@" -E
     fi
     [ -n "$pattern" ] && set -- "$@" -- "$pattern"

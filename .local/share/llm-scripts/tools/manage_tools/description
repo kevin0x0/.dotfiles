@@ -9,8 +9,8 @@ The tools of a session form three sets:
 
 - The default tool set is loaded with full signatures when the session
   starts. It is configured by the user at session start and is usually
-  small. No operation lists it alone: its tools are already fully
-  visible to you.
+  small. No operation lists it alone by default: its tools are already
+  fully visible to you.
 - The extra tool set is loaded with stub signatures (a placeholder
   description and empty parameters); call "describe" to retrieve the
   full signature of one of its tools before calling it.
@@ -32,8 +32,13 @@ The tools of a session form three sets:
   of them when "pattern" is omitted); set "whole_catalog" to list
   the whole catalog instead, including tools that are not available in
   this session. Do not set "whole_catalog" on your own unless the
-  user asks for it or the user's request needs it. "with_summary" adds
-  each tool's short summary. "start_index" and "count" select a page
+  user asks for it or the user's request needs it. Set "enabled" to
+  list the enabled tool set instead (the default and the extra set
+  together, i.e. what you can see in your tool list); "pattern" does
+  not apply to it. "with_summary" adds
+  a short summary to each entry: the tool's own for a tool entry, the
+  category's own for a directory entry. "start_index" and "count"
+  select a page
   of the result: the page is clamped to the result (a "start_index"
   beyond "total" gives an empty page, a "count" beyond the rest gives
   only the rest), negative values are an error, and "total" is the

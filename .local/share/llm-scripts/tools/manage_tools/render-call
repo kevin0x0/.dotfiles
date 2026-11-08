@@ -14,7 +14,9 @@ try (
     elif .operation == "describe" then
       "describing " + (.pattern // "" | tostring)
     elif .operation == "list" then
-      if .whole_catalog then
+      if .enabled then
+        "listing enabled tools"
+      elif .whole_catalog then
         "listing all tools matching " + (.pattern // "*" | tostring)
       else
         "listing extra tools matching " + (.pattern // "*" | tostring)
@@ -36,7 +38,7 @@ try (
 ' | {
   IFS= read -r line
   printf "%s\n" "$line" | llmtr_run_on_color llmtr_color_pattern \
-    '1' '36;1' '^(enabling|disabling|describing|listing (all|extra) tools matching|(listing|reading) documents of)' '&' \
+    '1' '36;1' '^(enabling|disabling|describing|listing (all|extra|enabled) tools( matching)?|(listing|reading) documents of)' '&' \
     '1' '31;1' '^error:' '&'
 
   while IFS= read -r line; do

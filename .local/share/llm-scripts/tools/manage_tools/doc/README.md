@@ -17,11 +17,13 @@ them are fictitious. Empty results are usually empty lists.
   like a placeholder rather than a description of the tool, retrieve
   the full signature with "describe" before calling the tool.
 - Each returned tool carries a tool signature. "name" and "description"
-  are always present: "name" is the tool's name, "description" explains
-  what the tool does and how to call it (it may be empty). The other
-  fields depend on "type": for "function", a "parameters" field holds
-  the JSON schema of the arguments; for "custom", there is no
-  "parameters" field.
+  are present for "function" and "custom" tools: "name" is the tool's
+  name, "description" explains what the tool does and how to call it
+  (it may be empty). A "function" tool additionally has a "parameters"
+  field holding the JSON schema of its arguments; a "custom" tool has
+  no "parameters" field. A builtin tool ("_builtin_*") has only a
+  "type" field holding its kind, e.g. "web_search": no "name",
+  "description" or "parameters".
 
 Fields: "described" (the number of entries in "tools"), "tools" (the
 tool signatures, sorted by name).
@@ -41,15 +43,20 @@ A tool without a parameters schema:
 
     {"described":1,"tools":[{"type":"custom","name":"bare_tool","description":"..."}]}
 
+A builtin tool:
+
+    {"described":1,"tools":[{"type":"web_search"}]}
+
 ## list
 
+- With "enabled": the enabled tool set (the default and the extra set
+  together); "pattern" does not apply.
 - Paging: see Pagination.
 
 Fields: "list" (the entries of this page; each entry has a "name" or a
-"path", plus a "summary" when requested: the tool's short summary, or
-for a directory entry the category's own summary), "total" (the number
-of all matching entries, independent of paging), "start_index" (the
-offset of this page), "count" (the number of entries in this page).
+"path", plus a "summary" when requested), "total" (the number of all
+matching entries, independent of paging), "start_index" (the offset of
+this page), "count" (the number of entries in this page).
 
 For {"operation":"list","pattern":"some_*","with_summary":true}:
 
@@ -71,6 +78,12 @@ For {"operation":"list","pattern":"category/*","with_summary":true}:
 No matching tool, or an empty extra tool set:
 
     {"list":[],"total":0,"start_index":0,"count":0}
+
+The enabled tool set:
+
+For {"operation":"list","enabled":true,"with_summary":true}:
+
+    {"list":[{"name":"some_default","summary":"..."},{"name":"some_helper","summary":"..."}],"total":2,"start_index":0,"count":2}
 
 ## doc
 
