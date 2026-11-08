@@ -16,6 +16,7 @@ subcommands:
   list-docs    <name> [<ERE>...]
   doc          <path>...
   path         <event> <name>.<type>
+  log-dump     [<ERE>...] <output-file>
 
 options:
   -d <statedir>  session state directory; hooks live under <statedir>/hooks
@@ -50,7 +51,7 @@ subcommand=$1
 shift
 
 case $subcommand in
-  create|remove|list|list-events|list-docs|doc|path) ;;
+  create|remove|list|list-events|list-docs|doc|path|log-dump) ;;
   *)
     printf "unsupported subcommand: %s\n" "$subcommand" >&2
     usage >&2
@@ -586,6 +587,50 @@ sub_path() {
   fi
 }
 
+# Dump the hook log lines matching the given EREs (all lines without
+# any) into a new file. The EREs match the "[<event>/<hook name>]"
+# line prefix; the output file must not exist yet.
+sub_log_dump() {
+  [ "$1" = "--" ] && shift
+  validate_statedir || return
+  . llm-chat-common
+  llmcc_set_public_files_var "$opt_state_dir"
+
+  eres=
+  while [ "$#" -gt 1 ]; do
+    eres=$eres${eres:+$'\n'}$1
+    shift
+  done
+  [ "$#" -eq 1 ] || { printf "output file not provided\n" >&2; return 2; }
+  output_file=$1
+
+  if [ -e "$output_file" ]; then
+    printf "file exists: %s\n" "$output_file" >&2
+    return 1
+  fi
+  : >"$output_file" || return 1
+
+  if [ -f "$llmcc_hook_log_file" ]; then
+    if [ -n "$eres" ]; then
+      grep -E -- "$eres" "$llmcc_hook_log_file" >"$output_file"
+      grep_exit=$?
+      # grep exits 1 when no line matches: an empty dump, not an error.
+      [ "$grep_exit" -ne 2 ] || return 1
+    else
+      cp -- "$llmcc_hook_log_file" "$output_file" || return 1
+    fi
+  fi
+
+  count=$(wc -l <"$output_file")
+  count=${count##* }
+  if [ -n "$opt_json" ]; then
+    jq -cn --arg path "$output_file" --argjson count "$count" \
+      '{dump:{path:$path,count:$count}}'
+  else
+    printf "dumped %s lines to: %s\n" "$count" "$output_file"
+  fi
+}
+
 case $subcommand in
   create)      sub_create "$@" ;;
   remove)      sub_remove "$@" ;;
@@ -594,4 +639,5 @@ case $subcommand in
   list-docs)   sub_list_docs "$@" ;;
   doc)         sub_doc "$@" ;;
   path)        sub_path "$@" ;;
+  log-dump)    sub_log_dump "$@" ;;
 esac
