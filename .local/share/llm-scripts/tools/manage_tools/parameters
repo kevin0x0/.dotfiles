@@ -58,6 +58,11 @@
     "whole_catalog": {
       "type": "boolean",
       "description": "Only for list: when true, the whole catalog is listed, including tools that are not in the session."
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Only for list: when true, list the enabled tool set (the default and the extra set together) instead of the extra set only. \"pattern\" does not apply.",
+      "default": false
     }
   },
   "required": [
