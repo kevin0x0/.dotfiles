@@ -1,16 +1,19 @@
 # manage_tools
 
-Supplementary reference for managing the session tool sets and exploring
-the tool system. The tool description covers the operations; this document
-explains the interface details.
+Supplementary reference for managing the session tool sets and
+exploring the tool system. The tool description covers the operations;
+this document explains the interface details and shows example
+results.
 
 # Tool sets
 
 - The default tool set is loaded with full signatures when the session
   starts. It is configured by the user at session start and is usually
   small.
-- The extra tool set is loaded with stub signatures; call "describe" to
-  retrieve the full signature of one of its tools before calling it.
+- The extra tool set is loaded with stub signatures: each tool has a
+  placeholder description (such as "[deferred]") and empty parameters,
+  which do not describe the tool. Call "describe" to retrieve the full
+  signature of an extra-set tool before calling it.
 - The enabled tool set is the union of the two, and is exactly the set
   of tools visible to you in the session: every tool you can see in
   your tool list is in either the default or the extra tool set, and a
@@ -22,12 +25,101 @@ explains the interface details.
   The hidden "enable" and "disable"
   operations adjust the extra tool set; see "enable-disable.md".
 
+# Operations
+
+The examples pair a call with the result it returns; the tool names in
+them are fictitious. Empty results are usually empty lists. The
+read-only operations (describe, list, doc, listdoc) can be issued in
+parallel; "enable" and "disable" change the extra tool set and must
+run one at a time.
+
+## describe
+
+- Scope: the extra tool set only, filtered by "pattern". Tools already
+  described in this session are skipped; with no "pattern", nothing is
+  described.
+- A stub signature has a placeholder description (such as
+  "[deferred]") and empty parameters. When a tool's description looks
+  like a placeholder rather than a description of the tool, retrieve
+  the full signature with "describe" before calling the tool.
+
+For {"operation":"describe","pattern":"some_tool"}:
+
+    {"described":1,"tools":[{"type":"function","name":"some_tool","description":"...","parameters":{...}}]}
+
+No matching tool, or every match already described:
+
+    {"described":0,"tools":[]}
+
+## list
+
+- Default: the extra tool set; without "pattern", all of its tools are
+  listed. With "ignore_extra_set": the whole catalog, including tools
+  not available in this session (see the caution in Tool sets).
+- "pattern" filters the listed tools; "with_summary" adds each tool's
+  short summary. Paging: see Pagination.
+- Each item has either a "name" (matched by name) or a "path" (matched
+  in the tool tree).
+
+For {"operation":"list","pattern":"some_tool","with_summary":true}:
+
+    {"list":[{"name":"some_tool","summary":"..."}],"total":1,"start_index":0,"count":1}
+
+An empty extra tool set:
+
+    {"list":[],"total":0,"start_index":0,"count":0}
+
+## doc
+
+- "toolname" names the tool. "docpaths" lists the documents to read:
+  paths relative to the tool's doc directory, "README.md" by default;
+  several documents can be read in one call.
+- The paths are literal: glob patterns are not expanded. The docpaths
+  to pass are the file paths reported by "listdoc" (not its directory
+  entries).
+- Documents that do not exist are silently omitted; the result lists
+  only the found ones. A "toolname" that names no installed tool is
+  silently ignored as well: the result is then an empty list, not an
+  error.
+- The documents of a tool are organized freely; by convention
+  "README.md" is the main entry point.
+
+For {"operation":"doc","toolname":"some_tool","docpaths":["README.md"]}:
+
+    {"toolname":"some_tool","docs":[{"docpath":"README.md","content":"# some_tool\n\n..."}]}
+
+All requested documents missing:
+
+    {"toolname":"some_tool","docs":[]}
+
+## listdoc
+
+- "toolname" names the tool. "pattern" filters the listed document
+  paths with globs; without it, all documents are listed.
+- Directory entries are listed with a trailing "/"; the list is sorted
+  and deduplicated.
+- A "toolname" that names no installed tool is silently ignored: the
+  result is an empty list, not an error.
+
+For {"operation":"listdoc","toolname":"some_tool"}:
+
+    {"toolname":"some_tool","doclist":["README.md","reference/usage.md"]}
+
+A tool without documents:
+
+    {"toolname":"some_tool","doclist":[]}
+
 # Patterns
 
 "pattern" is a space separated list of glob patterns. Patterns without
 "/" match tool names across all tools; patterns containing "/" match
-paths in the tool tree (tree mode). A word starting with "@" expands a
-tool preset in place: a named list of patterns stored by the user.
+paths in the tool tree (tree mode). Glob matching follows the
+semantics of POSIX pathname expansion. A word starting with "@" expands
+a tool preset in place: a named list of patterns stored by the user.
+Presets are referenced by name in patterns; they can not be enumerated
+with this tool. The preset names come mainly from the user, or from
+other tools that expose them. When you do not know of any preset, do
+not worry about presets: there is nothing to do with them.
 
 Recipes:
 
@@ -54,9 +146,11 @@ when the result is large.
 
 # Errors and edge cases
 
-- "describe" only describes tools of the extra tool set, and skips tools
-  already described in this session; with no "pattern" it describes
-  nothing.
-- "list" without "ignore_extra_set" lists only the extra tool set.
-- Glob patterns can not match dot-prefixed (hidden) names; such patterns
-  are rejected.
+- On failure (invalid arguments, or the operation could not be
+  performed), the result is {"error":"<reason>"}, e.g.
+  {"error":"bad argument: pattern is not given or is empty"}.
+- When the user rejects the approval request of "enable" or "disable",
+  the result is {"rejected":"<reason>"}. No other operation asks for
+  approval, and no other operation returns "rejected".
+- Glob patterns can not match dot-prefixed (hidden) names; such
+  patterns are rejected.

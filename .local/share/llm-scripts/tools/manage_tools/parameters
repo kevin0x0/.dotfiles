@@ -3,7 +3,12 @@
   "properties": {
     "operation": {
       "type": "string",
-      "enum": ["describe", "list", "doc", "listdoc"],
+      "enum": [
+        "describe",
+        "list",
+        "doc",
+        "listdoc"
+      ],
       "description": "The operation to perform."
     },
     "pattern": {
@@ -18,14 +23,18 @@
       "anyOf": [
         {
           "type": "string",
-          "description": "Document pathname relative to the tool's doc directory. Optional for doc.",
+          "description": "Document pathname relative to the tool's doc directory; a literal path, glob patterns are not expanded. Optional for doc.",
           "default": "README.md"
         },
         {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Document pathname list relative to the tool's doc directory. Optional for doc.",
-          "default": ["README.md"]
+          "items": {
+            "type": "string"
+          },
+          "description": "Document pathname list relative to the tool's doc directory; literal paths, glob patterns are not expanded. Optional for doc.",
+          "default": [
+            "README.md"
+          ]
         }
       ]
     },
@@ -49,5 +58,7 @@
       "default": 20
     }
   },
-  "required": ["operation"]
+  "required": [
+    "operation"
+  ]
 }

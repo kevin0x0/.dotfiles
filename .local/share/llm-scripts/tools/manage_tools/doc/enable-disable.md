@@ -32,8 +32,22 @@ returns {"removed_tools":[...],"count":...}. Enabling an already
 enabled tool, or disabling one that is not enabled, is a no-op: the
 result is an empty list, not an error.
 
+For {"operation":"enable","pattern":"some_tool"}:
+
+    {"added_tools":["some_tool"],"count":1}
+
+For {"operation":"disable","pattern":"some_tool"}:
+
+    {"removed_tools":["some_tool"],"count":1}
+
+A no-op (already enabled, or not enabled):
+
+    {"added_tools":[],"count":0}
+
 # Notes
 
 - The default tool set is not affected by enable or disable.
 - After enabling a tool, use "describe" to retrieve its full signature
   when the session loads extra tools as stubs.
+- Run "enable" and "disable" one at a time: they change the extra tool
+  set.
