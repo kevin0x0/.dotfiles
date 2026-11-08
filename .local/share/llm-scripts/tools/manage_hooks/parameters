@@ -3,12 +3,12 @@
   "properties": {
     "operation": {
       "type": "string",
-      "enum": ["create", "remove", "list", "list-events", "list-docs", "doc", "path", "log-dump"],
+      "enum": ["create", "remove", "list", "list-events", "list-docs", "doc", "hook-dump", "log-dump"],
       "description": "The operation to perform."
     },
     "event": {
       "type": "string",
-      "description": "Hookable event the hook is attached to. Required for create, remove, path and list-docs (must be installed; for list-docs it can also be a namespace); optional for list, where a glob filters the listed hooks, and for list-events, where an ERE filters the listed events."
+      "description": "Hookable event the hook is attached to. Required for create, remove, hook-dump and list-docs (must be installed; for list-docs it can also be a namespace); optional for list, where a glob filters the listed hooks, and for list-events, where an ERE filters the listed events."
     },
     "pattern": {
       "type": "string",
@@ -16,11 +16,11 @@
     },
     "output_file": {
       "type": "string",
-      "description": "Only for log-dump: the pathname of the file to write the matching hook log lines to. The file must not exist yet."
+      "description": "Only for hook-dump and log-dump: the pathname of the file to write the result to. The file must not exist yet."
     },
     "name": {
       "type": "string",
-      "description": "Hook name with its type suffix, e.g. \"notify.oneshot\" (runs once then is removed) or \"notify.always\" (runs every time). Required for remove and path. Optional for create (an auto-generated name is used; a name of the form \".<type>\" uses the auto-generated name with the given type); required when append is true."
+      "description": "Hook name with its type suffix, e.g. \"notify.oneshot\" (runs once then is removed) or \"notify.always\" (runs every time). Required for remove and hook-dump. Optional for create (an auto-generated name is used; a name of the form \".<type>\" uses the auto-generated name with the given type); required when append is true."
     },
     "docpaths": {
       "anyOf": [

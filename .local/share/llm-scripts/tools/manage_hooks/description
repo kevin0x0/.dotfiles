@@ -40,8 +40,9 @@ agent-loop-tool-call-interrupted, end.
   can be an ERE filtering the document paths.
 - "doc": read documents. "docpaths" lists the document paths; documents
   that do not exist are silently omitted.
-- "path": print the absolute pathname of a hook. Requires "event" and
-  "name".
+- "hook-dump": write the hook's script content to the file named by
+  "output_file", which must not exist yet. Requires "event", "name"
+  and "output_file".
 - "log-dump": write the hook log lines whose "[<event>/<hook name>]"
   prefix matches "pattern" (an ERE; all lines when "pattern" is
   omitted) to the file named by "output_file", which must not exist
@@ -59,14 +60,13 @@ configured.
 
 # Returns
 
-A JSON object. On success: create returns
-{"created":"<rel>","path":...} ({"appended":"<rel>","path":...} when
-appending); remove returns {"removed":"<rel>","path":...}; list returns
-{"hooks":[{"rel":...,"path":...},...]}; list-events returns
-{"events":[{"name":...,"summary":...},...]}; list-docs returns
-{"entry":...,"doclist":[...]}; doc returns
-{"docs":[{"path":...,"content":...},...]}; path returns {"path":...};
-log-dump returns {"dump":{"path":...,"count":...}}.
+A JSON object. On success: create returns {"created":"<rel>"}
+({"appended":"<rel>"} when appending); remove returns
+{"removed":"<rel>"}; list returns {"hooks":[{"rel":...},...]};
+list-events returns {"events":[{"name":...,"summary":...},...]};
+list-docs returns {"entry":...,"doclist":[...]}; doc returns
+{"docs":[{"path":...,"content":...},...]}; hook-dump and log-dump return
+{"dump":{"path":...,"count":...}}.
 On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 
 <rel> is the relative hook path in the form event/name.type.

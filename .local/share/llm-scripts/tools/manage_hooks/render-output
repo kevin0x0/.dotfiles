@@ -13,7 +13,6 @@ try (
   (.created // null)  as $created |
   (.appended // null) as $appended |
   (.removed // null)  as $removed |
-  (.path // "")       as $path |
   (.entry // "")      as $entry |
   (.hooks // null)    as $hooks |
   (.events // null)   as $events |
@@ -23,13 +22,13 @@ try (
   (.error // null)    as $error |
   (.rejected // null) as $rejected |
   (if $created != null then
-     ($path | print_strings, " | ", render_withflags("change"; "-A created -S " + ($created | @sh)))
+     ("" | print_strings, " | ", render_withflags("change"; "-A created -S " + ($created | @sh)))
    else empty end),
   (if $appended != null then
-     ($path | print_strings, " | ", render_withflags("change"; "-A appended -S " + ($appended | @sh)))
+     ("" | print_strings, " | ", render_withflags("change"; "-A appended -S " + ($appended | @sh)))
    else empty end),
   (if $removed != null then
-     ($path | print_strings, " | ", render_withflags("change"; "-A removed -S " + ($removed | @sh)))
+     ("" | print_strings, " | ", render_withflags("change"; "-A removed -S " + ($removed | @sh)))
    else empty end),
   (if $hooks != null then
      ($hooks | map(.rel) | join("\n") | print_strings, " | ", render("hooks"))
@@ -49,9 +48,6 @@ try (
   (if $dump != null then
      (($dump.count | tostring) + " lines -> " + $dump.path
        | print_strings, " | ", render("dump"))
-   else empty end),
-  (if $created == null and $appended == null and $removed == null and $path != "" then
-     ("" | print_strings, " | ", render_withflags("path"; "-S " + ($path | @sh)))
    else empty end),
   (if $error != null then
      ($error | print_strings, " | ", render("error"))
