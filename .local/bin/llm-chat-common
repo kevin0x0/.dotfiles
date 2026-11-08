@@ -8,6 +8,8 @@ llmcc_set_public_files_var() {
   llmcc_extra_tool_name_list=$1/extra-tool-name-list
   llmcc_hooks_dir=$1/hooks
   llmcc_tool_state_dir=$1/tool-state
+  llmcc_hook_log_file=$1/hook-log
+  llmcc_hook_log_tmp_file=$1/hook-log-tmp
 }
 
 llmcc_helper_set_tmp() {
@@ -131,13 +133,40 @@ llmcc_hook_default_runner() (
   . -- "$1"
 )
 
+llmcc_hook_log() {
+  llmcc_hook_log_level=$1
+  llmcc_hook_log_time=$(date "+%Y-%m-%dT%H:%M:%S")
+  shift
+  for llmcc_hook_log_msg; do
+    while [ -n "$llmcc_hook_log_msg" ]; do
+      printf "[%s] %s: %s\n" \
+        "$llmcc_hook_log_level" \
+        "$llmcc_hook_log_time" \
+        "${llmcc_hook_log_msg%%$'\n'*}"
+
+      case $llmcc_hook_log_msg in
+        *$'\n'*)  llmcc_hook_log_msg=${llmcc_hook_log_msg#*$'\n'} ;;
+        *)        llmcc_hook_log_msg= ;;
+      esac
+    done
+  done >&2
+}
+
 llmcc_run_hooks() {
   llmcc_hook_runner=${1:-llmcc_hook_default_runner}
   shift
   for llmcc_event; do
     for llmcc_hook_script in "$llmcc_hooks_dir/$llmcc_event"/*; do
       [ -f "$llmcc_hook_script" ] || continue
-      "$llmcc_hook_runner" "$llmcc_hook_script"
+      "$llmcc_hook_runner" "$llmcc_hook_script" 2>"$llmcc_hook_log_tmp_file"
+
+      if [ -s "$llmcc_hook_log_tmp_file" ]; then
+        tr '\n' '\000' <"$llmcc_hook_log_tmp_file" \
+          | xargs -r0 -- printf "[$llmcc_event/${llmcc_hook_script##*/}] %s\n" \
+            >>"$llmcc_hook_log_file"
+        : >"$llmcc_hook_log_tmp_file"
+      fi
+
       case $llmcc_hook_script in
         *.oneshot) rm -f -- "$llmcc_hook_script" ;;
       esac
