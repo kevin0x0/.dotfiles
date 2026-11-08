@@ -169,25 +169,27 @@ validate_name() {
 }
 
 # Print matching hooks as "kind<TAB>relative path" lines (kind is
-# "regular" or "symlink"; the path is event/name.type).
+# "regular" or "symlink"; the path is event/base.type). The optional
+# arguments are EREs filtering the relative paths; without any, every
+# hook matches.
 list_hooks() {
   find "$llmcc_hooks_dir/" \( -type f -o -type l \) -print0 \
     | jq --arg prefix "$llmcc_hooks_dir/" \
         -Rsr 'split("\u0000")[] | ltrimstr($prefix) | select(length != 0)' \
     | {
+        eres=
+        for pattern; do
+          eres=$eres${eres:+$'\n'}$pattern
+        done
+        grep -E -- "$eres"
+      } \
+    | {
         while IFS= read -r line; do
-          for pattern; do
-            case $line in
-              $pattern)
-                if [ -L "$llmcc_hooks_dir/$line" ]; then
-                  printf "symlink\t%s\n" "$line"
-                else
-                  printf "regular\t%s\n" "$line"
-                fi
-                break
-                ;;
-            esac
-          done
+          if [ -L "$llmcc_hooks_dir/$line" ]; then
+            printf "symlink\t%s\n" "$line"
+          else
+            printf "regular\t%s\n" "$line"
+          fi
         done
       }
 }
@@ -347,7 +349,6 @@ sub_remove() {
 
 sub_list() {
   [ "$1" = "--" ] && shift
-  [ "$#" -eq 0 ] && set -- '*'
 
   validate_statedir || return
   . llm-chat-common
