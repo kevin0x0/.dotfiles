@@ -34,9 +34,7 @@ try (
      ($hooks | map(.rel) | join("\n") | print_strings, " | ", render("hooks"))
    else empty end),
   (if $events != null then
-     ($events
-        | map(if .summary != "" then .name + "\n" + .summary else .name end)
-        | join("\n") | print_strings, " | ", render("events"))
+     ($events | map(.name) | join("\n") | print_strings, " | ", render("events"))
    else empty end),
   (if $doclist != null then
      (.doclist | join("\n") | print_strings, " | ",
