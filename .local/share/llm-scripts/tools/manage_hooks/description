@@ -61,7 +61,8 @@ sessions they are rejected unless automatic approval is configured.
 
 A JSON object. On success: create returns {"created":"<rel>"}
 ({"appended":"<rel>"} when appending); remove returns
-{"removed":"<rel>"}; list returns {"hooks":[{"rel":...},...]};
+{"removed":"<rel>"}; list returns
+{"hooks":[{"rel":...,"kind":...},...]};
 list-events returns {"events":[{"name":...,"summary":...},...]};
 list-docs returns {"entry":...,"doclist":[...]}; doc returns
 {"docs":[{"path":...,"content":...},...]}; hook-dump and log-dump return

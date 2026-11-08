@@ -31,7 +31,8 @@ try (
      ("" | print_strings, " | ", render_withflags("change"; "-A removed -S " + ($removed | @sh)))
    else empty end),
   (if $hooks != null then
-     ($hooks | map(.rel) | join("\n") | print_strings, " | ", render("hooks"))
+     ($hooks | map(.rel + (if .kind == "symlink" then " symlink" else "" end))
+       | join("\n") | print_strings, " | ", render("hooks"))
    else empty end),
   (if $events != null then
      ($events | map(.name) | join("\n") | print_strings, " | ", render("events"))

@@ -103,11 +103,12 @@ For {"operation":"remove","event":"builtin.state.read-loop.enter","name":"notify
 
 ## list
 
-Fields: "hooks" (the installed hooks as "event/name.type" paths).
+Fields: "hooks" (the installed hooks as "event/name.type" paths, each
+with "kind": "regular" or "symlink").
 
 For {"operation":"list"}:
 
-    {"hooks":[{"rel":"builtin.state.end.leave/cleanup.oneshot"},{"rel":"builtin.state.read-loop.enter/notify.always"}]}
+    {"hooks":[{"kind":"regular","rel":"builtin.state.end.leave/cleanup.oneshot"},{"kind":"symlink","rel":"builtin.state.read-loop.enter/notify.always"}]}
 
 No installed hook:
 

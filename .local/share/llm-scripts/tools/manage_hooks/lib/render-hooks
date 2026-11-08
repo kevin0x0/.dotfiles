@@ -7,5 +7,7 @@ llmtr_parse_options "" "$@"
 llmtr_render_header '36;1' "hooks:"
 
 llmtr_complete_newline \
-  | llmtr_run_filter_on_color llmtr_filter_color_line '36' \
+  | llmtr_run_on_color llmtr_color_pattern \
+      '36' '33;1' ' symlink$' '&' \
+      '36' '36' '^.*$' '&' \
   | llmtr_render_lines
