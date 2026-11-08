@@ -21,15 +21,19 @@ description.
   text), "copy" (source is a file whose content is copied: a snapshot
   taken at creation time), "symlink" (source is a file the hook links
   to: it follows later changes to the file). "name" has the form
-  "<name>.<type>": the type suffix selects the run policy ("oneshot"
-  runs once then is removed, "always" runs every time); "name" is
-  optional (an auto-generated "oneshot" name is used when omitted).
+  "<base>.<type>": the type suffix selects the run policy ("oneshot"
+  runs once then is removed, "always" runs every time; other types are
+  accepted and currently behave like "always", but do not rely on
+  that); "name" is
+  optional (an auto-generated "oneshot" name is used when omitted; a
+  name of the form ".<type>" uses an auto-generated name with the
+  given type).
   "append" (requires "name") appends to the existing hook instead of
   failing.
 - "remove": remove a hook. Requires "event" and "name" (with the exact
   type suffix of the installed hook).
 - "list": list the hooks currently installed in the session. "event" can
-  be a glob filtering the list (it matches "event/name.type" paths).
+  be a glob filtering the list (it matches "event/base.type" paths).
 - "list-events": list the installed events and namespaces (namespace
   names end with "."). "pattern" can be an ERE matching the full listed
   names (including the trailing "." of namespaces); "with_summary" adds
@@ -71,7 +75,7 @@ list-docs returns {"entry":...,"doclist":[...]}; doc returns
 {"dump":{"path":...,"count":...}}; hook-source returns {"source":...}.
 On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 
-<rel> is the relative hook path in the form event/name.type.
+<rel> is the relative hook path in the form event/base.type.
 
 # Notes
 
