@@ -208,5 +208,5 @@ No matching line:
   ("unnamed-<number>.oneshot").
 - "create" rejects events that are not registered; an event name can not
   contain empty segments ("state..enter" is invalid).
-- "list" without arguments lists all installed hooks; glob arguments
-  filter by the "event/base.type" path.
+- "list" without "pattern" lists all installed hooks; the "pattern"
+  ERE filters by the "event/base.type" path.

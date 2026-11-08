@@ -117,7 +117,7 @@ case $op in
     set -- "$@" -- "$event" "$name" "$output_file"
     ;;
   list)
-    [ -n "$event" ] && set -- "$@" -- "$event"
+    [ -n "$pattern" ] && set -- "$@" -- "$pattern"
     ;;
   list-events)
     [ "$with_summary" = true ] && set -- "$@" -s
