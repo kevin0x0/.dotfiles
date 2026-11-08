@@ -19,6 +19,9 @@ llmcu_getarg() {
   fi
   [ -n "$llmcuopt_trim_newline" ] && llmcu_arg=${llmcu_arg%$'\n'}
   llmcuopt_trim_newline=
+  case $1 in
+    *+) set -- "${1%+}"; eval "llmcu_arg=\$$1"'$llmcu_arg' ;;
+  esac
   eval "$1"='$llmcu_arg'
 }
 
