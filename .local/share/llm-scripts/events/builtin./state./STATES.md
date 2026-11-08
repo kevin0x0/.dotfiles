@@ -4,7 +4,9 @@ a state and a "builtin.state.<state>.leave" event when it leaves it.
 Hooks attached to those events run synchronously at those moments, in
 the session's environment; their standard output goes to the user's
 terminal.
-The execution environment is described in ENVIRONMENT.md.
+The execution environment is described in ENVIRONMENT.md. Each state
+namespace holds a SCENARIOS.md with example use cases for its enter and
+leave events; they are examples, not limits.
 Each state is described in the summary of its own namespace.
 
 A normal turn cycles through:
