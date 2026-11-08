@@ -40,10 +40,6 @@
         }
       ]
     },
-    "ignore_extra_set": {
-      "type": "boolean",
-      "description": "Only for list: when true, list the whole catalog, including tools that are not in the session."
-    },
     "with_summary": {
       "type": "boolean",
       "description": "Only for list: when true, list the tools with a short summary.",
@@ -51,13 +47,17 @@
     },
     "start_index": {
       "type": "integer",
-      "description": "Only for list: the index of starting output item.",
+      "description": "Only for list: the index of the starting output item. Must be a non-negative integer.",
       "default": 0
     },
     "count": {
       "type": "integer",
-      "description": "Only for list: the maximum number of output items.",
+      "description": "Only for list: the maximum number of output items. Must be a non-negative integer.",
       "default": 20
+    },
+    "whole_catalog": {
+      "type": "boolean",
+      "description": "Only for list: when true, the whole catalog is listed, including tools that are not in the session."
     }
   },
   "required": [

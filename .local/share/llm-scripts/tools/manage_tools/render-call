@@ -14,7 +14,7 @@ try (
     elif .operation == "describe" then
       "describing " + (.pattern // "" | tostring)
     elif .operation == "list" then
-      if .ignore_extra_set then
+      if .whole_catalog then
         "listing all tools matching " + (.pattern // "*" | tostring)
       else
         "listing extra tools matching " + (.pattern // "*" | tostring)

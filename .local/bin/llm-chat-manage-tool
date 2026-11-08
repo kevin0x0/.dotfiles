@@ -172,14 +172,14 @@ sub_list() {
   OPTIND=1
   opt_list_enabled=
   opt_with_summary=
-  opt_ignore_extralist=
+  opt_whole_catalog=
   opt_start_index=
   opt_count=
   while getopts "esEi:c:" opt; do
     case $opt in
       e) opt_list_enabled=1 ;;
       s) opt_with_summary=1 ;;
-      E) opt_ignore_extralist=1 ;;
+      E) opt_whole_catalog=1 ;;
       i) opt_start_index=$OPTARG ;;
       c) opt_count=$OPTARG ;;
       \?) exit 2 ;;
@@ -194,7 +194,7 @@ sub_list() {
     llmcc_set_public_files_var "$opt_state_dir"
   else
     validate_globpattern "$@" || return
-    if [ -z "$opt_ignore_extralist" ]; then
+    if [ -z "$opt_whole_catalog" ]; then
       validate_statedir || return
       . llm-chat-common
       llmcc_set_public_files_var "$opt_state_dir"
@@ -211,7 +211,7 @@ sub_list() {
   else
     [ "$#" -eq 0 ] && set -- '*'
     llm-expand-toolspec -t -- "$@" | {
-      if [ -n "$opt_ignore_extralist" ]; then
+      if [ -n "$opt_whole_catalog" ]; then
         cat
       elif [ ! -f "$llmcc_extra_tool_name_list" ]; then
         cat >/dev/null
@@ -242,10 +242,14 @@ sub_list() {
           (if .[:$i] | contains("/") then "path" else "name" end):.[:$i],
         } + (if $with_summary != "" then { summary:.[$i+1:]} else {} end)
       ] | (
-          if $count == -1 then
-            length else
-            $count + $start_index
-          end
+        if $start_index < 0 then
+          0 else
+          [$start_index, length] | min
+        end) as $start_index | (
+          [
+            (if $count < 0 then length else $count end) + $start_index,
+            length
+          ] | min
         ) as $end_index | {
         list:.[$start_index:$end_index],
         total:length,
