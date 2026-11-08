@@ -35,9 +35,8 @@ run one at a time.
 
 ## describe
 
-- Scope: the extra tool set only, filtered by "pattern". Tools already
-  described in this session are skipped; with no "pattern", nothing is
-  described.
+- Scope: the extra tool set only, filtered by "pattern"; with no
+  "pattern", nothing is described.
 - A stub signature has a placeholder description (such as
   "[deferred]") and empty parameters. When a tool's description looks
   like a placeholder rather than a description of the tool, retrieve
@@ -47,7 +46,7 @@ For {"operation":"describe","pattern":"some_tool"}:
 
     {"described":1,"tools":[{"type":"function","name":"some_tool","description":"...","parameters":{...}}]}
 
-No matching tool, or every match already described:
+No matching tool:
 
     {"described":0,"tools":[]}
 
