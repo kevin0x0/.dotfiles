@@ -14,10 +14,10 @@
 > 已选择文件，文件 id：$1
 # failed to get a file id for $1, skipping
 > 获取 $1 的文件 id 失败，跳过
-# please provide a filename to save as
-> 请提供要保存的文件名
-# failed to save as $1 and $2
-> 保存为 $1 和 $2 失败
+# please provide a directory to save as
+> 请提供要保存的目录
+# already exists: $1
+> $1 已存在
 # there is no need to retry since no error occurred
 > 未发生错误，无需重试
 # invalid role: $1
@@ -28,10 +28,12 @@
 > 部分文件即将过期，正在更新
 # failed to create state directory
 > 创建状态目录失败
-# $1 does not exist or is not a readable file
-> $1 不存在或不是可读文件
-# failed to extract file ids from $1
-> 从 $1 提取文件 id 失败
+# $1 is not a directory
+> $1 不是目录
+# $1 is not readable
+> $1 不可读
+# $1 is not executable
+> $1 不可执行
 # The API call exit code is 0, but the returned response output is empty.
 > API 调用退出码为 0，但返回的响应输出为空
 # response incomplete: $1
