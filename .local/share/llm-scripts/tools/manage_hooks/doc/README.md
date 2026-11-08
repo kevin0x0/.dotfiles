@@ -115,13 +115,13 @@ No installed hook:
 
 ## list-events
 
-- "event" is an ERE matching the full listed names, including the
+- "pattern" is an ERE matching the full listed names, including the
   trailing "." of namespaces.
 
 Fields: "events" (the matching events and namespaces, each with "name"
 and a "summary" when "with_summary" is true).
 
-For {"operation":"list-events","with_summary":true,"event":"^builtin\\.state\\.agent-loop-end"}:
+For {"operation":"list-events","with_summary":true,"pattern":"^builtin\\.state\\.agent-loop-end"}:
 
     {"events":[{"name":"builtin.state.agent-loop-end.","summary":"The agent turn is finished and is committed.\n"},{"name":"builtin.state.agent-loop-end.enter","summary":""},{"name":"builtin.state.agent-loop-end.leave","summary":""}]}
 
