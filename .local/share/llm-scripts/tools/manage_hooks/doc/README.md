@@ -44,8 +44,7 @@ are silently omitted. An entry that is not installed is an error
   event by event. The relative order of several hooks on the same
   event is unspecified.
 - The hook inherits the session's execution environment and working
-  directory; some sensitive variables are unset before it runs. It
-  receives no arguments.
+  directory. It receives no arguments.
 - Three names describe the run to the hook: llmcc_event holds the
   event name, llmcc_hook_script the hook's own pathname, and
   llmcc_hook_log is the logging function.
