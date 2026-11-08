@@ -31,8 +31,8 @@ are silently omitted. An entry that is not installed is an error
 - A hook name has the form "<name>.<type>" with exactly one dot: the
   type suffix selects the run policy. "oneshot" runs once and is then
   removed; "always" runs every time.
-- "remove" and "hook-dump" identify the hook by its full name,
-  including the type suffix: removing "notify.always" as
+- "remove", "hook-dump" and "hook-source" identify the hook by its
+  full name, including the type suffix: removing "notify.always" as
   "notify.oneshot" fails.
 - "hook-dump" writes the hook's script content to "output_file", which
   must not exist yet; the hook's location is never revealed. For a
@@ -166,6 +166,16 @@ its line count).
 For {"operation":"hook-dump","event":"builtin.state.read-loop.enter","name":"notify.always","output_file":"/tmp/hook.sh"}:
 
     {"dump":{"path":"/tmp/hook.sh","count":2}}
+
+## hook-source
+
+- Only for "symlink" hooks; a regular hook is an error.
+
+Fields: "source" (the file the hook links to).
+
+For {"operation":"hook-source","event":"builtin.state.read-loop.enter","name":"linked.always"}:
+
+    {"source":"/home/user/scripts/notify.sh"}
 
 ## log-dump
 

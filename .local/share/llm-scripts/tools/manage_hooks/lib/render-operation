@@ -28,6 +28,7 @@ case $opt_action in
   list-docs)    llmtr_render_header '36;1' "list documents${opt_subject:+: $opt_subject}" ;;
   doc)          llmtr_render_header '36;1' "read documents${opt_subject:+: $opt_subject}" ;;
   hook-dump)    llmtr_render_header '36;1' "dump hook${opt_subject:+: $opt_subject}" ;;
+  hook-source)  llmtr_render_header '36;1' "get hook source${opt_subject:+: $opt_subject}" ;;
   log-dump)     llmtr_render_header '36;1' "dump hook log${opt_subject:+: $opt_subject}" ;;
 esac
 
