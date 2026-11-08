@@ -19,6 +19,7 @@ try (
   (.events // null)   as $events |
   (.doclist // null)  as $doclist |
   (.docs // null)     as $docs |
+  (.dump // null)     as $dump |
   (.error // null)    as $error |
   (.rejected // null) as $rejected |
   (if $created != null then
@@ -44,6 +45,10 @@ try (
    else empty end),
   (if $docs != null then
      ($docs | map(.path) | join("\n") | print_strings, " | ", render("docs"))
+   else empty end),
+  (if $dump != null then
+     (($dump.count | tostring) + " lines -> " + $dump.path
+       | print_strings, " | ", render("dump"))
    else empty end),
   (if $created == null and $appended == null and $removed == null and $path != "" then
      ("" | print_strings, " | ", render_withflags("path"; "-S " + ($path | @sh)))

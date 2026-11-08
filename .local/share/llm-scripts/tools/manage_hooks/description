@@ -42,6 +42,11 @@ agent-loop-tool-call-interrupted, end.
   that do not exist are silently omitted.
 - "path": print the absolute pathname of a hook. Requires "event" and
   "name".
+- "log-dump": write the hook log lines whose "[<event>/<hook name>]"
+  prefix matches "pattern" (an ERE; all lines when "pattern" is
+  omitted) to the file named by "output_file", which must not exist
+  yet. Lines without a match produce an empty dump, not an error.
+  Requires "output_file".
 
 A document path has the form "<entry name>/<doc path relative to the
 entry>", e.g. "builtin.state./STATES.md".
@@ -60,7 +65,8 @@ appending); remove returns {"removed":"<rel>","path":...}; list returns
 {"hooks":[{"rel":...,"path":...},...]}; list-events returns
 {"events":[{"name":...,"summary":...},...]}; list-docs returns
 {"entry":...,"doclist":[...]}; doc returns
-{"docs":[{"path":...,"content":...},...]}; path returns {"path":...}.
+{"docs":[{"path":...,"content":...},...]}; path returns {"path":...};
+log-dump returns {"dump":{"path":...,"count":...}}.
 On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 
 <rel> is the relative hook path in the form event/name.type.
@@ -69,5 +75,7 @@ On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.
 
 Use this tool to install scripts that run automatically on session
 events (for example desktop notifications or log appends), not to run
-commands directly; use the shell tool for that. Hook output goes to the
-user's terminal, not to the model.
+commands directly; use the shell tool for that. A hook's standard
+output goes to the user's terminal, not to the model; its standard
+error is appended to the hook log, which "log-dump" can filter into a
+file. The hook log can grow; read the dump with tail or grep.
