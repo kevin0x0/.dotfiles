@@ -743,7 +743,7 @@ state_init_from_session() {
     cp -PR -- "$f" "$opt_state_dir" || return
   done
 
-  if [ -n "$opt_use_session_option" ]; then
+  if [ -n "$opt_use_session_option" ] && [ -f "$dumped_session_option" ]; then
     command . -- "$dumped_session_option"
   fi
   rm -f -- "$dumped_session_option"
