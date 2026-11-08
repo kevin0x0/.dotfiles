@@ -158,7 +158,8 @@ llmcc_run_hooks() {
   for llmcc_event; do
     for llmcc_hook_script in "$llmcc_hooks_dir/$llmcc_event"/*; do
       [ -f "$llmcc_hook_script" ] || continue
-      "$llmcc_hook_runner" "$llmcc_hook_script" 2>"$llmcc_hook_log_tmp_file"
+      "$llmcc_hook_runner" "$llmcc_hook_script" \
+        </dev/null 2>"$llmcc_hook_log_tmp_file"
 
       if [ -s "$llmcc_hook_log_tmp_file" ]; then
         tr '\n' '\000' <"$llmcc_hook_log_tmp_file" \
