@@ -16,6 +16,7 @@ subcommands:
   list-docs    <name> [<ERE>...]
   doc          <path>...
   hook-dump    <event> <name>.<type> <output-file>
+  hook-source  <event> <name>.<type>
   log-dump     [<ERE>...] <output-file>
 
 options:
@@ -54,7 +55,7 @@ subcommand=$1
 shift
 
 case $subcommand in
-  create|remove|list|list-events|list-docs|doc|hook-dump|log-dump) ;;
+  create|remove|list|list-events|list-docs|doc|hook-dump|hook-source|log-dump) ;;
   *)
     printf "unsupported subcommand: %s\n" "$subcommand" >&2
     usage >&2
@@ -594,6 +595,31 @@ sub_doc() {
       }
 }
 
+# Print the source file of a symlink hook; regular hooks are an error.
+sub_hook_source() {
+  [ "$1" = "--" ] && shift
+  [ "$#" -eq 2 ] || { printf "hook name not provided\n" >&2; return 2; }
+  validate_statedir || return
+  . llm-chat-common
+  llmcc_set_public_files_var "$opt_state_dir"
+
+  event=$1
+  name=$2
+  validate_event "$event" || return
+  validate_name "$name" || return
+
+  f=$llmcc_hooks_dir/$event/$name
+  [ -e "$f" ] || { printf "hook doesn't exist: %s\n" "$event/$name" >&2; return 1; }
+  [ -L "$f" ] || { printf "hook is not a symlink: %s\n" "$event/$name" >&2; return 1; }
+  source_path=$(readlink -- "$f") || return 1
+
+  if [ -n "$opt_json" ]; then
+    jq -cn --arg source "$source_path" '{source:$source}'
+  else
+    printf "%s\n" "$source_path"
+  fi
+}
+
 # Dump a hook's script content into a new file, so the hook's
 # location is never revealed.
 sub_hook_dump() {
@@ -680,5 +706,6 @@ case $subcommand in
   list-docs)   sub_list_docs "$@" ;;
   doc)         sub_doc "$@" ;;
   hook-dump)   sub_hook_dump "$@" ;;
+  hook-source) sub_hook_source "$@" ;;
   log-dump)    sub_log_dump "$@" ;;
 esac
