@@ -30,8 +30,9 @@ trailing newlines).
   optional (an auto-generated "oneshot" name is used when omitted; a
   name of the form ".<type>" uses an auto-generated name with the
   given type).
-  "append" (requires "name") appends to the existing hook instead of
-  failing. The result reports the hook as "event/base.type".
+  "append" (requires "name") appends to the hook with the same name,
+  creating it if it does not exist, instead of failing with "hook
+  already exists". The result reports the hook as "event/base.type".
 - "remove": remove a hook. Requires "event" and "name" (with the exact
   type suffix of the installed hook).
 - "list": list the hooks currently installed in the session. "pattern"
