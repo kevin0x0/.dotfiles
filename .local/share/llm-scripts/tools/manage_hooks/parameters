@@ -22,7 +22,7 @@
     },
     "pattern": {
       "type": "string",
-      "description": "A POSIX ERE; do not use non-POSIX extensions. Only for list: matches the \"event/base.type\" hook paths. Only for list-events: matches the full listed event and namespace names (including the trailing \".\" of namespaces). Only for list-docs: the full \"<entry name>/<path>\" strings within which it is searched. Only for log-dump: the log lines within which it is searched (all lines are dumped when omitted; the lines start with a \"[<event>/<hook name>] \" prefix)."
+      "description": "A POSIX ERE; do not use non-POSIX extensions. Required for list, list-events, list-docs and log-dump; the matching semantics are in the tool description."
     },
     "output_file": {
       "type": "string",
@@ -30,7 +30,7 @@
     },
     "name": {
       "type": "string",
-      "description": "Hook name with its type suffix, e.g. \"notify.oneshot\" (runs once then is removed) or \"notify.always\" (runs every time). Required for remove, hook-dump and hook-source. Optional for create (an auto-generated name is used; a name of the form \".<type>\" uses the auto-generated name with the given type); required when append is true."
+      "description": "Hook name with its type suffix, e.g. \"notify.oneshot\". Required for remove, hook-dump and hook-source; optional for create; required when append is true."
     },
     "docpaths": {
       "anyOf": [
