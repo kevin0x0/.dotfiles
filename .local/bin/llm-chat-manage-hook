@@ -9,14 +9,14 @@ usage: llm-chat-manage-hook [-d <statedir>] <subcommand> [<options>] [<args>]
 Manage hooks that run on session events.
 
 subcommands:
-  create       <event> [-L] [-a] [-c] (<command> | <hook-file>) [<name>.<type>|.<type>]
-  remove       <event> <name>.<type>
-  list         [<glob pattern>...]
+  create       <event> [-L] [-a] [-c] (<command> | <hook-file>) [<base>.<type>|.<type>]
+  remove       <event> <base>.<type>
+  list         [<ERE>...]
   list-events  [-s] [<ERE>...]
-  list-docs    <name> [<ERE>...]
+  list-docs    <entry> [<ERE>...]
   doc          <path>...
-  hook-dump    <event> <name>.<type> <output-file>
-  hook-source  <event> <name>.<type>
+  hook-dump    <event> <base>.<type> <output-file>
+  hook-source  <event> <base>.<type>
   log-dump     [<ERE>...] <output-file>
 
 options:
@@ -28,7 +28,7 @@ options:
   -P             omit internal pathnames from JSON results
   -h             print this help
 
-A hook name has the form <name>.<type>; the type suffix selects the run
+A hook name has the form <base>.<type>; the type suffix selects the run
 policy ("oneshot" runs once and is removed, other types run every time).
 With ".<type>", an auto-generated name is used with the given type.
 Events are installed under the llm-scripts events directory (in the
@@ -158,7 +158,7 @@ validate_entry_name() {
   esac
 }
 
-# $1 hook name: <name>.<type> with exactly one dot and no empty parts.
+# $1 hook name: <base>.<type> with exactly one dot and no empty parts.
 validate_name() {
   case $1 in
     ''|*[![:alnum:]_.-]*|.*|*.|*.*.*)
@@ -242,6 +242,10 @@ sub_create() {
     esac
     if [ ! -f "$source" ]; then
       printf "'%s' doesn't exist or not a file\n" "$source" >&2
+      return 1
+    fi
+    if [ -n "$(tail -c 1 <"$source" | tr -c '\n' '[x*]')" ]; then
+      printf "no newline at end of file: %s\n" "$source" >&2
       return 1
     fi
   fi
@@ -642,6 +646,12 @@ sub_hook_dump() {
     printf "file exists: %s\n" "$output_file" >&2
     return 1
   fi
+  output_dir=${output_file%/*}
+  [ "$output_dir" = "$output_file" ] && output_dir=.
+  if [ ! -d "$output_dir" ]; then
+    printf "output directory does not exist: %s\n" "$output_dir" >&2
+    return 1
+  fi
 
   cp -- "$f" "$output_file" || return 1
 
@@ -674,6 +684,12 @@ sub_log_dump() {
 
   if [ -e "$output_file" ]; then
     printf "file exists: %s\n" "$output_file" >&2
+    return 1
+  fi
+  output_dir=${output_file%/*}
+  [ "$output_dir" = "$output_file" ] && output_dir=.
+  if [ ! -d "$output_dir" ]; then
+    printf "output directory does not exist: %s\n" "$output_dir" >&2
     return 1
   fi
   : >"$output_file" || return 1
