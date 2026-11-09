@@ -1,6 +1,7 @@
 # Scenarios: agent-loop-end
 
-The agent turn is finished and is committed. The scenarios below are
+The agent turn is finished; the turn is committed to the conversation
+between the enter and leave events. The scenarios below are
 examples of common uses, not a limit on what hooks can do.
 
 - enter: tell the user the turn is done; the hook's standard output
