@@ -8,12 +8,17 @@ opt_model=
 opt_tools=
 opt_tools_file=
 
+opt_info_output=/dev/null
+
 opt_input=
 
 . llm-config-utils
 
-while getopts "i:fFNu:k:sr:m:t:T:A:" opt; do
+while getopts "I:i:fFNu:k:sr:m:t:T:A:" opt; do
   case $opt in
+    I)
+      llmcu_getarg opt_info_output "$OPTARG"
+      ;;
     i)
       llmcu_getarg opt_input "$OPTARG"
       ;;
@@ -79,6 +84,17 @@ elif [ "$#" -ge 1 ]; then
   fi
 fi
 
+if [ "$opt_info_output" = - ]; then
+  opt_info_output=
+fi
+
+jq_build_extra_info_func='
+def build_extra_info:
+{
+  usage:.usage,
+  model:.model
+};'
+
 make_input() {
   stream=false
   [ -n "$opt_stream" ] && stream=true
@@ -122,16 +138,15 @@ EOF
 
 make_nonstream_output() {
   tmp=$statedir/tmp.output
-
-  jq -Rsc '
+  jq -Rsc "$jq_build_extra_info_func"'
     . as $input | try (
       fromjson |
       if .status == "completed" then
-        .output[], ("" | halt_error(0))
+        build_extra_info, .output[], ("" | halt_error(0))
       elif .status == "failed" then
         .error, ("" | halt_error(5))
       elif .status == "incomplete" then
-        .incomplete_details, .output[], ("" | halt_error(6))
+        build_extra_info, .incomplete_details, .output[], ("" | halt_error(6))
       else
         if has("error") | not then
           {"error":{"message":.,"type":"__defined_by_me","code":"__defined_by_me"}}
@@ -151,34 +166,42 @@ make_nonstream_output() {
     *)  exec 3>"$event_output" ;;
   esac
 
+  case $response_output in
+    "") exec 4>&1 ;;
+    *)  exec 4>"$response_output" ;;
+  esac
+
+  case $opt_info_output in
+    "") exec 5>&1 ;;
+    *)  exec 5>"$opt_info_output" ;;
+  esac
+
   case $exitcode in
     0)
-      llm-render-events <"$tmp" >&3
+      head -n 1 <"$tmp" >&5
+      tail -n +2 <"$tmp" | llm-render-events >&3
+      tail -n +2 <"$tmp" >&4
       ;;
     6)
       # Incomplete
-      # `jq 'inputs'` skips the first value
-      jq 'inputs' "$tmp" | llm-render-events >&3
+      head -n 1 <"$tmp" >&5
+      tail -n +3 <"$tmp" | llm-render-events >&3
+      tail -n +2 <"$tmp" >&4
       exitcode=3
       ;;
     5)
       # Failed
+      cat -- "$tmp" >&4
       exitcode=4
       ;;
     7)
-      : >"$tmp"
       exitcode=5
       ;;
     *)
+      cat -- "$tmp" >&4
       exitcode=1
       ;;
   esac
-
-  case $response_output in
-    "") exec 3>&1 ;;
-    *)  exec 3>"$response_output" ;;
-  esac
-  cat "$tmp" >&3
 
   return "$exitcode"
 }
@@ -269,20 +292,20 @@ stream_sort() {
 }
 
 preprocess_render_event() {
-  preprocess_program='
+  preprocess_program="$jq_build_extra_info_func"'
   def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
-  . as { $type } |
   if .type == "response.reasoning_text.delta" then
-    [.output_index, .content_index, null, "reasoning", .delta]
+    [.type, .output_index, .content_index, null, "reasoning", .delta]
   elif .type == "response.reasoning_summary_text.delta" then
-    [.output_index, null, .summary_index, "reasoning-summary", .delta]
+    [.type, .output_index, null, .summary_index, "reasoning-summary", .delta]
   elif .type == "response.output_text.delta" then
-    [.output_index, .content_index, null, "message-text assistant", .delta]
+    [.type, .output_index, .content_index, null, "message-text assistant", .delta]
   elif .type == "response.refusal.delta" then
-    [.output_index, .content_index, null, "message-refusal assistant", .delta]
+    [.type, .output_index, .content_index, null, "message-refusal assistant", .delta]
   elif .type == "response.content_part.added" or
       .type == "response.content_part.done" then
     [
+      .type,
       .output_index,
       .content_index,
       null,
@@ -302,6 +325,7 @@ preprocess_render_event() {
     ]
   elif .type == "response.output_item.added" then
     [
+      .type,
       .output_index,
       null,
       null,
@@ -314,7 +338,7 @@ preprocess_render_event() {
       end
     ]
   elif .type == "response.output_item.done" then
-    .output_index as $output_index |
+    . as {$output_index,$type} |
     if .item.type == "reasoning" then
       (.item.summary // [], .item.content // [])[] |
       if .type == "reasoning_text" then
@@ -327,22 +351,24 @@ preprocess_render_event() {
     else
       ["notify " + .item.type, (.item | @json)]
     end | . as [$render_event, $payload] |
-    [$output_index, null, null, $render_event, $payload]
+    [$type, $output_index, null, null, $render_event, $payload]
   elif .type == "response.reasoning_summary_part.added" then
-    [.output_index, null, .summary_index, "reasoning-summary", .part.text]
+    [.type, .output_index, null, .summary_index, "reasoning-summary", .part.text]
   elif .type == "response.reasoning_summary_part.done" then
-    [.output_index, null, .summary_index, "", .part.text]
+    [.type, .output_index, null, .summary_index, "", .part.text]
   elif .type == "response.completed" then
-    [null, null, null, "", (.response.output | @json)]
+    ["_my_extra_info", null, null, null, "", (.response | build_extra_info | @json)],
+    [.type, null, null, null, "", (.response.output | @json)]
   elif .type == "response.failed" then
-    [null, null, null, "", ([.response.error] | @json)]
+    [.type, null, null, null, "", ([.response.error] | @json)]
   elif .type == "response.incomplete" then
-    [null, null, null, "", ([.response.incomplete_details] + .response.output | @json)]
+    ["_my_extra_info", null, null, null, "", (.response | build_extra_info | @json)],
+    [.type, null, null, null, "", ([.response.incomplete_details] + .response.output | @json)]
   elif .type == "_my_interrupted" then
-    [null, null, null, "", ""]
+    [.type, null, null, null, "", ""]
   else
     empty
-  end | . as [$output_index, $content_index, $summary_index, $render_event] | .[4] | chunk |
+  end | . as [$type, $output_index, $content_index, $summary_index, $render_event] | .[5] | chunk |
   ($type, $output_index, $content_index, $summary_index, $render_event, @json)'
 
   if ! jq --unbuffered -rc "$preprocess_program"; then
@@ -549,6 +575,9 @@ make_stream_output() {
           emit_render_event "$render_event" "$payload" >>"$d/part"
         fi
         ;;
+      _my_extra_info)
+        printf "%s" "$payload" >>"$extra_info_buffer"
+        ;;
       response.completed|response.failed|response.incomplete|_my_interrupted)
         break
         ;;
@@ -569,12 +598,19 @@ make_stream_output() {
     *)  exec 3>"$response_output" ;;
   esac
 
+  case $opt_info_output in
+    "") exec 4>&1 ;;
+    *)  exec 4>"$opt_info_output" ;;
+  esac
+
   exitcode=0
   drain=1
   case $type in
     response.completed)
+      jq -nj 'inputs, "\n"' <"$extra_info_buffer" >&4
       ;;
     response.incomplete)
+      jq -nj 'inputs, "\n"' <"$extra_info_buffer" >&4
       exitcode=3
       ;;
     response.failed)
@@ -669,6 +705,7 @@ statedir=$(tmpfile -d) || exit 1
 tmp_input=$statedir/tmp.curl-input
 tmp_sorted_stream=$statedir/tmp.stream
 buffer_statedir=$statedir/buffer
+extra_info_buffer=$statedir/extra-info-buffer
 
 if [ -n "$opt_input" ]; then
   make_input >"$tmp_input" <"$opt_input"
