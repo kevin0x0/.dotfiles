@@ -48,7 +48,8 @@ A builtin tool:
 ## list
 
 - With "enabled": the enabled tool set (the default and the extra set
-  together); "pattern" does not apply.
+  together); "pattern" does not apply. "enabled" and "whole_catalog"
+  can not be used together (an error).
 - Paging: see Pagination.
 
 Fields: "list" (the entries of this page; each entry has a "name" or a
