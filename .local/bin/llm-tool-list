@@ -46,7 +46,8 @@ generate_normal() {
 generate_injected() {
   set -- --arg name "$name"
   if [ -n "$opt_description_given" ]; then
-    set -- "$@" --arg description "$opt_description"
+    command eval "evaluated_description=$opt_description"
+    set -- "$@" --arg description "$evaluated_description"
   else
     set -- "$@" --rawfile description "$description"
   fi

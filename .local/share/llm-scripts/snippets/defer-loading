@@ -4,9 +4,15 @@
 
 llm_snippets_toolname=
 case ${opt_extra_tools_defer_loading_mode:-inject} in
-  builtin)    llm_snippets_toolname=_builtin_tool_search ;;
-  inject)     llm_snippets_toolname=manage_tools ;;
-  *)          return ;;
+  builtin)
+    llm_snippets_toolname=_builtin_tool_search
+    ;;
+  inject)
+    llm_snippets_toolname=manage_tools
+    opt_extra_tools_description='"[deferred] describe $name with manage_tools, then call this tool using the parameters you get."'
+    ;;
+  *)
+    return ;;
 esac
 # If $llm_snippets_toolname is explicitly specified, don't add it again.
 # This detection is not necessary, it is only for cosmetic purpose.
