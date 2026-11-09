@@ -36,6 +36,12 @@ cat >"$argfile"
 # enable and disable operations are availabel but not explicitly exposed 
 # to the model.
 op=$(jq -j '.operation // "" | tostring' <"$argfile" 2>/dev/null)
+if [ -z "$op" ]; then
+  if jq -e 'keys | map(select(. != "operation")) | length > 0' <"$argfile" >/dev/null 2>&1; then
+    error "bad argument: operation is missing; the arguments look like they belong to another tool"
+  fi
+  error "bad argument: operation is missing"
+fi
 case $op in
   enable|disable|describe|list|doc|listdoc) ;;
   *)
