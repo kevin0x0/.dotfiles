@@ -29,7 +29,10 @@ The tools of a session form three sets:
   the tools of the extra tool set matching "pattern" (tool names or
   tree paths); with no "pattern", nothing is described.
   "whole_catalog" does not apply to "describe": tools outside the
-  extra tool set can not be described directly.
+  extra tool set can not be described directly. The returned
+  signatures are the arguments of the described tools: when calling
+  one of them, use its own name with these arguments, not this
+  tool's.
 - "list": list the tools of the extra tool set matching "pattern" (all
   of them when "pattern" is omitted); set "whole_catalog" to list
   the whole catalog instead, including tools that are not available in
