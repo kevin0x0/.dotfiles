@@ -27,7 +27,9 @@ added, a copied file, or a linked file).
 Three names describe the run to the hook: llmcc_event holds the event
 name, llmcc_hook_script the hook's own pathname (if relative, it is
 relative to the current working directory), and llmcc_hook_log is the
-logging function.
+logging function. llmcc_hook_get_my_state_dir <var> creates the
+hook's own state directory when needed and stores its pathname in
+<var>.
 
 # Output and the hook log
 
@@ -49,7 +51,9 @@ logging function.
   for the events it emits), and it runs again if the event is
   reinstalled and emitted.
 - Hooks exist only within the current session; there is no limit on
-  the number of hooks.
+  the number of hooks. Each hook has a state directory of its own; it
+  is deleted when the hook is removed, including after a "oneshot"
+  hook has run.
 
 # Environment
 
