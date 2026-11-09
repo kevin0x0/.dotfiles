@@ -337,13 +337,10 @@ sub_remove() {
   validate_event "$event" || return
   validate_name "$name" || return
 
-  f=$llmcc_hooks_dir/$event/$name
-  if [ ! -e "$f" ]; then
-    printf "hook doesn't exist: %s\n" "$event/$name" >&2
-    return 1
-  fi
-  rm -f -- "$f"
+  llmcc_hook_remove "$event" "$name" || return
+
   rel=$event/$name
+  f=$llmcc_hooks_dir/$rel
   if [ -n "$opt_json" ]; then
     jq -cn --arg rel "$rel" --arg path "$f" '{removed:$rel,path:$path}' | strip_paths
   else

@@ -8,6 +8,7 @@ llmcc_set_public_files_var() {
   llmcc_extra_tool_name_list=$1/extra-tool-name-list
   llmcc_hooks_dir=$1/hooks
   llmcc_tool_state_dir=$1/tool-state
+  llmcc_hook_state_dir=$1/hook-state
   llmcc_hook_log_file=$1/hook-log
   llmcc_hook_log_tmp_file=$1/hook-log-tmp
 }
@@ -125,7 +126,28 @@ llmcc_generate_tool_list() (
 
 llmcc_get_tool_state_dir() {
   command eval " $1"='$llmcc_tool_state_dir/$2'
+}
+
+llmcc_hook_get_state_dir() {
+  command eval " $1"='$llmcc_hook_state_dir/$2/$3'
+}
+
+llmcc_hook_get_my_state_dir() {
+  llmcc_hook_get_state_dir "$1" "$llmcc_event" "${llmcc_hook_script##*/}"
   command eval "[ -e \"\$$1\" ] || mkdir -p -- \"\$$1\""
+}
+
+llmcc_hook_remove() {
+  llmcc_f=$llmcc_hooks_dir/$1/$2
+  if [ ! -e "$llmcc_f" ]; then
+    printf "hook doesn't exist: %s\n" "$1/$2" >&2
+    return 1
+  fi
+  rm -rf -- "$llmcc_f"
+  llmcc_hook_get_state_dir llmcc_hook_state_d "$1" "$2"
+  if [ -e "$llmcc_hook_state_d" ]; then
+    rm -rf -- "$llmcc_hook_state_d"
+  fi
 }
 
 llmcc_hook_default_runner() (
@@ -169,7 +191,9 @@ llmcc_run_hooks() {
       fi
 
       case $llmcc_hook_script in
-        *.oneshot) rm -f -- "$llmcc_hook_script" ;;
+        *.oneshot)
+          llmcc_hook_remove "$llmcc_event" "${llmcc_hook_script##*/}" 2>/dev/null
+          ;;
       esac
     done
   done
