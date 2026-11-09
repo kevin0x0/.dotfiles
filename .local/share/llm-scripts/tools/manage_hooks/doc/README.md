@@ -14,7 +14,8 @@ event name only syntactically, but require the hook itself to exist
 
 The events form a namespace tree: entries ending with "." are
 namespaces and other entries are events. An event or namespace entry
-may hold a "SUMMARY" file whose content is its summary; "list-events"
+may hold a "SUMMARY" file whose content is its summary, taken verbatim
+(including trailing newlines); "list-events"
 with "with_summary" includes it (empty when missing).
 
 # Documents
@@ -22,8 +23,8 @@ with "with_summary" includes it (empty when missing).
 A document path has the form "<entry name>/<doc path relative to the
 entry>", e.g. "builtin.state./STATES.md". "list-docs" collects the
 documents of the given entry (an event or a namespace) and of all its
-ancestors; the optional "pattern" is a POSIX ERE filtering the paths;
-non-POSIX extensions are not supported.
+ancestors; the optional "pattern" is a POSIX ERE searched within the
+full listed paths; non-POSIX extensions are not supported.
 "doc" reads the documents at the given paths; paths that do not exist,
 paths naming a directory, and paths whose entry is not installed, are
 silently omitted.
@@ -43,7 +44,12 @@ is an error ("entry not installed").
 - "hook-dump" writes the hook's script content to "output_file", which
   must not exist yet; the hook's location is never revealed. For a
   "symlink" hook, the content of the file it links to is dumped.
-- A hook is a POSIX sh script run by the session. It runs synchronously
+- A hook is a POSIX sh script run by the session: the text is stored
+  as given and sourced by the session's shell (no shebang is needed).
+  Each hook runs in a subshell of its own: changes to variables and
+  the working directory do not leak into other hooks or into the
+  session.
+  It runs synchronously
   and has no timeout: the session waits for it to finish, so keep
   hooks short; a hook that does not finish blocks the session.
 - Hooks never run concurrently: the session runs them one at a time,
@@ -51,13 +57,14 @@ is an error ("entry not installed").
   event is unspecified.
 - The hook inherits the session's execution environment and working
   directory. It receives no arguments; its standard input is /dev/null.
-- Hooks are not re-entered: a hook can install other hooks, but they
-  do not run until their event next fires.
+- Hooks are not re-entered: one hook's run never directly triggers
+  another hook's run.
 - The hook's exit status is ignored by the session. When the document
   of the relevant event describes the exit status handling, that
   description takes precedence.
 - Three names describe the run to the hook: llmcc_event holds the
-  event name, llmcc_hook_script the hook's own pathname, and
+  event name, llmcc_hook_script the hook's own pathname (if relative,
+  it is relative to the current working directory), and
   llmcc_hook_log is the logging function.
 - Its standard output goes to the user's terminal; it is not seen by
   the model. Its standard error is appended to the hook log; each
@@ -70,6 +77,8 @@ is an error ("entry not installed").
   name>] " prefix.
 - When the document of the relevant event describes the execution
   environment explicitly, that description takes precedence.
+- A hook stays installed if its event is later uninstalled; it simply
+  never runs, as the session only runs hooks for the events it emits.
 - Hooks exist only within the current session; there is no limit on
   the number of hooks.
 
@@ -77,9 +86,11 @@ is an error ("entry not installed").
 
 - The hook log is a session file; each standard error line of a hook is
   appended to it prefixed with "[<event>/<hook name>] ".
-- "log-dump" writes the log lines matching "pattern" to "output_file".
-  "pattern" is a POSIX ERE matched against the "[<event>/<hook name>]" line
-  prefix; all lines are dumped when it is omitted. "output_file" must
+- "log-dump" writes the log lines within which "pattern" (a POSIX ERE)
+  is searched to "output_file". The lines start with a
+  "[<event>/<hook name>] " prefix, so anchoring the pattern with "^\\["
+  filters by it; all lines are dumped when it is omitted.
+  "output_file" must
   not exist yet; no matching lines produce an empty dump, not an error.
 - The log grows with each hook run and has no size limit; read the
   dump with tail or grep.
@@ -99,7 +110,21 @@ For {"operation":"create","event":"builtin.state.read-loop.enter","mode":"comman
 
 Appending to the same hook ("append": true):
 
+For {"operation":"create","event":"builtin.state.read-loop.enter","mode":"command","source":"echo bye","append":true,"name":"notify.always"}:
+
     {"appended":"builtin.state.read-loop.enter/notify.always"}
+
+Copying a file ("copy": a snapshot taken at creation time):
+
+For {"operation":"create","event":"builtin.state.read-loop.enter","mode":"copy","source":"/home/user/scripts/notify.sh","name":"notify.always"}:
+
+    {"created":"builtin.state.read-loop.enter/notify.always"}
+
+Linking a file ("symlink": the hook follows later changes):
+
+For {"operation":"create","event":"builtin.state.read-loop.enter","mode":"symlink","source":"/home/user/scripts/notify.sh","name":"notify.always"}:
+
+    {"created":"builtin.state.read-loop.enter/notify.always"}
 
 Without a "name", an auto-generated "oneshot" name is used:
 
@@ -112,6 +137,9 @@ For {"operation":"remove","event":"builtin.state.read-loop.enter","name":"notify
     {"removed":"builtin.state.read-loop.enter/notify.always"}
 
 ## list
+
+- The entries carry no summary; "list-events" with "with_summary"
+  provides the summaries of the events and namespaces.
 
 Fields: "hooks" (the installed hooks as "event/base.type" paths, each
 with "kind": "regular" or "symlink").
@@ -126,13 +154,13 @@ No installed hook:
 
 ## list-events
 
-- "pattern" is a POSIX ERE matching the full listed names, including the
+- "pattern" is a POSIX ERE searched within the listed names, including the
   trailing "." of namespaces.
 
 Fields: "events" (the matching events and namespaces, each with "name"
 and a "summary" when "with_summary" is true).
 
-For {"operation":"list-events","with_summary":true,"pattern":"^builtin\\.state\\.agent-loop-end"}:
+For {"operation":"list-events","with_summary":true,"pattern":"agent-loop-end"}:
 
     {"events":[{"name":"builtin.state.agent-loop-end.","summary":"The agent turn is finished and is committed.\n"},{"name":"builtin.state.agent-loop-end.enter","summary":""},{"name":"builtin.state.agent-loop-end.leave","summary":""}]}
 
@@ -146,7 +174,7 @@ Fields: "entry" (the given entry name), "doclist" (the document paths
 as "<entry name>/<path relative to the entry>", collected from the
 entry and its ancestors).
 
-For {"operation":"list-docs","event":"builtin.state.read-loop."}:
+For {"operation":"list-docs","entry":"builtin.state.read-loop."}:
 
     {"entry":"builtin.state.read-loop.","doclist":["builtin.state./ENVIRONMENT.md","builtin.state.read-loop./SCENARIOS.md","builtin.state.read-loop./SUMMARY","builtin.state./STATES.md","builtin.state./SUMMARY","builtin./SUMMARY"]}
 
@@ -154,10 +182,18 @@ An entry without documents:
 
     {"entry":"builtin.state.read-loop.","doclist":[]}
 
+Filtered by "pattern" (an unanchored ERE searched within the full
+listed paths, including the ancestors):
+
+For {"operation":"list-docs","entry":"builtin.state.read-loop.","pattern":"SUMMARY"}:
+
+    {"entry":"builtin.state.read-loop.","doclist":["builtin.state.read-loop./SUMMARY","builtin.state./SUMMARY","builtin./SUMMARY"]}
+
 ## doc
 
-- "docpaths" must name at least one document; an empty list is an
-  error.
+- "docpaths" is a document path or a list of them; it must name at
+  least one document, and an empty list is an error. The paths to
+  pass are the document paths reported by "list-docs".
 
 Fields: "docs" (the found documents, each with "path" and "content").
 
@@ -169,9 +205,19 @@ All requested documents missing:
 
     {"docs":[]}
 
+Some documents missing (the found ones are returned, the missing ones
+silently omitted):
+
+For {"operation":"doc","docpaths":["builtin.state./STATES.md","no_such.md"]}:
+
+    {"docs":[{"path":"builtin.state./STATES.md","content":"..."}]}
+
 ## hook-dump
 
 - "output_file" must not exist yet; its directory must exist.
+- "count" is the number of lines; the script always ends with a
+  newline ("command" adds one, and file sources without one are
+  rejected at creation).
 
 Fields: "dump" ("path": the file the script was written to, "count":
 its line count).
@@ -184,7 +230,7 @@ For {"operation":"hook-dump","event":"builtin.state.read-loop.enter","name":"not
 
 - Only for "symlink" hooks; a regular hook is an error.
 
-Fields: "source" (the file the hook links to).
+Fields: "source" (the file the hook links to; an absolute pathname).
 
 For {"operation":"hook-source","event":"builtin.state.read-loop.enter","name":"linked.always"}:
 
@@ -194,7 +240,7 @@ For {"operation":"hook-source","event":"builtin.state.read-loop.enter","name":"l
 
 - "output_file" must not exist yet; its directory must exist.
 
-For {"operation":"log-dump","pattern":"^\\[builtin\\.state\\.agent-loop-end\\.","output_file":"/tmp/hook.log"}:
+For {"operation":"log-dump","pattern":"agent-loop-end","output_file":"/tmp/hook.log"}:
 
     {"dump":{"path":"/tmp/hook.log","count":12}}
 
@@ -208,13 +254,18 @@ No matching line:
   ("hook already exists") unless "append" is true; with "append", a
   hook that does not exist yet is created.
 - "append" requires "name" and can not be used with mode "symlink", nor
-  on a hook installed as a symlink; in "copy" mode, "append" appends
-  the source file's content.
+  on a hook installed as a symlink; in "command" mode, "append"
+  appends the new script text, and in "copy" mode it appends the
+  source file's content.
 - In "copy" and "symlink" modes, the source pathname is resolved
   relative to the working directory of the session, and must be a
-  readable regular file; otherwise the create fails ("'<path>' doesn't
-  exist or not a file").
-- A hook name can not contain "/", more than one dot, or empty parts; a
+  readable regular file ending with a newline; otherwise the create
+  fails ("'<path>' doesn't exist or not a file", or "no newline at end
+  of file: <path>"). In "command" mode, the text is stored with a
+  trailing newline added.
+- A hook name may only contain letters, digits, "_", "." and "-", with
+  exactly one dot and no empty parts (the auto-naming form ".<type>"
+  is the exception); there is no length limit. A
   "name" omitted from "create" is auto-generated
   ("unnamed-<number>.oneshot").
 - "create" rejects events that are not registered; an event name can not
