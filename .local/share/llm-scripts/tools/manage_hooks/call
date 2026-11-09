@@ -72,6 +72,7 @@ if [ "$op" = create ] || [ "$op" = remove ]; then
 fi
 
 event=$(jq -j '.event // ""' <"$argfile")
+entry=$(jq -j '.entry // ""' <"$argfile")
 pattern=$(jq -j '.pattern // ""' <"$argfile")
 output_file=$(jq -j '.output_file // ""' <"$argfile")
 with_summary=$(jq -j '(.with_summary and true) or false' <"$argfile")
@@ -124,7 +125,11 @@ case $op in
     [ -n "$pattern" ] && set -- "$@" -- "$pattern"
     ;;
   list-docs)
-    set -- "$@" -- "$event"
+    if [ -z "$entry" ]; then
+      llm-make-mcontent -t -- '{"error":"bad argument: entry is not given or is empty"}'
+      exit 0
+    fi
+    set -- "$@" -- "$entry"
     [ -n "$pattern" ] && set -- "$@" "$pattern"
     ;;
   doc)
