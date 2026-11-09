@@ -46,6 +46,10 @@ are owned by the session; do not modify them unless necessary.
   events).
 - llm_chat_response_output: raw JSONL output of the last API call; it
   may be empty when the call failed.
+- llm_chat_response_extra_info_output: extra info of the last API
+  call, a JSON object with "usage" and "model" fields (either may be
+  null). The file holds either exactly one complete JSON object or
+  nothing.
 - llm_chat_tool_output: raw JSONL output of the last tool call.
 - llm_chat_tool_list: the tool list (JSON array) the session sends to
   the API.
