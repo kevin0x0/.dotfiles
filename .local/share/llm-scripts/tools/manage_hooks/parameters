@@ -18,15 +18,15 @@
     },
     "event": {
       "type": "string",
-      "description": "Hookable event the hook is attached to. Required for create, remove, hook-dump, hook-source and list-docs (must be installed; for list-docs it can also be a namespace)."
+      "description": "Hookable event the hook is attached to. Required for create, remove, hook-dump and hook-source. \"create\" requires it to be installed; the others only validate the name syntactically."
     },
     "pattern": {
       "type": "string",
-      "description": "A POSIX ERE; do not use non-POSIX extensions. Only for list: matches the \"event/base.type\" hook paths. Only for list-events: matches the full listed event and namespace names (including the trailing \".\" of namespaces). Only for list-docs: filters the document paths. Only for log-dump: matches the \"[<event>/<hook name>]\" line prefix of the hook log; all lines are dumped when omitted."
+      "description": "A POSIX ERE; do not use non-POSIX extensions. Only for list: matches the \"event/base.type\" hook paths. Only for list-events: matches the full listed event and namespace names (including the trailing \".\" of namespaces). Only for list-docs: the full \"<entry name>/<path>\" strings within which it is searched. Only for log-dump: the log lines within which it is searched (all lines are dumped when omitted; the lines start with a \"[<event>/<hook name>] \" prefix)."
     },
     "output_file": {
       "type": "string",
-      "description": "Only for hook-dump and log-dump: the pathname of the file to write the result to. The file must not exist yet; its directory must exist. The pathname may be relative to the session's working directory."
+      "description": "Only for hook-dump and log-dump: the pathname of the file to write the result to. The file must not exist yet (\"file exists\" otherwise); its directory must exist (\"output directory does not exist\" otherwise). The pathname may be relative to the session's working directory."
     },
     "name": {
       "type": "string",
@@ -67,6 +67,10 @@
     "append": {
       "type": "boolean",
       "description": "Only for create: append to the existing hook with the same name instead of failing. Cannot be used with mode=symlink."
+    },
+    "entry": {
+      "type": "string",
+      "description": "Required for list-docs: an entry name (an event or a namespace)."
     }
   },
   "required": [

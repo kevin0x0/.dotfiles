@@ -12,7 +12,7 @@ try (
   ([.event, (.name // empty)]
      | map(select(. != null)) | join("/")) as $summary |
   (.append == true) as $is_append |
-  (.event // "*") as $event_pattern |
+  (.entry // "") as $entry_arg |
   (.docpaths // [] | if type == "array" then . else [.] end |
     map(tostring | gsub("\n"; "")) | join(" ")) as $docpaths_arg |
   (.output_file // "?") as $output_file_arg |
@@ -51,7 +51,7 @@ try (
   elif .operation == "list-docs" then
     ("" | print_strings, " | ",
       render_withflags("operation";
-        "-A list-docs -S " + ($event_pattern | @sh)))
+        "-A list-docs -S " + ($entry_arg | @sh)))
   elif .operation == "doc" then
     ("" | print_strings, " | ",
       render_withflags("operation";
