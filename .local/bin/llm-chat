@@ -778,6 +778,7 @@ text_input=$opt_state_dir/text-input
 render_event_fifo=$opt_state_dir/render-event-fifo
 response_input_fifo=$opt_state_dir/response-input-fifo
 response_event_output_fifo=$opt_state_dir/response-output-fifo
+response_extra_info_output=$opt_state_dir/response-extra-info-output
 dumped_session_option=$opt_state_dir/dumped-session-option
 tmp=$opt_state_dir/tmp
 llm_chat_hook_input=$opt_state_dir/hook-input
@@ -810,6 +811,7 @@ done
 set -- \
   -u "$opt_responses_base_url" \
   -i "$response_input_fifo" \
+  -I "$response_extra_info_output" \
   -r "$opt_reasoning" \
   -m "$opt_model"
 [ -n "$opt_stream" ] && set -- "$@" -s
