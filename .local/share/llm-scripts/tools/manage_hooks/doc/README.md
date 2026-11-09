@@ -44,8 +44,10 @@ is an error ("entry not installed").
 - "hook-dump" writes the hook's script content to "output_file", which
   must not exist yet; the hook's location is never revealed. For a
   "symlink" hook, the content of the file it links to is dumped.
-- A hook is a POSIX sh script run by the session: the text is stored
-  as given and sourced by the session's shell (no shebang is needed).
+- A hook is a POSIX sh script run by the session: it is sourced by
+  the session's shell (no shebang is needed), and its content is
+  provided according to the create mode ("command" text with a
+  trailing newline added, a copied file, or a linked file).
   Each hook runs in a subshell of its own: changes to variables and
   the working directory do not leak into other hooks or into the
   session.
@@ -77,8 +79,10 @@ is an error ("entry not installed").
   name>] " prefix.
 - When the document of the relevant event describes the execution
   environment explicitly, that description takes precedence.
-- A hook stays installed if its event is later uninstalled; it simply
-  never runs, as the session only runs hooks for the events it emits.
+- A hook stays installed if its event is later uninstalled; it does
+  not run while the event is uninstalled (the session only runs hooks
+  for the events it emits), and it runs again if the event is
+  reinstalled and emitted.
 - Hooks exist only within the current session; there is no limit on
   the number of hooks.
 
@@ -178,9 +182,7 @@ For {"operation":"list-docs","entry":"builtin.state.read-loop."}:
 
     {"entry":"builtin.state.read-loop.","doclist":["builtin.state./ENVIRONMENT.md","builtin.state.read-loop./SCENARIOS.md","builtin.state.read-loop./SUMMARY","builtin.state./STATES.md","builtin.state./SUMMARY","builtin./SUMMARY"]}
 
-An entry without documents:
-
-    {"entry":"builtin.state.read-loop.","doclist":[]}
+An entry without documents gives an empty "doclist", not an error.
 
 Filtered by "pattern" (an unanchored ERE searched within the full
 listed paths, including the ancestors):
@@ -215,9 +217,10 @@ For {"operation":"doc","docpaths":["builtin.state./STATES.md","no_such.md"]}:
 ## hook-dump
 
 - "output_file" must not exist yet; its directory must exist.
-- "count" is the number of lines; the script always ends with a
-  newline ("command" adds one, and file sources without one are
-  rejected at creation).
+- "count" is the number of lines. "command" and "copy" hooks always
+  end with a newline; a "symlink" hook dumps the current target
+  content, which may not end with a newline if the target changed
+  after creation.
 
 Fields: "dump" ("path": the file the script was written to, "count":
 its line count).
