@@ -28,7 +28,10 @@ entry.
 
 - llm_chat_state: the state the event belongs to ("read-loop",
   "agent-loop-api-call", ...).
-- llm_chat_next_state: the state the session will enter next.
+- llm_chat_next_state: the state the session will enter next. It is
+  meaningful on leave events; on enter events it still holds the
+  state being entered, and after the end state there is no next
+  state.
 
 ## Files
 
@@ -37,8 +40,12 @@ are owned by the session; do not modify them unless necessary.
 
 - llm_chat_conversation: JSONL of the committed conversation messages.
 - llm_chat_this_turn: JSONL of the current turn's messages (input,
-  responses, tool calls), not yet committed to the conversation.
-- llm_chat_response_output: raw JSONL output of the last API call.
+  responses, tool calls), not yet committed to the conversation. The
+  turn is committed to llm_chat_conversation while the session
+  processes the agent-loop-end state (between its enter and leave
+  events).
+- llm_chat_response_output: raw JSONL output of the last API call; it
+  may be empty when the call failed.
 - llm_chat_tool_output: raw JSONL output of the last tool call.
 - llm_chat_tool_list: the tool list (JSON array) the session sends to
   the API.
@@ -51,8 +58,9 @@ are owned by the session; do not modify them unless necessary.
 
 - llm_chat_add_input_content <type> [<word>...]: append an input content
   item of the given type; the words after the type form one shell word
-  list, the item's value (it may be empty). "text" takes the text
-  itself; "image" and "file" take a pathname or a URI;
+  list (it may be empty). "text" takes the text itself: each word
+  becomes one text item of the message. "image" and "file" take a
+  pathname or a URI;
   "text-from-file" takes a pathname and reads the file's content;
   "text-from-command" takes a command and reads its output. The
   command of "text-from-command" is executed as a simple command: the
