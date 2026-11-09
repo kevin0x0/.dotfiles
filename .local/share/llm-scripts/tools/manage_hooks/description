@@ -11,11 +11,13 @@ third parties; "create" requires the event to be installed. The events
 form a namespace tree: entries ending with "." are namespaces, other
 entries are events.
 An event or namespace entry may hold a "SUMMARY" file with a short
-description.
+description; its content is the summary, taken verbatim (including
+trailing newlines).
 
 # Operations
 
-- "create": create a hook for an event (not a namespace). Requires
+- "create": create a hook for an event (not a namespace); discover the
+  installed events with "list-events". Requires
   "source". "mode" selects
   how the hook content is provided: "command" (source is the script
   text), "copy" (source is a file whose content is copied: a snapshot
@@ -33,29 +35,36 @@ description.
 - "remove": remove a hook. Requires "event" and "name" (with the exact
   type suffix of the installed hook).
 - "list": list the hooks currently installed in the session. "pattern"
-  can be a POSIX ERE matching the "event/base.type" hook paths (all of them
-  when omitted).
+  can be a POSIX ERE searched within the "event/base.type" hook paths
+  (all of them when omitted). Each entry reports "kind": "regular" or
+  "symlink".
 - "list-events": list the installed events and namespaces (namespace
-  names end with "."). "pattern" can be a POSIX ERE matching the full
-  listed names (all of them when "pattern" is omitted; the names
+  names end with "."). "pattern" can be a POSIX ERE searched within
+  the listed names (all of them when "pattern" is omitted; the names
   include the trailing "." of namespaces); "with_summary" adds each
   item's summary.
 - "list-docs": list the documents of an entry (an event or a namespace)
-  and of its ancestors. Requires "event" (the entry name); "pattern"
-  can be a POSIX ERE filtering the document paths. An entry that is not
+  and of its ancestors. Requires "entry" (an event or a namespace);
+  "pattern" can be a POSIX ERE searched within the full
+  "<entry name>/<path>" strings as listed. An entry that is not
   installed is an error.
-- "doc": read documents. "docpaths" lists the document paths (at least
-  one is required; an empty list is an error); documents that do not
-  exist, and paths whose entry is not installed, are silently omitted.
+- "doc": read documents. "docpaths" is a document path or a list of
+  them (the paths reported by "list-docs"; at least one is required,
+  and an empty list is an error); documents that do not exist, and
+  paths whose entry is not installed, are silently omitted.
 - "hook-dump": write the hook's script content to the file named by
   "output_file", which must not exist yet (its directory must exist).
-  Requires "event", "name" and "output_file".
+  The result's "count" is the script's line count. Requires "event",
+  "name" and "output_file".
 - "hook-source": print the source file of a "symlink" hook. Requires
   "event" and "name"; the hook must be a symlink (an error otherwise).
-- "log-dump": write the hook log lines whose "[<event>/<hook name>]"
-  prefix matches "pattern" (a POSIX ERE; all lines when "pattern" is
-  omitted) to the file named by "output_file", which must not exist
-  yet (its directory must exist). Lines without a match produce an
+  The source is an absolute pathname.
+- "log-dump": write the hook log lines within which "pattern" (a
+  POSIX ERE) is searched (all lines when "pattern" is omitted) to the
+  file named by "output_file", which must not exist
+  yet (its directory must exist). The lines start with a
+  "[<event>/<hook name>] " prefix, so anchoring the pattern with "^\\["
+  filters by it. Lines without a match produce an
   empty dump, not an error.
   Requires "output_file".
 
@@ -72,7 +81,7 @@ sessions they are rejected unless automatic approval is configured.
 A JSON object. On success: create returns {"created":"<rel>"}
 ({"appended":"<rel>"} when appending); remove returns
 {"removed":"<rel>"}; list returns
-{"hooks":[{"rel":...,"kind":...},...]};
+{"hooks":[{"kind":...,"rel":...},...]};
 list-events returns {"events":[{"name":...,"summary":...},...]};
 list-docs returns {"entry":...,"doclist":[...]}; doc returns
 {"docs":[{"path":...,"content":...},...]}; hook-dump and log-dump return
@@ -91,7 +100,10 @@ Use this tool to install scripts that run automatically on session
 events (for example desktop notifications or log appends), not to run
 commands directly; use the shell tool for that. Use "list-events" to
 discover the installed events, and "list-docs" or "doc" to read their
-documents. A hook's standard
+documents; read the documents of an event before creating a hook for
+it, as they may describe its execution environment. A hook's standard
 output goes to the user's terminal, not to the model; its standard
 error is appended to the hook log, which "log-dump" can filter into a
-file. The hook log can grow; read the dump with tail or grep.
+file. To observe a hook's result, have it write to the hook log
+("llmcc_hook_log" or standard error) and read the dump back. The hook
+log can grow; read the dump with tail or grep.
