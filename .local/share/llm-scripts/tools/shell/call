@@ -29,8 +29,8 @@ approval_out=$tmpdir/approval-out
 
 cat >"$arg"
 
-if ! jq -e -- 'type == "object" and (.code | type) == "string" and (.intent | type) == "string"' "$arg" >/dev/null 2>&1; then
-  llm-make-mcontent -t -- '{"error":"bad argument: both \"code\" and \"intent\" fields must be provided"}'
+if ! jq -e -- 'type == "object" and (.command | type) == "string" and (.intent | type) == "string"' "$arg" >/dev/null 2>&1; then
+  llm-make-mcontent -t -- '{"error":"bad argument: both \"command\" and \"intent\" fields must be provided"}'
   exit 0
 fi
 
@@ -56,7 +56,7 @@ if [ -n "$LLM_CHAT_SH_YES$opt_yes" ]; then
   reply=${opt_yes:-$LLM_CHAT_SH_YES}
 fi
 header=$'\033[31;1m'"script execution requested ($interpreter):"$'\033[0m'
-preview_command="jq -j '.code' | $(shell-escape -- sh -- "$1/lib/render-code" -d "$1" -s "$2" -I "$interpreter")"
+preview_command="jq -j '.command' | $(shell-escape -- sh -- "$1/lib/render-command" -d "$1" -s "$2" -I "$interpreter")"
 colored_preview_command="$preview_command -c always"
 summary_command="jq -j '.intent' | $(shell-escape -- sh -- "$1/lib/render-intent" -d "$1" -s "$2")"
 
@@ -71,7 +71,7 @@ tty-approval \
 
 case $? in
   0)
-    jq -j '.code' <"$arg" | "$interpreter" >"$stdout" 2>"$stderr"
+    jq -j '.command' <"$arg" | "$interpreter" >"$stdout" 2>"$stderr"
     exitcode=$?
     ;;
   1)

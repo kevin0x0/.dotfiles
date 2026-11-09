@@ -1,18 +1,21 @@
 {
   "type": "object",
-    "properties": {
-      "interpreter": {
-        "type": "string",
-        "description": "The code interpreter, can be command name or a pathname that resolves to an executable."
-      },
-      "code": {
-        "type": "string",
-        "description": "The code to be executed."
-      },
-      "intent": {
-        "type": "string",
-        "description": "Your intent to execute this script, in user-preferred language."
-      }
+  "properties": {
+    "interpreter": {
+      "type": "string",
+      "description": "The code interpreter, can be command name or a pathname that resolves to an executable."
     },
-  "required": ["code", "intent"]
+    "intent": {
+      "type": "string",
+      "description": "Your intent to execute this script, in user-preferred language."
+    },
+    "command": {
+      "type": "string",
+      "description": "The shell command(s) to execute; it may span multiple lines."
+    }
+  },
+  "required": [
+    "command",
+    "intent"
+  ]
 }
