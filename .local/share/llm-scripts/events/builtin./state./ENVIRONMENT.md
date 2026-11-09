@@ -36,27 +36,32 @@ entry.
 ## Files
 
 Each entry below names a variable holding a file pathname. The files
-are owned by the session; do not modify them unless necessary.
+are owned by the session; do not modify them unless necessary. Most
+hold JSON Lines (one JSON value per line); the exceptions are noted.
+Every JSON value in them is complete.
 
-- llm_chat_conversation: JSONL of the committed conversation messages.
-- llm_chat_this_turn: JSONL of the current turn's messages (input,
-  responses, tool calls), not yet committed to the conversation. The
-  turn is committed to llm_chat_conversation while the session
-  processes the agent-loop-end state (between its enter and leave
-  events).
-- llm_chat_response_output: raw JSONL output of the last API call; it
-  may be empty when the call failed.
-- llm_chat_response_extra_info_output: extra info of the last API
-  call, a JSON object with "usage" and "model" fields (either may be
-  null). The file holds either exactly one complete JSON object or
-  nothing.
-- llm_chat_tool_output: raw JSONL output of the last tool call.
-- llm_chat_tool_list: the tool list (JSON array) the session sends to
-  the API.
+- llm_chat_conversation: the committed conversation items (messages,
+  tool calls, tool results), one per line, in the Responses API input
+  item format.
+- llm_chat_this_turn: the current turn's items in the same format, not
+  yet committed. The turn is committed to llm_chat_conversation while
+  the session processes the agent-loop-end state (between its enter
+  and leave events).
+- llm_chat_tool_output: the content of the last tool call result, in
+  the same format, with the type limited to the tool output types.
+- llm_chat_response_output: the output items of the last API call, one
+  per line, in the Responses API output item format; it may be empty
+  when the call failed.
+- llm_chat_response_extra_info_output: the "usage" and "model" fields
+  of the last API call, extracted verbatim from the response (either
+  may be null). The file holds either exactly one complete JSON object
+  or nothing.
+- llm_chat_tool_list: the tool definitions (a JSON array of function
+  objects) the session sends to the API; one JSON value.
 - llm_chat_default_tool_set, llm_chat_extra_tool_set: newline lists of
-  the tool names in the default and the extra tool set.
+  tool names (not JSON).
 - llm_chat_volatile_fileids, llm_chat_persistent_fileids: JSONL records
-  of the uploaded files (volatile: expiring).
+  of the uploaded files (Files API file objects; volatile: expiring).
 
 ## Functions
 
