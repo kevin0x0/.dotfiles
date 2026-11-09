@@ -12,8 +12,8 @@ try (
     (.intent // "" | print_strings, " | ", render("intent")),
     (
       .interpreter // "" as $interpreter |
-      .code // "" | print_strings, " | ",
-      render_withflags("code"; "-I " + ($interpreter | @sh))
+      .command // "" | print_strings, " | ",
+      render_withflags("command"; "-I " + ($interpreter | @sh))
     )
 ) catch (
   halt
