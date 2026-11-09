@@ -2,8 +2,9 @@
 
 Hooks of the builtin state events run in the llm-chat session, in a
 subshell of it: changes to shell variables do not affect the session.
-The only ways a hook affects the session are its output and the input
-channel below. Its standard output goes to the user's terminal; its
+A hook influences the session through its output, the input channel,
+the exposed functions, and the files described below. Its standard
+output goes to the user's terminal; its
 standard error is appended to the hook log. Some sensitive variables
 are unset before the hook runs; the documented symbols below and the
 symbols they depend on are not. The hook's exit status is ignored by
@@ -16,7 +17,8 @@ entry.
   hooks must not define or modify them, and must not rely on them,
   except for the names the hook runner exposes to every hook
   (llmcc_event, llmcc_hook_script, llmcc_hook_log), described in the
-  manage_hooks documentation.
+  manage_hooks documentation, and the documented "llm_chat_" symbols
+  below.
 - Names starting with "llm_chat_" form the exposed interface. The
   symbols documented in this file are stable; the other "llm_chat_"
   names are dependencies of the exposed functions and must not be used
@@ -67,9 +69,10 @@ are owned by the session; do not modify them unless necessary.
 
 The input functions append command lines to an internal file; after
 the hook, the session prepends them to its pending input. They take
-effect on the session's next input read (the next time it is in the
-read-loop state), not inside the hook: the content items are then
-appended in order and a commit sends them as one message. Anything
+effect on the session's next input read, not inside the hook (for a
+read-loop.enter hook, that is the input read of the same visit; for
+hooks on other states, the next read-loop visit): the content items
+are then appended in order and a commit sends them as one message. Anything
 that is only evaluated at that time (the "text-from-command" command,
 the pathnames of the file types) must therefore be self-contained: it
 can not rely on symbols defined inside the hook, which no longer exist
