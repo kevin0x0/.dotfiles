@@ -62,7 +62,7 @@ validate_toolname() {
 validate_globpattern() {
   for pattern; do
     case $pattern in
-      */.*|.*)
+      */.*|.*|*[[:space:]].*)
         printf "invalid glob pattern: %s\n" "$pattern" >&2
         return 2
         ;;
