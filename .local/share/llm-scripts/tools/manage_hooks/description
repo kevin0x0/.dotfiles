@@ -54,19 +54,15 @@ trailing newlines).
   and an empty list is an error); documents that do not exist, and
   paths whose entry is not installed, are silently omitted.
 - "hook-dump": write the hook's script content to the file named by
-  "output_file", which must not exist yet (its directory must exist).
-  The result's "count" is the script's line count. Requires "event",
-  "name" and "output_file".
+  "output_file", which must not exist yet. Requires "event", "name"
+  and "output_file".
 - "hook-source": print the source file of a "symlink" hook. Requires
   "event" and "name"; the hook must be a symlink (an error otherwise).
   The source is an absolute pathname.
 - "log-dump": write the hook log lines within which "pattern" (a
   POSIX ERE) is searched (all lines when "pattern" is omitted) to the
-  file named by "output_file", which must not exist
-  yet (its directory must exist). The lines start with a
-  "[<event>/<hook name>] " prefix, so anchoring the pattern with "^\\["
-  filters by it. Lines without a match produce an
-  empty dump, not an error.
+  file named by "output_file", which must not exist yet. Lines without
+  a match produce an empty dump, not an error.
   Requires "output_file".
 
 A document path has the form "<entry name>/<doc path relative to the
@@ -108,3 +104,5 @@ error is appended to the hook log, which "log-dump" can filter into a
 file. To observe a hook's result, have it write to the hook log
 ("llmcc_hook_log" or standard error) and read the dump back. The hook
 log can grow; read the dump with tail or grep.
+- The tool document "README.md" holds the interface details and result
+  examples; read it with "doc" when they are needed.

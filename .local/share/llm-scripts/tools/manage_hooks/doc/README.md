@@ -1,49 +1,17 @@
 # manage_hooks
 
 Supplementary reference for managing session hooks. The tool description
-covers the operations; this document explains the interface details.
-
-# Events
-
-A hookable event is a lowercase dot-separated name (e.g.
-"state.read-loop.enter"). A hook can only be attached to an installed
-event; "create" requires the event to be installed (a namespace can
-not hold a hook). "remove", "hook-dump" and "hook-source" validate the
-event name only syntactically, but require the hook itself to exist
-("hook doesn't exist" otherwise); "list" needs neither.
-
-The events form a namespace tree: entries ending with "." are
-namespaces and other entries are events. An event or namespace entry
-may hold a "SUMMARY" file whose content is its summary, taken verbatim
-(including trailing newlines); "list-events"
-with "with_summary" includes it (empty when missing).
-
-# Documents
-
-A document path has the form "<entry name>/<doc path relative to the
-entry>", e.g. "builtin.state./STATES.md". "list-docs" collects the
-documents of the given entry (an event or a namespace) and of all its
-ancestors; the optional "pattern" is a POSIX ERE searched within the
-full listed paths; non-POSIX extensions are not supported.
-"doc" reads the documents at the given paths; paths that do not exist,
-paths naming a directory, and paths whose entry is not installed, are
-silently omitted.
-"list-docs" requires the entry to be installed; an uninstalled entry
-is an error ("entry not installed").
+covers the operations; this document explains the interface details and
+shows example results.
 
 # Hooks
 
-- A hook name has the form "<base>.<type>" with exactly one dot: the
-  type suffix selects the run policy. "oneshot" runs once and is then
-  removed; "always" runs every time. Other types are accepted and
-  currently run every time, like "always"; do not rely on this
-  behavior.
 - "remove", "hook-dump" and "hook-source" identify the hook by its
   full name, including the type suffix: removing "notify.always" as
   "notify.oneshot" fails.
-- "hook-dump" writes the hook's script content to "output_file", which
-  must not exist yet; the hook's location is never revealed. For a
-  "symlink" hook, the content of the file it links to is dumped.
+- "hook-dump" writes the hook's script content to "output_file"; the
+  hook's location is never revealed. For a "symlink" hook, the content
+  of the file it links to is dumped.
 - A hook is a POSIX sh script run by the session: it is sourced by
   the session's shell (no shebang is needed), and its content is
   provided according to the create mode ("command" text with a
@@ -84,20 +52,8 @@ is an error ("entry not installed").
   for the events it emits), and it runs again if the event is
   reinstalled and emitted.
 - Hooks exist only within the current session; there is no limit on
-  the number of hooks.
-
-# Hook log
-
-- The hook log is a session file; each standard error line of a hook is
-  appended to it prefixed with "[<event>/<hook name>] ".
-- "log-dump" writes the log lines within which "pattern" (a POSIX ERE)
-  is searched to "output_file". The lines start with a
-  "[<event>/<hook name>] " prefix, so anchoring the pattern with "^\\["
-  filters by it; all lines are dumped when it is omitted.
-  "output_file" must
-  not exist yet; no matching lines produce an empty dump, not an error.
-- The log grows with each hook run and has no size limit; read the
-  dump with tail or grep.
+  the number of hooks. The hook log has no size limit; read the dump
+  with tail or grep.
 
 # Operations
 
@@ -158,9 +114,6 @@ No installed hook:
 
 ## list-events
 
-- "pattern" is a POSIX ERE searched within the listed names, including the
-  trailing "." of namespaces.
-
 Fields: "events" (the matching events and namespaces, each with "name"
 and a "summary" when "with_summary" is true).
 
@@ -193,9 +146,7 @@ For {"operation":"list-docs","entry":"builtin.state.read-loop.","pattern":"SUMMA
 
 ## doc
 
-- "docpaths" is a document path or a list of them; it must name at
-  least one document, and an empty list is an error. The paths to
-  pass are the document paths reported by "list-docs".
+- Paths naming a directory are silently omitted as well.
 
 Fields: "docs" (the found documents, each with "path" and "content").
 
@@ -216,11 +167,9 @@ For {"operation":"doc","docpaths":["builtin.state./STATES.md","no_such.md"]}:
 
 ## hook-dump
 
-- "output_file" must not exist yet; its directory must exist.
-- "count" is the number of lines. "command" and "copy" hooks always
-  end with a newline; a "symlink" hook dumps the current target
-  content, which may not end with a newline if the target changed
-  after creation.
+- The script ends with a newline for "command" and "copy" hooks; a
+  "symlink" hook dumps the current target content, which may not end
+  with a newline if the target changed after creation.
 
 Fields: "dump" ("path": the file the script was written to, "count":
 its line count).
@@ -231,8 +180,6 @@ For {"operation":"hook-dump","event":"builtin.state.read-loop.enter","name":"not
 
 ## hook-source
 
-- Only for "symlink" hooks; a regular hook is an error.
-
 Fields: "source" (the file the hook links to; an absolute pathname).
 
 For {"operation":"hook-source","event":"builtin.state.read-loop.enter","name":"linked.always"}:
@@ -240,8 +187,6 @@ For {"operation":"hook-source","event":"builtin.state.read-loop.enter","name":"l
     {"source":"/home/user/scripts/notify.sh"}
 
 ## log-dump
-
-- "output_file" must not exist yet; its directory must exist.
 
 For {"operation":"log-dump","pattern":"agent-loop-end","output_file":"/tmp/hook.log"}:
 
@@ -253,13 +198,9 @@ No matching line:
 
 # Edge cases
 
-- Creating a hook with a name that already exists fails
-  ("hook already exists") unless "append" is true; with "append", a
-  hook that does not exist yet is created.
-- "append" requires "name" and can not be used with mode "symlink", nor
-  on a hook installed as a symlink; in "command" mode, "append"
-  appends the new script text, and in "copy" mode it appends the
-  source file's content.
+- "append" can not be used on a hook installed as a symlink; in
+  "command" mode it appends the new script text, and in "copy" mode
+  the source file's content.
 - In "copy" and "symlink" modes, the source pathname is resolved
   relative to the working directory of the session, and must be a
   readable regular file ending with a newline; otherwise the create
@@ -268,10 +209,6 @@ No matching line:
   trailing newline added.
 - A hook name may only contain letters, digits, "_", "." and "-", with
   exactly one dot and no empty parts (the auto-naming form ".<type>"
-  is the exception); there is no length limit. A
-  "name" omitted from "create" is auto-generated
-  ("unnamed-<number>.oneshot").
-- "create" rejects events that are not registered; an event name can not
-  contain empty segments ("state..enter" is invalid).
-- "list" without "pattern" lists all installed hooks; the "pattern"
-  POSIX ERE filters by the "event/base.type" path.
+  is the exception); there is no length limit.
+- An event name can not contain empty segments ("state..enter" is
+  invalid).
