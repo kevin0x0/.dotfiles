@@ -663,6 +663,7 @@ build_env_and_run_hook() {
   llm_chat_tool_list=$llmcc_tool_list
   llm_chat_default_tool_set=$llmcc_default_tool_name_list
   llm_chat_extra_tool_set=$llmcc_extra_tool_name_list
+  llm_chat_response_extra_info_output=$response_extra_info_output
 
   (
     unset -v opt_api_key opt_api_key_cmd
