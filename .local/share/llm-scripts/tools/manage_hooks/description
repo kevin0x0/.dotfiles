@@ -104,5 +104,6 @@ error is appended to the hook log, which "log-dump" can filter into a
 file. To observe a hook's result, have it write to the hook log
 ("llmcc_hook_log" or standard error) and read the dump back. The hook
 log can grow; read the dump with tail or grep.
-- The tool document "README.md" holds the interface details and result
-  examples; read it with "doc" when they are needed.
+- The tool documents "README.md" (the interface details and result
+  examples) and "runtime.md" (how hooks run and what they can use)
+  are read with "doc" when needed.

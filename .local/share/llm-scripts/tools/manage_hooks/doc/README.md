@@ -2,58 +2,8 @@
 
 Supplementary reference for managing session hooks. The tool description
 covers the operations; this document explains the interface details and
-shows example results.
-
-# Hooks
-
-- "remove", "hook-dump" and "hook-source" identify the hook by its
-  full name, including the type suffix: removing "notify.always" as
-  "notify.oneshot" fails.
-- "hook-dump" writes the hook's script content to "output_file"; the
-  hook's location is never revealed. For a "symlink" hook, the content
-  of the file it links to is dumped.
-- A hook is a POSIX sh script run by the session: it is sourced by
-  the session's shell (no shebang is needed), and its content is
-  provided according to the create mode ("command" text with a
-  trailing newline added, a copied file, or a linked file).
-  Each hook runs in a subshell of its own: changes to variables and
-  the working directory do not leak into other hooks or into the
-  session.
-  It runs synchronously
-  and has no timeout: the session waits for it to finish, so keep
-  hooks short; a hook that does not finish blocks the session.
-- Hooks never run concurrently: the session runs them one at a time,
-  event by event. The relative order of several hooks on the same
-  event is unspecified.
-- The hook inherits the session's execution environment and working
-  directory. It receives no arguments; its standard input is /dev/null.
-- Hooks are not re-entered: one hook's run never directly triggers
-  another hook's run.
-- The hook's exit status is ignored by the session. When the document
-  of the relevant event describes the exit status handling, that
-  description takes precedence.
-- Three names describe the run to the hook: llmcc_event holds the
-  event name, llmcc_hook_script the hook's own pathname (if relative,
-  it is relative to the current working directory), and
-  llmcc_hook_log is the logging function.
-- Its standard output goes to the user's terminal; it is not seen by
-  the model. Its standard error is appended to the hook log; each
-  line is prefixed with "[<event>/<hook name>] " (the full hook name,
-  including the type suffix).
-- llmcc_hook_log <level> <message>... writes "[<level>] <time>:
-  <message>" lines to the hook log, one per line of a multi-line
-  message. <level> is any word; INFO and ERROR are conventional. These
-  are standard error lines, so each also gets the "[<event>/<hook
-  name>] " prefix.
-- When the document of the relevant event describes the execution
-  environment explicitly, that description takes precedence.
-- A hook stays installed if its event is later uninstalled; it does
-  not run while the event is uninstalled (the session only runs hooks
-  for the events it emits), and it runs again if the event is
-  reinstalled and emitted.
-- Hooks exist only within the current session; there is no limit on
-  the number of hooks. The hook log has no size limit; read the dump
-  with tail or grep.
+shows example results. How hooks run and what they can use is described
+in runtime.md.
 
 # Operations
 
@@ -167,6 +117,8 @@ For {"operation":"doc","docpaths":["builtin.state./STATES.md","no_such.md"]}:
 
 ## hook-dump
 
+- The hook's location is never revealed; for a "symlink" hook, the
+  content of the file it links to is dumped.
 - The script ends with a newline for "command" and "copy" hooks; a
   "symlink" hook dumps the current target content, which may not end
   with a newline if the target changed after creation.
@@ -198,6 +150,9 @@ No matching line:
 
 # Edge cases
 
+- "remove", "hook-dump" and "hook-source" identify the hook by its
+  full name, including the type suffix: removing "notify.always" as
+  "notify.oneshot" fails.
 - "append" can not be used on a hook installed as a symlink; in
   "command" mode it appends the new script text, and in "copy" mode
   the source file's content.
