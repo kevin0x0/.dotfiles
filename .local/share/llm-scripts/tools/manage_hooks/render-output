@@ -16,6 +16,7 @@ try (
   (.entry // "")      as $entry |
   (.hooks // null)    as $hooks |
   (.events // null)   as $events |
+  (.shared_state // null) as $shared_state |
   (.doclist // null)  as $doclist |
   (.docs // null)     as $docs |
   (.dump // null)     as $dump |
@@ -37,6 +38,10 @@ try (
    else empty end),
   (if $events != null then
      ($events | map(.name) | join("\n") | print_strings, " | ", render("events"))
+   else empty end),
+  (if $shared_state != null then
+     ($shared_state | map(.id) | join("\n") | print_strings, " | ",
+      render("shared-state"))
    else empty end),
   (if $doclist != null then
      (.doclist | join("\n") | print_strings, " | ",
