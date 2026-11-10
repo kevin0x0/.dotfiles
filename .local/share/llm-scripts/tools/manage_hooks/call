@@ -107,7 +107,7 @@ case $op in
     set -- "$@" -- "$source"
     [ -n "$name" ] && set -- "$@" "$name"
     ;;
-  remove|hook-dump|hook-source)
+  remove|hook-source)
     set -- "$@" -- "$event" "$name"
     ;;
   hook-dump)
