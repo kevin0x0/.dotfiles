@@ -167,6 +167,12 @@ llmcc_hook_dump_vars() {
   llmcc_dump_vars "$@"
 }
 
+llmcc_hook_undump_vars() {
+  [ -f "$1" ] || return 0
+  [ -r "$1" ] || { printf "%s is not readable\n" "$1" >&2; return 1; }
+  . -- "$1"
+}
+
 llmcc_hook_get_my_state_dir() {
   llmcc_hook_get_state_dir "$1" "$llmcc_event" "${llmcc_hook_script##*/}"
   command eval "[ -e \"\$$1\" ] || mkdir -p -- \"\$$1\""
