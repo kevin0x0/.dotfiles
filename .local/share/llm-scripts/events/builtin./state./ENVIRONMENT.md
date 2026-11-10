@@ -133,6 +133,22 @@ these files.
   names) and call this function; both set files are read. The
   llm_chat_tool_list file is derived and is overwritten by
   regeneration.
+- llm_chat_conversation_slice [<begin> [<end>]]: print a slice of
+  conversation items. It reads the items from its standard input and
+  prints the selected ones, one JSON value per line, in their input
+  order; it has no default input, so feed it a file
+  (llm_chat_conversation, llm_chat_this_turn or a pipe). The items
+  are grouped into exchanges: an exchange starts at a prompt message
+  (system, developer or user) and takes everything that follows it
+  (assistant messages, tool calls, tool results) until the next
+  prompt message; consecutive prompt messages of the same role form
+  one exchange, and the very first item starts one. <begin> and
+  <end> (integers) select exchanges by position as a half-open range:
+  negative numbers count from the end, an omitted bound is the start
+  or the end, and a range holding no exchange prints nothing. For
+  example, to print the last exchange of the session:
+
+      llm_chat_conversation_slice -1 <"$llm_chat_conversation"
 
 ## Input channel
 
