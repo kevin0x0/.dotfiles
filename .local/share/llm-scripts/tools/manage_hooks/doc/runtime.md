@@ -40,6 +40,17 @@ skipped. Keep state by redirecting it into a file of the hook's own
 state directory, and view values by redirecting it to standard error
 (the hook log).
 
+llmcc_hook_get_shared_state_dir <var> <id> stores in <var> the
+pathname of a shared state directory for the id, creating it when
+needed. The ids form one flat namespace shared by every hook in the
+session: an id is letters, digits, "_", "." and "-" only, and does
+not start with "."; anything else is reported in the hook log and
+<var> is left unassigned. Hooks that share state agree on an id; use
+a distinctive dot-separated prefix such as a project name, so that
+unrelated hooks do not collide. There is no isolation: any hook can
+read or write any id. The directory belongs to the session, not to
+any hook: removing a hook does not delete it.
+
 # Output and the hook log
 
 - The hook's standard output goes to the user's terminal; it is not
@@ -62,7 +73,8 @@ state directory, and view values by redirecting it to standard error
 - Hooks exist only within the current session; there is no limit on
   the number of hooks. Each hook has a state directory of its own; it
   is deleted when the hook is removed, including after a "oneshot"
-  hook has run.
+  hook has run. Shared state directories are not deleted when a hook
+  is removed; they last as long as the session's state does.
 
 # Environment
 
