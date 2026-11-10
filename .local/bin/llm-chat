@@ -652,6 +652,10 @@ llm_chat_commit_input_content() {
   esac
 } >>"$llm_chat_hook_input"
 
+llm_chat_conversation_slice() {
+  llm-chat-conversation-slice "$@"
+}
+
 build_env_and_run_hook() {
   llm_chat_conversation=$conversation
   llm_chat_this_turn=$this_turn
