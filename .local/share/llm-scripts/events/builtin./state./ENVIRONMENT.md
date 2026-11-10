@@ -50,6 +50,8 @@ Each entry below names a variable holding a file pathname. The files
 are owned by the session; do not modify them unless necessary. Most
 hold JSON Lines (one JSON value per line); the exceptions are noted.
 Every JSON value in them is complete.
+jq is always available to hooks; it is the intended tool for reading
+these files.
 
 - llm_chat_conversation: the committed conversation items (messages,
   tool calls, tool results), one per line, in the Responses API input
