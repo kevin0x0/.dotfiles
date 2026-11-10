@@ -124,12 +124,46 @@ llmcc_generate_tool_list() (
   } | jq -cs -- 'select(length != 0)' >"$llmcc_tool_list"
 )
 
+llmcc_dump_vars() {
+  for llmcc_variable_name; do
+    case $llmcc_variable_name in
+      *[![:alnum:]_]*|[[:digit:]]*|'')
+        printf "invalid variable name to dump: %s\n" "$llmcc_variable_name" >&2
+        continue
+        ;;
+    esac
+
+    eval "llmcc_variable_value=\$$llmcc_variable_name"
+    printf "%s=" "$llmcc_variable_name"
+    while [ -n "$llmcc_variable_value" ]; do
+      part=${llmcc_variable_value%%[$'\n\'']*}
+      printf "'%s'" "$part"
+      llmcc_variable_value=${llmcc_variable_value#"$part"}
+      case $llmcc_variable_value in
+        $'\n'*)
+          printf "%s" "\$'\\n'"
+          llmcc_variable_value=${llmcc_variable_value#?}
+          ;;
+        $'\''*)
+          printf "%s" "\$'\\''"
+          llmcc_variable_value=${llmcc_variable_value#?}
+          ;;
+      esac
+    done
+    echo
+  done
+}
+
 llmcc_get_tool_state_dir() {
   command eval " $1"='$llmcc_tool_state_dir/$2'
 }
 
 llmcc_hook_get_state_dir() {
   command eval " $1"='$llmcc_hook_state_dir/$2/$3'
+}
+
+llmcc_hook_dump_vars() {
+  llmcc_dump_vars "$@"
 }
 
 llmcc_hook_get_my_state_dir() {

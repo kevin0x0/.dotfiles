@@ -253,29 +253,6 @@ file_input() {
   done
 }
 
-print_options() {
-  for option_name; do
-    eval "option_value=\$$option_name"
-    printf "%s=" "$option_name"
-    while [ -n "$option_value" ]; do
-      part=${option_value%%[$'\n\'']*}
-      printf "'%s'" "$part"
-      option_value=${option_value#"$part"}
-      case $option_value in
-        $'\n'*)
-          printf "%s" "\$'\\n'"
-          option_value=${option_value#?}
-          ;;
-        $'\''*)
-          printf "%s" "\$'\\''"
-          option_value=${option_value#?}
-          ;;
-      esac
-    done
-    echo
-  done
-}
-
 save_session() {
   shift
 
@@ -296,9 +273,24 @@ save_session() {
       rm -rf -- "$1" || return
     fi
   fi
+  saved_as=$1
 
-  print_options $opt_session_save_options >"$dumped_session_option"
-  cp -PR -- "$opt_state_dir" "$1" || return
+  set --
+  dump_options=$opt_session_save_options
+  while [ -n "$dump_options" ]; do
+    case $dump_options in
+      [[:space:]]*)
+        dump_options=${dump_options#?}
+        ;;
+      *)
+        dump_option=${dump_options%%[[:space:]]*}
+        dump_options=${dump_options#"$dump_option"}
+        set -- "$@" "$dump_option"
+        ;;
+    esac
+  done
+  llmcc_dump_vars "$@" >"$dumped_session_option"
+  cp -PR -- "$opt_state_dir" "$saved_as" || return
 }
 
 dispatch_command() {
