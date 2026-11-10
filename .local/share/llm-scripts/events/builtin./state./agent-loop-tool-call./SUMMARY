@@ -1,1 +1,1 @@
-A tool call returned by the model is being executed.
+The session executes the model's tool calls, if the response has any.
