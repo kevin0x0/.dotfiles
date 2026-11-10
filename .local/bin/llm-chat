@@ -628,17 +628,24 @@ llm_chat_gen_tool_list() {
 
 llm_chat_add_input_content() {
   case $1 in
-    text|image|file|text-from-file|text-from-command)
+    text|image|file|text-from-file)
       printf "@%s " "$1"
+      shift
+      shell-escape -- "$@"
+      echo
+      ;;
+    text-from-command)
+      shift
+      for llm_chat_input_content_command; do
+        printf "@text-from-command eval "
+        shell-escape -t $'\n' -- " $llm_chat_input_content_command"
+      done
       ;;
     *)
       printf "unknown content type: %s\n" "$1" >&2
       return 2
       ;;
   esac
-  shift
-  shell-escape -- "$@"
-  echo
 } >>"$llm_chat_hook_input"
 
 llm_chat_commit_input_content() {
