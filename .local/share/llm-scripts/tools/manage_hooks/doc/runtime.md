@@ -1,9 +1,10 @@
 # Hook runtime
 
-A hook is a POSIX sh script run by the session: it is sourced by the
-session's shell (no shebang is needed), and its content is provided
-according to the create mode ("command" text with a trailing newline
-added, a copied file, or a linked file).
+A hook is a POSIX sh script (the shell language is at least that of
+IEEE Std 1003.1-2024, POSIX Issue 8) run by the session: it is
+sourced by the session's shell (no shebang is needed), and its
+content is provided according to the create mode ("command" text
+with a trailing newline added, a copied file, or a linked file).
 
 - Each hook runs in a subshell of its own: changes to variables and
   the working directory do not leak into other hooks or into the
