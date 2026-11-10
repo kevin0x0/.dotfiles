@@ -108,12 +108,12 @@ Every JSON value in them is complete.
   empty list adds nothing). "image" and "file" take a
   pathname or a URI;
   "text-from-file" takes a pathname and reads the file's content;
-  "text-from-command" takes a command and reads its output. An
-  unknown type is an error, reported in the hook log. The
-  command of "text-from-command" is executed as a simple command: the
-  words are the command name and the arguments, and it can not contain
-  redirections or variable assignments; to run more complex shell, use
-  `eval '<shell text>'` as the command.
+  "text-from-command" takes one or more commands and reads their
+  output: each word after the type is one shell command of arbitrary
+  form (compound commands, redirections and variable assignments
+  included), executed when
+  the input is read; each produces one output item. An
+  unknown type is an error, reported in the hook log.
 - llm_chat_commit_input_content [<role>]: append the pending content
   items as one message of the given role (user, developer, system,
   assistant; system by default) to the turn's input; the model is not
