@@ -11,6 +11,7 @@ Manage hooks that run on session events.
 subcommands:
   create       <event> [-L] [-a] [-c] (<command> | <hook-file>) [<base>.<type>|.<type>]
   remove       <event> <base>.<type>
+  install      [<hook-file>...]
   list         [<ERE>...]
   list-events  [-s] [<ERE>...]
   list-docs    <entry> [<ERE>...]
@@ -56,7 +57,7 @@ subcommand=$1
 shift
 
 case $subcommand in
-  create|remove|list|list-events|list-docs|list-shared-state|doc|hook-dump|hook-source|log-dump) ;;
+  create|remove|install|list|list-events|list-docs|list-shared-state|doc|hook-dump|hook-source|log-dump) ;;
   *)
     printf "unsupported subcommand: %s\n" "$subcommand" >&2
     usage >&2
@@ -347,6 +348,73 @@ sub_remove() {
   else
     printf "removed hook: %s\n" "$f"
   fi
+}
+
+sub_install() {
+  [ "$1" = "--" ] && shift
+
+  tmpdir=
+  cleanup() {
+    [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
+  }
+  trap 'cleanup' EXIT
+  trap '' INT TERM QUIT
+
+  tmpdir=$(tmpfile -d) || return
+
+  exitcode=0
+  for hook_file; do
+    [ -n "$hook_file" ] || {
+      printf "empty operand\n" >&2
+      exitcode=2
+      break
+    }
+    [ -f "$hook_file" ] || {
+      printf "%s is not a file\n" "$hook_file" >&2
+      exitcode=1
+      break
+    }
+    [ -r "$hook_file" ] || {
+      printf "%s is not readable\n" "$hook_file" >&2
+      exitcode=1
+      break
+    }
+
+    eventline=
+    eventline=$(sed -n '/^#[[:space:]]*event:.*$/{p;q;}' <"$hook_file")
+    if [ -z "$eventline" ]; then
+      printf "event line not found in %s\n" "$hook_file" >&2
+      exitcode=1
+      break
+    fi
+    eventline=${eventline#*"event:"}
+    eventline=${eventline%"${eventline##*[![:space:]]}"}
+    eventline=${eventline#"${eventline%%[![:space:]]*}"}
+    event=$eventline
+
+    validate_event "$event" || { exitcode=1; break; }
+
+    sub_create "$event" -L -- "$hook_file" "${hook_file##*/}" || {
+      exitcode=$?
+      break
+    }
+
+    shell-escape -- llmcc_hook_remove "$event" "${hook_file##*/}" >&3
+    echo >&3
+  done >"$tmpdir/stdout" 2>"$tmpdir/stderr" 3>"$tmpdir/on-error"
+
+  if [ "$exitcode" -eq 0 ]; then
+    if [ -n "$opt_json" ]; then
+      jq -cs '.'
+    else
+      cat
+    fi <"$tmpdir/stdout"
+  else
+    . -- "$tmpdir/on-error"
+    cat -- "$tmpdir/stderr" >&2
+  fi
+
+  return "$exitcode"
 }
 
 sub_list() {
@@ -759,6 +827,7 @@ sub_log_dump() {
 case $subcommand in
   create)      sub_create "$@" ;;
   remove)      sub_remove "$@" ;;
+  install)     sub_install "$@" ;;
   list)        sub_list "$@" ;;
   list-events) sub_list_events "$@" ;;
   list-docs)   sub_list_docs "$@" ;;
