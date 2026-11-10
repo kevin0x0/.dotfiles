@@ -31,6 +31,14 @@ logging function. llmcc_hook_get_my_state_dir <var> creates the
 hook's own state directory when needed and stores its pathname in
 <var>.
 
+llmcc_hook_dump_vars <name>... prints one shell assignment per name,
+in the order given, quoted so that the output can be sourced by a
+POSIX shell to restore the values. An unset variable is printed as an
+empty assignment; an invalid name is reported in the hook log and
+skipped. Keep state by redirecting it into a file of the hook's own
+state directory, and view values by redirecting it to standard error
+(the hook log).
+
 # Output and the hook log
 
 - The hook's standard output goes to the user's terminal; it is not

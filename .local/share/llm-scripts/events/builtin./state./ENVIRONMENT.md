@@ -20,7 +20,8 @@ entry.
   hooks must not define or modify any of them. Besides the inherited
   standard environment and working directory, hooks may rely only on
   the names the session exposes to every hook (llmcc_event,
-  llmcc_hook_script, llmcc_hook_log, llmcc_hook_get_my_state_dir),
+  llmcc_hook_script, llmcc_hook_log, llmcc_hook_get_my_state_dir,
+  llmcc_hook_dump_vars),
   described in the manage_hooks documentation, and on the documented
   "llm_chat_" symbols below.
 - Names starting with "llm_chat_" form the exposed interface. The
