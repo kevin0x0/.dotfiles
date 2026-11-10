@@ -138,7 +138,9 @@ read-loop visit: a read-loop.leave hook can no longer affect the
 input read that just happened): the content items
 are then appended in order and a commit appends them as one message
 to the turn's input; the model is not called until input is sent.
-Anything
+Each commit takes the content added since the previous commit, so a
+hook may add and commit several times, producing several messages in
+order. Anything
 that is only evaluated at that time (the "text-from-command" command,
 the pathnames of the file types) must therefore be self-contained: it
 can not rely on symbols defined inside the hook, which no longer exist
