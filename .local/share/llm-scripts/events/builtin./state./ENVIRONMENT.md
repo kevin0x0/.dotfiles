@@ -32,12 +32,16 @@ entry.
 ## Variables
 
 - llm_chat_state: the state the event belongs to ("read-loop",
-  "agent-loop-api-call", ...). There is no variable naming the
-  previous state or the reason a state was entered; a hook can record
+  "agent-loop-api-call", ...). There is no variable naming the reason
+  a state was entered; a hook can record
   such facts in its own state directory
   (llmcc_hook_get_my_state_dir), which belongs to that hook in this
   session, is removed with the hook, and for a oneshot hook
   disappears after it runs.
+- llm_chat_prev_state: the state the session was in before entering
+  the current one; it has this value on both the enter and the leave
+  events. At session start, read-loop's events see "end" (nothing
+  precedes them; no other state is entered from "end").
 - llm_chat_next_state: on leave events it is the state the session
   will enter next, except at end.leave, where it holds no meaningful
   value (do not rely on it there); on enter events it is the state

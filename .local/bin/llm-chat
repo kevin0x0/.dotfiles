@@ -826,6 +826,7 @@ error_to() {
 last_error_state=
 llm_chat_state=read-loop
 llm_chat_next_state=read-loop
+llm_chat_prev_state=end
 while :; do
   run_hooks "builtin.state.$llm_chat_state.enter"
   case $llm_chat_state in
@@ -927,6 +928,7 @@ while :; do
       ;;
   esac
   run_hooks "builtin.state.$llm_chat_state.leave"
+  llm_chat_prev_state=$llm_chat_state
   llm_chat_state=$llm_chat_next_state
 done
 

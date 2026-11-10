@@ -22,6 +22,10 @@ uncommitted items of a failed or interrupted turn.
   (the default role of a commit), for the model; it is not shown to
   the user.
 
+- enter: tell the session's first entry from later ones:
+  llm_chat_prev_state is "end" only on the first entry; on later
+  entries it is the state that led here (e.g. "agent-loop-end" after
+  a completed turn).
 - enter: keep the model's context current by adding a message or
   content to the conversation; this happens on each entry into this
   state, which may occur more than once per turn after a failure or
