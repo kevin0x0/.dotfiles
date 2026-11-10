@@ -75,7 +75,9 @@ validate_statedir() {
 # provided and are left alone.
 strip_paths() {
   if [ -n "$opt_no_path" ]; then
-    jq -c 'del(.path) | if .hooks then .hooks |= map(del(.path)) else . end'
+    jq -c 'del(.path)
+    | if .hooks then .hooks |= map(del(.path)) end
+    | if .installed then .installed |= map(del(.path)) end'
   else
     cat -u
   fi
@@ -405,7 +407,7 @@ sub_install() {
 
   if [ "$exitcode" -eq 0 ]; then
     if [ -n "$opt_json" ]; then
-      jq -cs '.'
+      jq -cs '{installed:.}' | strip_paths
     else
       cat
     fi <"$tmpdir/stdout"

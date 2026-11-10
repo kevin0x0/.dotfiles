@@ -23,6 +23,7 @@ llmtr_parse_options "A:PK:S:" "$@"
 case $opt_action in
   create) llmtr_render_header '32;1' "create hook${opt_append:+ (append)}${opt_subject:+: $opt_subject}" ;;
   remove) llmtr_render_header '31;1' "remove hook${opt_subject:+: $opt_subject}" ;;
+  install) llmtr_render_header '32;1' "install hooks${opt_subject:+: $opt_subject}" ;;
   list)         llmtr_render_header '36;1' "list hooks:" ;;
   list-events)  llmtr_render_header '36;1' "list events${opt_subject:+: $opt_subject}" ;;
   list-docs)    llmtr_render_header '36;1' "list documents${opt_subject:+: $opt_subject}" ;;

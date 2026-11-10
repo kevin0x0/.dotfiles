@@ -23,26 +23,34 @@ outfile=$tmpdir/stdout
 errfile=$tmpdir/stderr
 approval_out=$tmpdir/approval-out
 docpaths=$tmpdir/docpaths
+filesfile=$tmpdir/files
 
 cat >"$argfile"
 
 op=$(jq -j '.operation // ""' <"$argfile")
 case $op in
-  create|remove|list|list-events|list-docs|list-shared-state|doc|hook-dump|hook-source|log-dump) ;;
+  create|remove|install|list|list-events|list-docs|list-shared-state|doc|hook-dump|hook-source|log-dump) ;;
   *)
-    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, list, list-events, list-docs, list-shared-state, doc, hook-dump, hook-source or log-dump"}'
+    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, install, list, list-events, list-docs, list-shared-state, doc, hook-dump, hook-source or log-dump"}'
     exit 0
     ;;
 esac
 
 append=$(jq -j '.append // false' <"$argfile")
 
-# create and remove need approval
-if [ "$op" = create ] || [ "$op" = remove ]; then
-  summary=$(jq -j '[.event, (.name // empty)] | map(select(. != null)) | join("/")' <"$argfile")
+# create, remove and install need approval
+if [ "$op" = create ] || [ "$op" = remove ] || [ "$op" = install ]; then
+  case $op in
+    install)
+      summary=$(jq -j '.files // [] | if type != "array" then [.] end | join(" ")' <"$argfile")
+      ;;
+    *)
+      summary=$(jq -j '[.event, (.name // empty)] | map(select(. != null)) | join("/")' <"$argfile")
+      ;;
+  esac
   preview_command="$(shell-escape -- sh -- "$1/render-call" -d "$1" -s "$2")"
   colored_preview_command="$preview_command -c always"
-  if [ "$append" = true ]; then
+  if [ "$op" = create ] && [ "$append" = true ]; then
     summary_command="$(shell-escape -- sh -- "$1/lib/render-operation" -d "$1" -s "$2" -A "$op" -P -S "$summary")"
   else
     summary_command="$(shell-escape -- sh -- "$1/lib/render-operation" -d "$1" -s "$2" -A "$op" -S "$summary")"
@@ -80,6 +88,7 @@ mode=$(jq -j '.mode // "command"' <"$argfile")
 source=$(jq -j '.source // ""' <"$argfile")
 name=$(jq -j '.name // ""' <"$argfile")
 jq -r '.docpaths // empty | if type != "array" then [.] end | .[]' <"$argfile" >"$docpaths"
+jq -r '.files // empty | if type != "array" then [.] end | .[]' <"$argfile" >"$filesfile"
 
 set -- -jP -d "$2" "$op"
 
@@ -109,6 +118,16 @@ case $op in
     ;;
   remove|hook-source)
     set -- "$@" -- "$event" "$name"
+    ;;
+  install)
+    if [ ! -s "$filesfile" ]; then
+      llm-make-mcontent -t -- '{"error":"bad argument: files is not given or is empty"}'
+      exit 0
+    fi
+    set -- "$@" --
+    while IFS= read -r hook_file; do
+      set -- "$@" "$hook_file"
+    done <"$filesfile"
     ;;
   hook-dump)
     if [ -z "$output_file" ]; then

@@ -13,6 +13,7 @@ try (
   (.created // null)  as $created |
   (.appended // null) as $appended |
   (.removed // null)  as $removed |
+  (.installed // null) as $installed |
   (.entry // "")      as $entry |
   (.hooks // null)    as $hooks |
   (.events // null)   as $events |
@@ -31,6 +32,10 @@ try (
    else empty end),
   (if $removed != null then
      ("" | print_strings, " | ", render_withflags("change"; "-A removed -S " + ($removed | @sh)))
+   else empty end),
+  (if $installed != null then
+     ($installed | map(.created) | join("\n") | print_strings, " | ",
+      render("installed"))
    else empty end),
   (if $hooks != null then
      ($hooks | map(.rel + (if .kind == "symlink" then " symlink" else "" end))

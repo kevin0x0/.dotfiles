@@ -46,6 +46,21 @@ For {"operation":"remove","event":"builtin.state.read-loop.enter","name":"notify
 
     {"removed":"builtin.state.read-loop.enter/notify.always"}
 
+## install
+
+- Each file's first "# event: <event>" line names the event; its base
+  name becomes the hook name. Either all files are installed, or none.
+
+Fields: "installed" (one entry per installed hook).
+
+For {"operation":"install","files":["/home/user/scripts/notify.always","/home/user/scripts/cleanup.oneshot"]}:
+
+    {"installed":[{"created":"builtin.state.read-loop.enter/notify.always"},{"created":"builtin.state.end.leave/cleanup.oneshot"}]}
+
+A failing file installs nothing:
+
+    {"error":"event line not found in /home/user/scripts/broken.always"}
+
 ## list
 
 - The entries carry no summary; "list-events" with "with_summary"

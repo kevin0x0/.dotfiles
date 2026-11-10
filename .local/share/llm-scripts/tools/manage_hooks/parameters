@@ -6,6 +6,7 @@
       "enum": [
         "create",
         "remove",
+        "install",
         "list",
         "list-events",
         "list-docs",
@@ -72,6 +73,13 @@
     "entry": {
       "type": "string",
       "description": "Required for list-docs: an entry name (an event or a namespace)."
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Hook files to install, each a pathname (absolute or relative to the session's working directory). Required for install; an empty list is an error."
     }
   },
   "required": [

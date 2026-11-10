@@ -35,6 +35,14 @@ trailing newlines).
   already exists". The result reports the hook as "event/base.type".
 - "remove": remove a hook. Requires "event" and "name" (with the exact
   type suffix of the installed hook).
+- "install": install one or more hook files as "symlink" hooks in one
+  operation. Requires "files" (pathnames, absolute or relative to the
+  session's working directory). Each file must be a regular readable
+  file whose first "# event: <event>" line names an installed event;
+  the file's base name becomes the hook name (of the form
+  "<base>.<type>"). Either all of them are installed, or none: when a
+  later file fails, the ones already installed are removed again and
+  the error is reported.
 - "list": list the hooks currently installed in the session. "pattern"
   can be a POSIX ERE searched within the "event/base.type" hook paths
   (all of them when omitted). Each entry reports "kind": "regular" or
@@ -75,14 +83,16 @@ entry>", e.g. "builtin.state./STATES.md".
 
 # Approval
 
-"create" and "remove" require the user's approval. In non-interactive
-sessions they are rejected unless automatic approval is configured.
+"create", "remove" and "install" require the user's approval. In
+non-interactive sessions they are rejected unless automatic approval
+is configured.
 
 # Returns
 
 A JSON object. On success: create returns {"created":"<rel>"}
 ({"appended":"<rel>"} when appending); remove returns
-{"removed":"<rel>"}; list returns
+{"removed":"<rel>"}; install returns
+{"installed":[{"created":"<rel>",...},...]}; list returns
 {"hooks":[{"kind":...,"rel":...},...]};
 list-events returns {"events":[{"name":...,"summary":...},...]};
 list-docs returns {"entry":...,"doclist":[...]};
