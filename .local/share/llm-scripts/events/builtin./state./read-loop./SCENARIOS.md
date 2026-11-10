@@ -26,4 +26,9 @@ uncommitted items of a failed or interrupted turn.
   content to the conversation; this happens on each entry into this
   state, which may occur more than once per turn after a failure or
   interrupt.
+- enter: coordinate across your installs. Each install of a hook has
+  a separate private state directory; several installs of one hook,
+  or several cooperating hooks, share one state through
+  llmcc_hook_get_shared_state_dir, on an id they agree on (such as
+  "myproj.counter").
 - leave: observe the session, e.g. how long the user took to answer.

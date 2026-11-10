@@ -9,6 +9,7 @@ llmcc_set_public_files_var() {
   llmcc_hooks_dir=$1/hooks
   llmcc_tool_state_dir=$1/tool-state
   llmcc_hook_state_dir=$1/hook-state
+  llmcc_hook_shared_state_dir=$1/hook-shared-state
   llmcc_hook_log_file=$1/hook-log
   llmcc_hook_log_tmp_file=$1/hook-log-tmp
 }
@@ -168,6 +169,17 @@ llmcc_hook_dump_vars() {
 
 llmcc_hook_get_my_state_dir() {
   llmcc_hook_get_state_dir "$1" "$llmcc_event" "${llmcc_hook_script##*/}"
+  command eval "[ -e \"\$$1\" ] || mkdir -p -- \"\$$1\""
+}
+
+llmcc_hook_get_shared_state_dir() {
+  case $2 in
+    .*|*[![:alnum:]_.-]*|'')
+      printf "invalid shared state id: %s\n" "$2" >&2
+      return 1
+      ;;
+  esac
+  command eval " $1"='$llmcc_hook_shared_state_dir/$2' || return
   command eval "[ -e \"\$$1\" ] || mkdir -p -- \"\$$1\""
 }
 
