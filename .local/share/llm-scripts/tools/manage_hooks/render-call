@@ -52,6 +52,10 @@ try (
     ("" | print_strings, " | ",
       render_withflags("operation";
         "-A list-docs -S " + ($entry_arg | @sh)))
+  elif .operation == "list-shared-state" then
+    ($pattern_arg | print_strings, " | ",
+      render_withflags("operation";
+        "-A list-shared-state -K plain"))
   elif .operation == "doc" then
     ("" | print_strings, " | ",
       render_withflags("operation";

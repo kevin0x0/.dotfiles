@@ -9,6 +9,7 @@
         "list",
         "list-events",
         "list-docs",
+        "list-shared-state",
         "doc",
         "hook-dump",
         "log-dump",
@@ -22,7 +23,7 @@
     },
     "pattern": {
       "type": "string",
-      "description": "A POSIX ERE; do not use non-POSIX extensions. Required for list, list-events, list-docs and log-dump; the matching semantics are in the tool description."
+      "description": "A POSIX ERE; do not use non-POSIX extensions. Required for list, list-events, list-docs, list-shared-state and log-dump; the matching semantics are in the tool description."
     },
     "output_file": {
       "type": "string",
