@@ -37,8 +37,15 @@ in the order given, quoted so that the output can be sourced by a
 POSIX shell to restore the values. An unset variable is printed as an
 empty assignment; an invalid name is reported in the hook log and
 skipped. Keep state by redirecting it into a file of the hook's own
-state directory, and view values by redirecting it to standard error
-(the hook log).
+state directory (restore it with llmcc_hook_undump_vars), and view
+values by redirecting it to standard error (the hook log).
+
+llmcc_hook_undump_vars <file> sources the file of assignments in the
+hook's own shell, restoring the values written with
+llmcc_hook_dump_vars. A missing file (or one that is not a regular
+file) restores nothing and succeeds, so a first run needs no special
+case. An unreadable file is reported in the hook log and returns a
+nonzero status, as does a file that fails to run.
 
 llmcc_hook_get_shared_state_dir <var> <id> stores in <var> the
 pathname of a shared state directory for the id, creating it when
