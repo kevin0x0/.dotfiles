@@ -15,7 +15,7 @@ added, a copied file, or a linked file).
   event by event. The relative order of several hooks on the same
   event is unspecified.
 - The hook inherits the session's execution environment and working
-  directory. It receives no arguments; its standard input is /dev/null.
+  directory. It receives no arguments and no standard input.
 - Hooks are not re-entered: one hook's run never directly triggers
   another hook's run.
 - The hook's exit status is ignored by the session. When the document
