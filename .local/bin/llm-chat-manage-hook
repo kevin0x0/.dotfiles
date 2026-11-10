@@ -14,6 +14,7 @@ subcommands:
   list         [<ERE>...]
   list-events  [-s] [<ERE>...]
   list-docs    <entry> [<ERE>...]
+  list-shared-state [<ERE>...]
   doc          <path>...
   hook-dump    <event> <base>.<type> <output-file>
   hook-source  <event> <base>.<type>
@@ -55,7 +56,7 @@ subcommand=$1
 shift
 
 case $subcommand in
-  create|remove|list|list-events|list-docs|doc|hook-dump|hook-source|log-dump) ;;
+  create|remove|list|list-events|list-docs|list-shared-state|doc|hook-dump|hook-source|log-dump) ;;
   *)
     printf "unsupported subcommand: %s\n" "$subcommand" >&2
     usage >&2
@@ -367,6 +368,49 @@ sub_list() {
   else
     [ -n "$opt_json" ] && printf '{"hooks":[]}\n'
   fi
+}
+
+# Print the shared state ids as "id" lines. The optional arguments
+# are EREs filtering the ids; without any, every id matches. Only
+# directories whose name is a valid id are listed (other entries are
+# out of contract). The ids are deduplicated and sorted.
+sub_list_shared_state() {
+  [ "$1" = "--" ] && shift
+
+  validate_statedir || return
+  . llm-chat-common
+  llmcc_set_public_files_var "$opt_state_dir"
+
+  list_state_ids() {
+    [ -d "$llmcc_hook_shared_state_dir" ] || return 0
+    for entry in "$llmcc_hook_shared_state_dir"/*; do
+      [ -d "$entry" ] || continue
+      entry=${entry%"${entry##*[!/]}"}
+      id=${entry##*/}
+      case $id in
+        .*|*[![:alnum:]_.-]*) continue ;;
+      esac
+      printf "%s\n" "$id"
+    done
+  }
+
+  list_state_ids \
+    | {
+        if [ "$#" -eq 0 ]; then
+          cat
+        else
+          grep -E -- "$(printf "%s\n" "$@")"
+        fi
+      } \
+    | sort -u \
+    | {
+        if [ -n "$opt_json" ]; then
+          jq -Rsc \
+            'split("\n") | map(select(. != "") | {id:.}) | {shared_state:.}'
+        else
+          cat
+        fi
+      }
 }
 
 # Print the installed events and namespaces as synthesized full names:
@@ -718,6 +762,7 @@ case $subcommand in
   list)        sub_list "$@" ;;
   list-events) sub_list_events "$@" ;;
   list-docs)   sub_list_docs "$@" ;;
+  list-shared-state) sub_list_shared_state "$@" ;;
   doc)         sub_doc "$@" ;;
   hook-dump)   sub_hook_dump "$@" ;;
   hook-source) sub_hook_source "$@" ;;

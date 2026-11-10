@@ -94,6 +94,25 @@ For {"operation":"list-docs","entry":"builtin.state.read-loop.","pattern":"SUMMA
 
     {"entry":"builtin.state.read-loop.","doclist":["builtin.state.read-loop./SUMMARY","builtin.state./SUMMARY","builtin./SUMMARY"]}
 
+## list-shared-state
+
+Fields: "shared_state" (the matching ids, one object per id). Only the
+directories whose names are valid ids are listed, sorted.
+
+For {"operation":"list-shared-state"}:
+
+    {"shared_state":[{"id":"myproj.counter"},{"id":"myproj.queue"}]}
+
+Filtered by "pattern" (an unanchored ERE searched within the ids):
+
+For {"operation":"list-shared-state","pattern":"^myproj\\."}:
+
+    {"shared_state":[{"id":"myproj.counter"},{"id":"myproj.queue"}]}
+
+No shared state:
+
+    {"shared_state":[]}
+
 ## doc
 
 - Paths naming a directory are silently omitted as well.

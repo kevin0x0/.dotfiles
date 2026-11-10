@@ -49,6 +49,11 @@ trailing newlines).
   "pattern" can be a POSIX ERE searched within the full
   "<entry name>/<path>" strings as listed. An entry that is not
   installed is an error.
+- "list-shared-state": list the shared state directories currently
+  present in the session (the directories hooks created through
+  llmcc_hook_get_shared_state_dir). "pattern" can be a POSIX ERE
+  searched within the ids (all of them when omitted). Use it before
+  picking an id for a new hook, to avoid collisions.
 - "doc": read documents. "docpaths" is a document path or a list of
   them (the paths reported by "list-docs"; at least one is required,
   and an empty list is an error); documents that do not exist, and
@@ -80,7 +85,9 @@ A JSON object. On success: create returns {"created":"<rel>"}
 {"removed":"<rel>"}; list returns
 {"hooks":[{"kind":...,"rel":...},...]};
 list-events returns {"events":[{"name":...,"summary":...},...]};
-list-docs returns {"entry":...,"doclist":[...]}; doc returns
+list-docs returns {"entry":...,"doclist":[...]};
+list-shared-state returns {"shared_state":[{"id":...},...]};
+doc returns
 {"docs":[{"path":...,"content":...},...]}; hook-dump and log-dump return
 {"dump":{"path":...,"count":...}}; hook-source returns {"source":...}.
 On failure: {"error": <reason>}; when rejected: {"rejected": <reason>}.

@@ -28,9 +28,9 @@ cat >"$argfile"
 
 op=$(jq -j '.operation // ""' <"$argfile")
 case $op in
-  create|remove|list|list-events|list-docs|doc|hook-dump|hook-source|log-dump) ;;
+  create|remove|list|list-events|list-docs|list-shared-state|doc|hook-dump|hook-source|log-dump) ;;
   *)
-    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, list, list-events, list-docs, doc, hook-dump, hook-source or log-dump"}'
+    llm-make-mcontent -t -- '{"error":"bad argument: operation must be create, remove, list, list-events, list-docs, list-shared-state, doc, hook-dump, hook-source or log-dump"}'
     exit 0
     ;;
 esac
@@ -131,6 +131,9 @@ case $op in
     fi
     set -- "$@" -- "$entry"
     [ -n "$pattern" ] && set -- "$@" "$pattern"
+    ;;
+  list-shared-state)
+    [ -n "$pattern" ] && set -- "$@" -- "$pattern"
     ;;
   doc)
     set -- "$@" --
