@@ -1,1 +1,2 @@
-Waiting for user input; entered on session start and after every agent turn.
+Waiting for user input; entered on session start, after every agent
+turn, and after a failure or interrupt.
