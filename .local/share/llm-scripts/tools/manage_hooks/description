@@ -113,4 +113,6 @@ file. To observe a hook's result, have it write to the hook log
 log can grow; read the dump with tail or grep.
 - The tool documents "README.md" (the interface details and result
   examples) and "runtime.md" (how hooks run and what they can use)
-  are read with "doc" when needed.
+  are read with the manage_tools tool: its "doc" operation reads
+  tool documents (toolname "manage_hooks"), while this tool's "doc"
+  reads event documents.
