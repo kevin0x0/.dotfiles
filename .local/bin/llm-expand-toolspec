@@ -33,18 +33,18 @@ print_toolname_in_tree() {
 }
 
 preset_error() {
-  printf "can not specify a preset pattern in a preset(%s in %s), ignored\n" \
+  printf "can not specify a pattern containing whitespaces in a preset(%s in %s), ignored\n" \
     "$preset_line" "$pattern" >&2
 }
 
 expand_preset() {
   while IFS= read -r preset_line; do
     case $preset_line in
-      '#'*|*[[:space:]]#*) preset_error ;;
+      *[[:space:]]*) preset_error ;;
       *)  patterns="$patterns $preset_line" ;;
     esac
   done <<EOF
-$(llm-expand-preset -p tools -- "${pattern#'#'}")
+$(llm-expand-preset -p tools -- "$pattern")
 EOF
 }
 
