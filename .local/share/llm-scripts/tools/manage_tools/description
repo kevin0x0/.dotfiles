@@ -93,8 +93,8 @@ under the root of the tool tree, prefix your pattern with a "/" (e.g.
 "list" with "whole_catalog" keeps all matches, "enable" keeps the
 tools not yet in the enabled tool set, and "disable" keeps the tools
 of the extra tool set. For "listdoc" the pattern matches document
-pathnames under the tool's doc directory. A word starting with "@"
-names a tool preset (a named list of patterns, e.g. "@default"); it is
+pathnames under the tool's doc directory. A word starting with "#"
+names a tool preset (a named list of patterns, e.g. "#default"); it is
 expanded in place and can be mixed with other words. A preset name
 that does not exist is ignored.
 
