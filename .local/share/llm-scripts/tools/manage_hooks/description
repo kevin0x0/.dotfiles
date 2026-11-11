@@ -17,7 +17,7 @@ trailing newlines).
 # Operations
 
 - "create": create a hook for an event (not a namespace); discover the
-  installed events with "list-events". Requires
+  installed events with "list" ("what":"events"). Requires
   "source". "mode" selects
   how the hook content is provided: "command" (source is the script
   text), "copy" (source is a file whose content is copied: a snapshot
@@ -46,27 +46,35 @@ trailing newlines).
   Either all of them are installed, or none: when a later one fails,
   the ones already installed are removed again and the error is
   reported.
-- "list": list the hooks currently installed in the session. "pattern"
-  can be a POSIX ERE searched within the "event/base.type" hook paths
-  (all of them when omitted). Each entry reports "kind": "regular" or
-  "symlink".
-- "list-events": list the installed events and namespaces (namespace
-  names end with "."). "pattern" can be a POSIX ERE searched within
-  the listed names (all of them when "pattern" is omitted; the names
-  include the trailing "." of namespaces); "with_summary" adds each
-  item's summary.
-- "list-docs": list the documents of an entry (an event or a namespace)
-  and of its ancestors. Requires "entry" (an event or a namespace);
-  "pattern" can be a POSIX ERE searched within the full
-  "<entry name>/<path>" strings as listed. An entry that is not
-  installed is an error.
-- "list-shared-state": list the shared state directories currently
-  present in the session (the directories hooks created through
-  llmcc_hook_get_shared_state_dir). "pattern" can be a POSIX ERE
-  searched within the ids (all of them when omitted). Use it before
-  picking an id for a new hook, to avoid collisions.
+- "list": list things of one kind, selected by "what" (default
+  "hooks"):
+  - "hooks": the hooks currently installed in the session. "pattern"
+    can be a POSIX ERE searched within the "event/base.type" hook
+    paths (all of them when omitted). Each entry reports "kind":
+    "regular" or "symlink".
+  - "events": the installed events and namespaces (namespace names
+    end with "."). "pattern" can be a POSIX ERE searched within the
+    listed names (all of them when "pattern" is omitted; the names
+    include the trailing "." of namespaces); "with_summary" adds each
+    item's summary.
+  - "docs": the documents of an entry (an event or a namespace) and
+    of its ancestors. Requires "entry"; "pattern" can be a POSIX ERE
+    searched within the full "<entry name>/<path>" strings as listed.
+    An entry that is not installed is an error.
+  - "shared-state": the shared state directories currently present in
+    the session (the directories hooks created through
+    llmcc_hook_get_shared_state_dir). "pattern" can be a POSIX ERE
+    searched within the ids (all of them when omitted). Use it before
+    picking an id for a new hook, to avoid collisions.
+  - "refs": the predefined hook references (the hook files under the
+    llm-scripts hooks directory), each with the event declared by the
+    file's first "# event: <event>" line (empty when the file has
+    none). "pattern" can be a POSIX ERE searched within the
+    references (all of them when omitted). They are the operands of
+    "install".
 - "doc": read documents. "docpaths" is a document path or a list of
-  them (the paths reported by "list-docs"; at least one is required,
+  them (the paths reported by "list" with "what":"docs"; at least one
+  is required,
   and an empty list is an error); documents that do not exist, and
   paths whose entry is not installed, are silently omitted.
 - "hook-dump": write the hook's script content to the file named by
@@ -95,11 +103,12 @@ is configured.
 A JSON object. On success: create returns {"created":"<rel>"}
 ({"appended":"<rel>"} when appending); remove returns
 {"removed":"<rel>"}; install returns
-{"installed":[{"created":"<rel>",...},...]}; list returns
-{"hooks":[{"kind":...,"rel":...},...]};
-list-events returns {"events":[{"name":...,"summary":...},...]};
-list-docs returns {"entry":...,"doclist":[...]};
-list-shared-state returns {"shared_state":[{"id":...},...]};
+{"installed":[{"created":"<rel>",...},...]};
+list returns, by "what": "hooks" {"hooks":[{"kind":...,"rel":...},...]},
+"events" {"events":[{"name":...,"summary":...},...]},
+"docs" {"entry":...,"doclist":[...]},
+"shared-state" {"shared_state":[{"id":...},...]},
+"refs" {"refs":[{"ref":...,"event":...},...]};
 doc returns
 {"docs":[{"path":...,"content":...},...]}; hook-dump and log-dump return
 {"dump":{"path":...,"count":...}}; hook-source returns {"source":...}.
@@ -115,8 +124,9 @@ matched text; anchor them with "^" and "$" to require a full match.
 
 Use this tool to install scripts that run automatically on session
 events (for example desktop notifications or log appends), not to run
-commands directly; use the shell tool for that. Use "list-events" to
-discover the installed events, and "list-docs" or "doc" to read their
+commands directly; use the shell tool for that. Use "list" with
+"what":"events" to discover the installed events, and "list" with
+"what":"docs" or "doc" to read their
 documents; read the documents of an event before creating a hook for
 it, as they may describe its execution environment. A hook's standard
 output goes to the user's terminal, not to the model; its standard

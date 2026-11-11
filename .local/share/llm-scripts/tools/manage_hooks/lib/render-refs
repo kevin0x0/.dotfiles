@@ -1,0 +1,11 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+llmtr_parse_options "" "$@"
+
+llmtr_render_header '36;1' "hook refs:"
+
+llmtr_complete_newline \
+  | llmtr_run_filter_on_color llmtr_filter_color_line '36' \
+  | llmtr_render_lines

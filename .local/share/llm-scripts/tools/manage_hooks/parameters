@@ -8,13 +8,10 @@
         "remove",
         "install",
         "list",
-        "list-events",
-        "list-docs",
-        "list-shared-state",
         "doc",
         "hook-dump",
-        "log-dump",
-        "hook-source"
+        "hook-source",
+        "log-dump"
       ],
       "description": "The operation to perform."
     },
@@ -22,9 +19,20 @@
       "type": "string",
       "description": "Hookable event the hook is attached to. Required for create, remove, hook-dump and hook-source. \"create\" requires it to be installed; the others only validate the name syntactically."
     },
+    "what": {
+      "type": "string",
+      "enum": [
+        "hooks",
+        "events",
+        "docs",
+        "shared-state",
+        "refs"
+      ],
+      "description": "Only for list: the kind of things to list. Defaults to \"hooks\". The result shapes and the argument requirements of each kind are in the tool description."
+    },
     "pattern": {
       "type": "string",
-      "description": "A POSIX ERE; do not use non-POSIX extensions. Required for list, list-events, list-docs, list-shared-state and log-dump; the matching semantics are in the tool description."
+      "description": "A POSIX ERE; do not use non-POSIX extensions. Optional for list and log-dump; the matching semantics are in the tool description."
     },
     "output_file": {
       "type": "string",
@@ -51,7 +59,7 @@
     },
     "with_summary": {
       "type": "boolean",
-      "description": "Only for list-events: when true, include each item's summary."
+      "description": "Only for list with \"what\":\"events\": when true, include each item's summary."
     },
     "source": {
       "type": "string",
@@ -72,7 +80,7 @@
     },
     "entry": {
       "type": "string",
-      "description": "Required for list-docs: an entry name (an event or a namespace)."
+      "description": "Required for list with \"what\":\"docs\": an entry name (an event or a namespace)."
     },
     "files": {
       "type": "array",
