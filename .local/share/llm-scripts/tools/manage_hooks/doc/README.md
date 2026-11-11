@@ -48,18 +48,20 @@ For {"operation":"remove","event":"builtin.state.read-loop.enter","name":"notify
 
 ## install
 
-- Each file's first "# event: <event>" line names the event; its base
-  name becomes the hook name. Either all files are installed, or none.
+- A hook reference names a hook file under the llm-scripts hooks
+  directory (subdirectories included): "<ref>[:<event>][><name>]"
+  (":<event>" replaces the event from the file's "# event:" line,
+  "><name>" the hook name). Either all are installed, or none.
 
 Fields: "installed" (one entry per installed hook).
 
-For {"operation":"install","files":["/home/user/scripts/notify.always","/home/user/scripts/cleanup.oneshot"]}:
+For {"operation":"install","files":["notify.always","cleanup.oneshot"]}:
 
     {"installed":[{"created":"builtin.state.read-loop.enter/notify.always"},{"created":"builtin.state.end.leave/cleanup.oneshot"}]}
 
-A failing file installs nothing:
+A failing reference installs nothing:
 
-    {"error":"event line not found in /home/user/scripts/broken.always"}
+    {"error":"broken.always not found"}
 
 ## list
 

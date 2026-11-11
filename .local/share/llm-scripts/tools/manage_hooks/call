@@ -120,10 +120,6 @@ case $op in
     set -- "$@" -- "$event" "$name"
     ;;
   install)
-    if [ ! -s "$filesfile" ]; then
-      llm-make-mcontent -t -- '{"error":"bad argument: files is not given or is empty"}'
-      exit 0
-    fi
     set -- "$@" --
     while IFS= read -r hook_file; do
       set -- "$@" "$hook_file"

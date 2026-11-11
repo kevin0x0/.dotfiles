@@ -11,7 +11,7 @@ Manage hooks that run on session events.
 subcommands:
   create       <event> [-L] [-a] [-c] (<command> | <hook-file>) [<base>.<type>|.<type>]
   remove       <event> <base>.<type>
-  install      [<hook-file>...]
+  install      [<hook>...]
   list         [<ERE>...]
   list-events  [-s] [<ERE>...]
   list-docs    <entry> [<ERE>...]
@@ -36,6 +36,12 @@ With ".<type>", an auto-generated name is used with the given type.
 Events are installed under the llm-scripts events directory (in the
 config and data dirs), as lowercase dot-separated names; entries
 containing uppercase letters are documents.
+"install" takes hook references as operands: a reference names a hook
+file under the llm-scripts hooks directory (in the config and data
+dirs, subdirectories included) and has the form
+<ref>[:<event>][><name>]. ":<event>" replaces the event named by the
+file's first "# event: <event>" line, and "><name>" replaces the hook
+name (otherwise the reference's own name is used).
 EOF
 }
 
@@ -364,13 +370,29 @@ sub_install() {
 
   tmpdir=$(tmpfile -d) || return
 
+  llm-expand-preset -p hooks -- "$@" \
+    | sort -u >"$tmpdir/input"
+
   exitcode=0
-  for hook_file; do
-    [ -n "$hook_file" ] || {
-      printf "empty operand\n" >&2
-      exitcode=2
+  while IFS= read -r hook_file; do
+    [ -n "$hook_file" ] || continue
+
+    last_comp=${hook_file##*/}
+    hook_dirname=${hook_file%"$last_comp"}
+    name=${last_comp#"${last_comp%>*}"}
+    last_comp=${last_comp%>*}
+    name=${name#>}
+    event=${last_comp#"${last_comp%:*}"}
+    last_comp=${last_comp%:*}
+    event=${event#:}
+
+    hook_file=$hook_dirname$last_comp
+    llmcu_locate_config_item hook_file "hooks/$hook_file" || {
+      printf "%s not found\n" "$hook_file" >&2
+      exitcode=1
       break
     }
+
     [ -f "$hook_file" ] || {
       printf "%s is not a file\n" "$hook_file" >&2
       exitcode=1
@@ -382,28 +404,33 @@ sub_install() {
       break
     }
 
-    eventline=
-    eventline=$(sed -n '/^#[[:space:]]*event:.*$/{p;q;}' <"$hook_file")
-    if [ -z "$eventline" ]; then
-      printf "event line not found in %s\n" "$hook_file" >&2
-      exitcode=1
-      break
+    [ -n "$name" ] || name=$last_comp 
+
+    if [ -z "$event" ]; then
+      eventline=
+      eventline=$(sed -n '/^#[[:space:]]*event:.*$/{p;q;}' <"$hook_file")
+      if [ -z "$eventline" ]; then
+        printf "event line not found in %s\n" "$hook_file" >&2
+        exitcode=1
+        break
+      fi
+      eventline=${eventline#*"event:"}
+      eventline=${eventline%"${eventline##*[![:space:]]}"}
+      eventline=${eventline#"${eventline%%[![:space:]]*}"}
+      event=$eventline
     fi
-    eventline=${eventline#*"event:"}
-    eventline=${eventline%"${eventline##*[![:space:]]}"}
-    eventline=${eventline#"${eventline%%[![:space:]]*}"}
-    event=$eventline
 
     validate_event "$event" || { exitcode=1; break; }
 
-    sub_create "$event" -L -- "$hook_file" "${hook_file##*/}" || {
+    sub_create "$event" -L -- "$hook_file" "$name" || {
       exitcode=$?
       break
     }
 
-    shell-escape -- llmcc_hook_remove "$event" "${hook_file##*/}" >&3
+    shell-escape -- llmcc_hook_remove "$event" "$name" >&3
     echo >&3
-  done >"$tmpdir/stdout" 2>"$tmpdir/stderr" 3>"$tmpdir/on-error"
+  done <"$tmpdir/input" >"$tmpdir/stdout" 2>"$tmpdir/stderr" \
+    3>"$tmpdir/on-error"
 
   if [ "$exitcode" -eq 0 ]; then
     if [ -n "$opt_json" ]; then
