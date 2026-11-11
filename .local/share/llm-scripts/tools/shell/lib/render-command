@@ -1,6 +1,7 @@
 #!/bin/sh
 
 . llm-tool-render-utils
+. llm-chat-common
 
 opt_interpreter_from_cmdline=
 parse_my_option_I() {
@@ -10,7 +11,8 @@ parse_my_option_I() {
 llmtr_parse_options "I:" "$@"
 shift "$((OPTIND - 1))"
 
-llmtr_source_tool_config shell
+llmcc_set_public_files_var "$llmtropt_state_dir"
+llmcc_source_tool_runtime_config shell
 
 interpreter=$opt_interpreter
 [ -z "$interpreter" ] && interpreter=$opt_interpreter_from_cmdline

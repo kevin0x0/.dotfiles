@@ -6,6 +6,7 @@ llmcc_set_public_files_var() {
   llmcc_tool_list=$1/tool-list
   llmcc_default_tool_name_list=$1/default-tool-name-list
   llmcc_extra_tool_name_list=$1/extra-tool-name-list
+  llmcc_runtime_config_dir=$1/runtime-config
   llmcc_hooks_dir=$1/hooks
   llmcc_tool_state_dir=$1/tool-state
   llmcc_hook_state_dir=$1/hook-state
@@ -124,6 +125,20 @@ llmcc_generate_tool_list() (
     fi
   } | jq -cs -- 'select(length != 0)' >"$llmcc_tool_list"
 )
+
+llmcc_source_runtime_config() {
+  [ -f "$llmcc_runtime_config_dir/$1" ] || return
+  [ -r "$llmcc_runtime_config_dir/$1" ] || return
+  command . -- "$llmcc_runtime_config_dir/$1"
+}
+
+llmcc_source_tool_runtime_config() {
+  llmcc_source_runtime_config "tools/$1"
+}
+
+llmcc_get_tool_runtime_config() {
+  command eval " $1="'$llmcc_runtime_config_dir/tools/$2'
+}
 
 llmcc_dump_vars() {
   for llmcc_variable_name; do
