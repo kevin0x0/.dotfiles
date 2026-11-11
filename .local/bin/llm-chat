@@ -668,6 +668,8 @@ build_env_and_run_hook() {
   llm_chat_extra_tool_set=$llmcc_extra_tool_name_list
   llm_chat_response_extra_info_output=$response_extra_info_output
 
+  llm_chat_model=$opt_model
+
   (
     unset -v opt_api_key opt_api_key_cmd
     trap - INT
