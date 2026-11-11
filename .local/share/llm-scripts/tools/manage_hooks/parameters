@@ -79,7 +79,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Hook files to install, each a pathname (absolute or relative to the session's working directory). Required for install; an empty list is an error."
+      "description": "Hook references to install; each names a hook file under the llm-scripts hooks directory, possibly in a subdirectory (the operand grammar is in the tool description). Required for install; an empty list installs nothing."
     }
   },
   "required": [
