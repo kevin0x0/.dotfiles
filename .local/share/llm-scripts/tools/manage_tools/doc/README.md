@@ -168,7 +168,7 @@ Recipes:
   character
 - "shell"       the exact tool name
 - "*"           all tools (name mode)
-- "@default"    the tools of a named preset; can be mixed with other words
+- "#default"    the tools of a named preset; can be mixed with other words
 
 # Pagination
 

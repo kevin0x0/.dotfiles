@@ -23,7 +23,7 @@ if [ "$llm_scriptname" = llm-chat ]; then
 
   # Specify the tools of the default tool set: a space-separated list of
   # glob patterns.
-  opt_default_tools='@default _builtin_web_search manage_tools'
+  opt_default_tools='#default _builtin_web_search manage_tools'
 
   # Deferred loading of the extra tool set is enabled by sourcing the
   # defer-loading snippet, which also adds the supporting tool to the

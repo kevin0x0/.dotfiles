@@ -40,11 +40,11 @@ preset_error() {
 expand_preset() {
   while IFS= read -r preset_line; do
     case $preset_line in
-      @*|*[[:space:]]@*) preset_error ;;
+      '#'*|*[[:space:]]#*) preset_error ;;
       *)  patterns="$patterns $preset_line" ;;
     esac
   done <<EOF
-$(llm-expand-preset -p tools -- "${pattern#@}")
+$(llm-expand-preset -p tools -- "${pattern#'#'}")
 EOF
 }
 
@@ -59,7 +59,7 @@ expand_toolspec() {
           pattern=${patterns%%[[:space:]]*}
           patterns=${patterns#"$pattern"}
           case $pattern in
-            @*)
+            '#'*)
               expand_preset
               ;;
             */*)
