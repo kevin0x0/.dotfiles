@@ -1,1 +1,4 @@
-shell apply_patch view_image show_image_to_user
+shell
+apply_patch
+view_image
+show_image_to_user

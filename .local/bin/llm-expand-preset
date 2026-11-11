@@ -11,24 +11,29 @@ while getopts "p:" opt; do
 done
 shift "$((OPTIND - 1))"
 
-cat_preset() {
-  [ -f "$1" ] && cat -- "$1"
-}
-
 expand_spec() {
-  for patterns; do
-    while [ -n "$patterns" ]; do
-      case $patterns in
-        [[:space:]]*)
-          patterns=${patterns#[[:space:]]}
-          ;;
-        *)
-          pattern=${patterns%%[[:space:]]*}
-          patterns=${patterns#"$pattern"}
-          llmcu_match_config_item "presets/$opt_prefix/$pattern" cat_preset
-          ;;
-      esac
-    done
+  added_presets=$'\n'
+  while [ "$#" -ne 0 ]; do
+    pattern=$1
+    shift
+    case $pattern in
+      '#'*)
+        case "$added_presets" in
+          *$'\n'$pattern$'\n'*) continue ;;
+        esac
+        added_presets=$added_presets$pattern$'\n'
+
+        pattern=${pattern#'#'}
+        llmcu_locate_config_item preset_file "presets/$opt_prefix/$pattern" || continue
+        [ -f "$preset_file" ] || continue
+        while IFS= read -r line; do
+          set -- "$@" "$line"
+        done <"$preset_file"
+        ;;
+      *)
+        printf "%s\n" "$pattern"
+        ;;
+    esac
   done
 }
 
