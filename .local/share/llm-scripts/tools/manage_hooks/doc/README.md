@@ -65,8 +65,10 @@ A failing reference installs nothing:
 
 ## list
 
-- The entries carry no summary; "list-events" with "with_summary"
-  provides the summaries of the events and namespaces.
+One operation for all listable kinds; "what" selects the kind
+(default "hooks").
+
+### what=hooks
 
 Fields: "hooks" (the installed hooks as "event/base.type" paths, each
 with "kind": "regular" or "symlink").
@@ -79,12 +81,12 @@ No installed hook:
 
     {"hooks":[]}
 
-## list-events
+### what=events
 
 Fields: "events" (the matching events and namespaces, each with "name"
 and a "summary" when "with_summary" is true).
 
-For {"operation":"list-events","with_summary":true,"pattern":"agent-loop-end"}:
+For {"operation":"list","what":"events","with_summary":true,"pattern":"agent-loop-end"}:
 
     {"events":[{"name":"builtin.state.agent-loop-end.","summary":"The agent turn is finished and is committed.\n"},{"name":"builtin.state.agent-loop-end.enter","summary":""},{"name":"builtin.state.agent-loop-end.leave","summary":""}]}
 
@@ -92,13 +94,13 @@ No matching event:
 
     {"events":[]}
 
-## list-docs
+### what=docs
 
 Fields: "entry" (the given entry name), "doclist" (the document paths
 as "<entry name>/<path relative to the entry>", collected from the
 entry and its ancestors).
 
-For {"operation":"list-docs","entry":"builtin.state.read-loop."}:
+For {"operation":"list","what":"docs","entry":"builtin.state.read-loop."}:
 
     {"entry":"builtin.state.read-loop.","doclist":["builtin.state./ENVIRONMENT.md","builtin.state.read-loop./SCENARIOS.md","builtin.state.read-loop./SUMMARY","builtin.state./STATES.md","builtin.state./SUMMARY","builtin./SUMMARY"]}
 
@@ -107,28 +109,39 @@ An entry without documents gives an empty "doclist", not an error.
 Filtered by "pattern" (an unanchored ERE searched within the full
 listed paths, including the ancestors):
 
-For {"operation":"list-docs","entry":"builtin.state.read-loop.","pattern":"SUMMARY"}:
+For {"operation":"list","what":"docs","entry":"builtin.state.read-loop.","pattern":"SUMMARY"}:
 
     {"entry":"builtin.state.read-loop.","doclist":["builtin.state.read-loop./SUMMARY","builtin.state./SUMMARY","builtin./SUMMARY"]}
 
-## list-shared-state
+### what=shared-state
 
 Fields: "shared_state" (the matching ids, one object per id). Only the
 directories whose names are valid ids are listed, sorted.
 
-For {"operation":"list-shared-state"}:
-
-    {"shared_state":[{"id":"myproj.counter"},{"id":"myproj.queue"}]}
-
-Filtered by "pattern" (an unanchored ERE searched within the ids):
-
-For {"operation":"list-shared-state","pattern":"^myproj\\."}:
+For {"operation":"list","what":"shared-state"}:
 
     {"shared_state":[{"id":"myproj.counter"},{"id":"myproj.queue"}]}
 
 No shared state:
 
     {"shared_state":[]}
+
+### what=refs
+
+Fields: "refs" (the predefined hook references, one object per hook
+file under the llm-scripts hooks directory; "event" is the event the
+file's first "# event:" line declares, empty when there is none).
+
+For {"operation":"list","what":"refs"}:
+
+    {"refs":[{"ref":"builtin-stats-update.always","event":"builtin.state.agent-loop-api-call.leave"},{"ref":"builtin-stats-print.always","event":""}]}
+
+Filtered by "pattern" (an unanchored ERE searched within the
+references):
+
+For {"operation":"list","what":"refs","pattern":"^builtin-stats"}:
+
+    {"refs":[{"ref":"builtin-stats-update.always","event":"builtin.state.agent-loop-api-call.leave"},{"ref":"builtin-stats-print.always","event":""}]}
 
 ## doc
 

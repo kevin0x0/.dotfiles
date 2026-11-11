@@ -12,10 +12,7 @@ subcommands:
   create       <event> [-L] [-a] [-c] (<command> | <hook-file>) [<base>.<type>|.<type>]
   remove       <event> <base>.<type>
   install      [<hook>...]
-  list         [<ERE>...]
-  list-events  [-s] [<ERE>...]
-  list-docs    <entry> [<ERE>...]
-  list-shared-state [<ERE>...]
+  list         [<what>] [args...]
   doc          <path>...
   hook-dump    <event> <base>.<type> <output-file>
   hook-source  <event> <base>.<type>
@@ -42,6 +39,13 @@ dirs, subdirectories included) and has the form
 <ref>[:<event>][><name>]. ":<event>" replaces the event named by the
 file's first "# event: <event>" line, and "><name>" replaces the hook
 name (otherwise the reference's own name is used).
+"list" takes an optional "what" ("hooks" by default) and the arguments
+of the chosen kind:
+  list hooks [<ERE>...]          the hooks installed in the session
+  list events [-s] [<ERE>...]    the installed events and namespaces
+  list docs <entry> [<ERE>...]   the documents of an entry
+  list shared-state [<ERE>...]   the shared state ids
+  list refs [<ERE>...]           the predefined hook references
 EOF
 }
 
@@ -63,7 +67,7 @@ subcommand=$1
 shift
 
 case $subcommand in
-  create|remove|install|list|list-events|list-docs|list-shared-state|doc|hook-dump|hook-source|log-dump) ;;
+  create|remove|install|list|doc|hook-dump|hook-source|log-dump) ;;
   *)
     printf "unsupported subcommand: %s\n" "$subcommand" >&2
     usage >&2
@@ -448,6 +452,27 @@ sub_install() {
 
 sub_list() {
   [ "$1" = "--" ] && shift
+  what=${1:-hooks}
+  case $what in
+    hooks|events|docs|shared-state|refs)
+      [ "$#" -ne 0 ] && shift
+      ;;
+    *)
+      printf "unknown list kind: %s\n" "$what" >&2
+      return 2
+      ;;
+  esac
+  case $what in
+    hooks)        sub_list_hooks "$@" ;;
+    events)       sub_list_events "$@" ;;
+    docs)         sub_list_docs "$@" ;;
+    shared-state) sub_list_shared_state "$@" ;;
+    refs)         sub_list_refs "$@" ;;
+  esac
+}
+
+sub_list_hooks() {
+  [ "$1" = "--" ] && shift
 
   validate_statedir || return
   . llm-chat-common
@@ -504,6 +529,58 @@ sub_list_shared_state() {
         if [ -n "$opt_json" ]; then
           jq -Rsc \
             'split("\n") | map(select(. != "") | {id:.}) | {shared_state:.}'
+        else
+          cat
+        fi
+      }
+}
+
+# Print the predefined hook references as "ref<TAB>event" lines: the
+# hook files under the llm-scripts hooks directory (config and data
+# dirs), each with the event declared by the file's first "# event:"
+# line (empty when there is none). The optional arguments are EREs
+# filtering the references; without any, every reference matches. The
+# references are deduplicated and sorted; when the same reference
+# exists in several directories, the one with the highest priority
+# wins.
+sub_list_refs() {
+  [ "$1" = "--" ] && shift
+
+  do_find() {
+    find -L -- "$1" \( -type f -o -type l \) -print0 \
+      | jq --arg prefix "$1" -Rsr \
+          'split("\u0000")[] | ltrimstr($prefix) | select(length != 0)'
+    return 1
+  }
+
+  llmcu_for_config_item "hooks/" do_find \
+    | sort -u \
+    | {
+        if [ "$#" -eq 0 ]; then
+          cat
+        else
+          grep -E -- "$(printf "%s\n" "$@")"
+        fi
+      } \
+    | {
+        while IFS= read -r ref; do
+          llmcu_locate_config_item hook_file "hooks/$ref" || continue
+          event=
+          eventline=$(sed -n '/^#[[:space:]]*event:.*$/{p;q;}' <"$hook_file")
+          if [ -n "$eventline" ]; then
+            eventline=${eventline#*"event:"}
+            eventline=${eventline%"${eventline##*[![:space:]]}"}
+            eventline=${eventline#"${eventline%%[![:space:]]*}"}
+            event=$eventline
+          fi
+          printf "%s\t%s\n" "$ref" "$event"
+        done
+      } \
+    | {
+        if [ -n "$opt_json" ]; then
+          jq -Rsc \
+            'split("\n") | map(select(. != "") | split("\t") |
+               {ref:.[0], event:.[1]}) | {refs:.}'
         else
           cat
         fi
@@ -858,9 +935,6 @@ case $subcommand in
   remove)      sub_remove "$@" ;;
   install)     sub_install "$@" ;;
   list)        sub_list "$@" ;;
-  list-events) sub_list_events "$@" ;;
-  list-docs)   sub_list_docs "$@" ;;
-  list-shared-state) sub_list_shared_state "$@" ;;
   doc)         sub_doc "$@" ;;
   hook-dump)   sub_hook_dump "$@" ;;
   hook-source) sub_hook_source "$@" ;;

@@ -13,6 +13,7 @@ try (
      | map(select(. != null)) | join("/")) as $summary |
   (.append == true) as $is_append |
   (.entry // "") as $entry_arg |
+  (.what // "hooks") as $what_arg |
   (.files // [] | if type == "array" then . else [.] end |
     map(tostring | gsub("\n"; "")) | join("\n")) as $files_arg |
   (.docpaths // [] | if type == "array" then . else [.] end |
@@ -48,20 +49,19 @@ try (
       render_withflags("operation";
         "-A install -K plain"))
   elif .operation == "list" then
-    ($pattern_arg | print_strings, " | ",
-      render_withflags("operation"; "-A list -K plain"))
-  elif .operation == "list-events" then
-    ("" | print_strings, " | ",
-      render_withflags("operation";
-        "-A list-events -S " + ($pattern_arg | @sh)))
-  elif .operation == "list-docs" then
-    ("" | print_strings, " | ",
-      render_withflags("operation";
-        "-A list-docs -S " + ($entry_arg | @sh)))
-  elif .operation == "list-shared-state" then
-    ($pattern_arg | print_strings, " | ",
-      render_withflags("operation";
-        "-A list-shared-state -K plain"))
+    (if $what_arg == "events" then
+       ("" | print_strings, " | ",
+        render_withflags("operation";
+          "-A list -S " + ($what_arg | @sh)))
+     elif $what_arg == "docs" then
+       ("" | print_strings, " | ",
+        render_withflags("operation";
+          "-A list -S " + ($what_arg + ": " + $entry_arg | @sh)))
+     else
+       ($pattern_arg | print_strings, " | ",
+        render_withflags("operation";
+          "-A list -S " + ($what_arg | @sh) + " -K plain"))
+     end)
   elif .operation == "doc" then
     ("" | print_strings, " | ",
       render_withflags("operation";
