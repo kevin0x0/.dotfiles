@@ -18,16 +18,14 @@ list_options() {
 
 if [ "$#" -eq 1 ]; then
   (
-    list_options "$llmcu_configdir/tools/$1" && exit 0
-    list_options "$llmcu_datadir/tools/$1" && exit 0
     llmcu_for_config_item "tools/$1" list_options
     exit 0
   )
+  return
 fi
 
-mkdir -p "$opt_state_dir/tool-config" || return
 (
-  tool_config_file=$opt_state_dir/tool-config/$1
+  llmcc_get_tool_runtime_config tool_config_file "$1"
   shift
   for kv; do
     case $kv in
@@ -50,6 +48,8 @@ mkdir -p "$opt_state_dir/tool-config" || return
     if [ -e "$tool_config_file" ]; then
       grep -v "^$k=" <"$tool_config_file" >"$tmp"
       cp -- "$tmp" "$tool_config_file"
+    else
+      mkdir -p -- "${tool_config_file%/*}"
     fi
     {
       printf "%s=" "$k"

@@ -1,8 +1,8 @@
 #!/bin/sh
 
-if [ -f "$2/tool-config/manage_hooks" ]; then
-  command . -- "$2/tool-config/manage_hooks" >/dev/null 2>&1
-fi
+. -- llm-chat-common
+llmcc_set_public_files_var "$2"
+llmcc_source_tool_runtime_config "manage_hooks"
 
 cleanup() {
   [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"

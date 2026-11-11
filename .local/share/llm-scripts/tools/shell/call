@@ -1,8 +1,8 @@
 #!/bin/sh
 
-if [ -f "$2/tool-config/shell" ]; then
-  command . -- "$2/tool-config/shell" >/dev/null 2>&1
-fi
+. -- llm-chat-common
+llmcc_set_public_files_var "$2"
+llmcc_source_tool_runtime_config "shell"
 
 stderr=
 stdout=

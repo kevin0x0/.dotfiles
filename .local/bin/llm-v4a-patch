@@ -1,8 +1,8 @@
 #!/bin/sh
 
-if [ -f "$2/tool-config/apply_patch" ]; then
-  command . -- "$2/tool-config/apply_patch" >/dev/null 2>&1
-fi
+. -- llm-chat-common
+llmcc_set_public_files_var "$2"
+llmcc_source_tool_runtime_config "apply_patch"
 
 initial_line_number=$1
 

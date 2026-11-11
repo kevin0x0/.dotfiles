@@ -2,9 +2,9 @@
 
 opt_yes=
 statedir=$2
-if [ -f "$statedir/tool-config/manage_tools" ]; then
-  command . -- "$statedir/tool-config/manage_tools" >/dev/null 2>&1
-fi
+. -- llm-chat-common
+llmcc_set_public_files_var "$statedir"
+llmcc_source_tool_runtime_config "manage_tools"
 
 cleanup() {
   [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"

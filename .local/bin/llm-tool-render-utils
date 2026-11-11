@@ -43,14 +43,6 @@ llmtr_parse_options() {
   esac
 }
 
-llmtr_source_tool_config() {
-  if [ -n "$llmtropt_state_dir" ] && [ -f "$llmtropt_state_dir/tool-config/$1" ]; then
-    command . -- "$llmtropt_state_dir/tool-config/$1"
-  else
-    return 1
-  fi
-}
-
 llmtr_run_on_color() {
   if [ -n "$llmtr_color_enabled" ]; then
     "$@"
