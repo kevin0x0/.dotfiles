@@ -2,4 +2,4 @@
 
 shift
 
-llm-render-events <"$this_turn" | dispatch_render_event "$render_event_fifo"
+llm-render-events <"$llm_chat_this_turn" | dispatch_render_event "$render_event_fifo"

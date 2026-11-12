@@ -389,7 +389,7 @@ dispatch_command() {
         if [ -x "$cmdpath" ]; then
           shift
           (
-            export conversation llmcc_volatile_fileids llmcc_persistent_fileids this_turn llmcc_tool_list
+            export llm_chat_conversation llmcc_volatile_fileids llmcc_persistent_fileids llm_chat_this_turn llmcc_tool_list
             "$cmdpath" "$@"
           )
         elif [ -r "$cmdpath" ]; then
@@ -432,9 +432,9 @@ EOF
   jq --slurpfile idmap "$idmap" \
     '$idmap[0] as $idmap |
      walk(if type == "object" and (.type == "input_image" or .type == "input_file") and $idmap[.file_id // ""] != null then .file_id = $idmap[.file_id] end)' \
-    <"$conversation" >"$tmp"
+    <"$llm_chat_conversation" >"$tmp"
 
-  cp -- "$tmp" "$conversation"
+  cp -- "$tmp" "$llm_chat_conversation"
 
   jq -nc -- '[inputs | select(has("expires_at"))] | unique_by(.id)[]' "$unchanged" "$new" >"$llmcc_volatile_fileids"
   jq -nc -- '[inputs | select(has("expires_at") | not)] | unique_by(.id)[]' "$unchanged" "$new" >"$llmcc_persistent_fileids"
@@ -458,18 +458,18 @@ check_file_id() {
 call() (
   if ! check_file_id; then
     errmsg="some file ids expired and failed to retrieve a new one"
-    jq -n --arg err "$errmsg" >"$response_output" \
+    jq -n --arg err "$errmsg" >"$llm_chat_response_output" \
       '{"error":{"message":$err,"type":"__defined_by_me","code":"__defined_by_me"}}'
     exit 1
   fi
 
   [ -s "$llmcc_tool_list" ] && set -- "$@" -T "$llmcc_tool_list"
 
-  cat -- "$conversation" "$this_turn" >"$response_input_fifo" &
+  cat -- "$llm_chat_conversation" "$llm_chat_this_turn" >"$response_input_fifo" &
   dispatch_render_event "$render_event_fifo" <"$response_event_output_fifo" &
 
   trap ':' INT
-  llm-responses-api -FNk 0 "$@" -- "$response_output" - <<EOF \
+  llm-responses-api -FNk 0 "$@" -- "$llm_chat_response_output" - <<EOF \
     >"$response_event_output_fifo"
 $opt_api_key
 EOF
@@ -483,11 +483,11 @@ EOF
 )
 
 call_tool() {
-  set -- "$@" -i "$response_output" -- \
+  set -- "$@" -i "$llm_chat_response_output" -- \
     "$opt_state_dir" "$opt_files_base_url" \
     "$opt_cache_key" "$opt_files_default_purpose"
   trap ':' INT
-  llm-tool-call -NS llm_chat_opt_api_key=0 "$@" >"$tool_output" <<EOF
+  llm-tool-call -NS llm_chat_opt_api_key=0 "$@" >"$llm_chat_tool_output" <<EOF
 $opt_api_key
 EOF
   set -- "$?"
@@ -563,7 +563,7 @@ read_loop() {
     [ -s "$text_input" ] && llm-make-mcontent -t <"$text_input" >"$input_content"
 
     if [ -z "$input_end_action" ]; then
-      if [ -s "$input_content" ] || [ -s "$this_turn" ]; then
+      if [ -s "$input_content" ] || [ -s "$llm_chat_this_turn" ]; then
         input_end_action=go
       else
         input_end_action=break
@@ -575,7 +575,7 @@ read_loop() {
         : >"$input_content"
         ;;
       drop-this-turn)
-        : >"$this_turn"
+        : >"$llm_chat_this_turn"
         ;;
       break)
         llm_chat_next_state=end
@@ -587,7 +587,7 @@ read_loop() {
       go|add)
         if [ "$input_end_action" = go ] && [ -s "$input_content" ] || [ "$input_end_action" = add ]; then
           llm-make-message -r "$input_message_role" -p <"$input_content" \
-            | tee -a "$this_turn" | llm-render-events | dispatch_render_event "$render_event_fifo"
+            | tee -a "$llm_chat_this_turn" | llm-render-events | dispatch_render_event "$render_event_fifo"
         fi
         if [ "$input_end_action" = go ]; then
           llm_chat_next_state=agent-loop-api-call
@@ -659,16 +659,11 @@ llm_chat_conversation_slice() {
 }
 
 build_env_and_run_hook() {
-  llm_chat_conversation=$conversation
-  llm_chat_this_turn=$this_turn
-  llm_chat_response_output=$response_output
-  llm_chat_tool_output=$tool_output
   llm_chat_volatile_fileids=$llmcc_volatile_fileids
   llm_chat_persistent_fileids=$llmcc_persistent_fileids
   llm_chat_tool_list=$llmcc_tool_list
   llm_chat_default_tool_set=$llmcc_default_tool_name_list
   llm_chat_extra_tool_set=$llmcc_extra_tool_name_list
-  llm_chat_response_extra_info_output=$response_extra_info_output
 
   llm_chat_model=$opt_model
 
@@ -712,12 +707,12 @@ create_state_dir() {
 }
 
 state_init() {
-  : >"$conversation"
+  : >"$llm_chat_conversation"
   : >"$llmcc_volatile_fileids"
   : >"$llmcc_persistent_fileids"
-  : >"$this_turn"
-  : >"$response_output"
-  : >"$tool_output"
+  : >"$llm_chat_this_turn"
+  : >"$llm_chat_response_output"
+  : >"$llm_chat_tool_output"
   : >"$input_content"
   : >"$text_input"
   : >"$tmp"
@@ -733,11 +728,11 @@ state_init() {
   llm_chat_gen_tool_list
 
   if [ -n "$opt_prompt" ]; then
-    llm-make-message -r system -tE "$opt_prompt" >"$conversation"
+    llm-make-message -r system -tE "$opt_prompt" >"$llm_chat_conversation"
   fi
 
   if [ -n "$opt_prompt_file" ]; then
-    llm-make-message -r system -ftE "$opt_prompt_file" >"$conversation"
+    llm-make-message -r system -ftE "$opt_prompt_file" >"$llm_chat_conversation"
   fi
 }
 
@@ -777,16 +772,16 @@ if [ -z "$opt_state_dir" ]; then
 else
   mkdir -p -- "$opt_state_dir" || exit
 fi
-conversation=$opt_state_dir/conversation
-this_turn=$opt_state_dir/this-turn
-response_output=$opt_state_dir/response-output
-tool_output=$opt_state_dir/tool-output
+llm_chat_conversation=$opt_state_dir/conversation
+llm_chat_this_turn=$opt_state_dir/this-turn
+llm_chat_response_output=$opt_state_dir/response-output
+llm_chat_tool_output=$opt_state_dir/tool-output
 input_content=$opt_state_dir/input-content
 text_input=$opt_state_dir/text-input
 render_event_fifo=$opt_state_dir/render-event-fifo
 response_input_fifo=$opt_state_dir/response-input-fifo
 response_event_output_fifo=$opt_state_dir/response-output-fifo
-response_extra_info_output=$opt_state_dir/response-extra-info-output
+llm_chat_response_extra_info_output=$opt_state_dir/response-extra-info-output
 dumped_session_option=$opt_state_dir/dumped-session-option
 tmp=$opt_state_dir/tmp
 llm_chat_hook_input=$opt_state_dir/hook-input
@@ -802,7 +797,7 @@ llmcc_set_public_files_var "$opt_state_dir"
 if [ -n "$opt_session" ] && [ -e "$opt_session" ]; then
   state_init_from_session || exit
   if [ -n "$opt_show_conversation_on_startup" ]; then
-    llm-render-events "$conversation" | dispatch_render_event "$render_event_fifo"
+    llm-render-events "$llm_chat_conversation" | dispatch_render_event "$render_event_fifo"
   fi
 else
   state_init
@@ -819,7 +814,7 @@ done
 set -- \
   -u "$opt_responses_base_url" \
   -i "$response_input_fifo" \
-  -I "$response_extra_info_output" \
+  -I "$llm_chat_response_extra_info_output" \
   -r "$opt_reasoning" \
   -m "$opt_model"
 [ -n "$opt_stream" ] && set -- "$@" -s
@@ -846,8 +841,8 @@ while :; do
       exitcode=$?
       case $exitcode in
         0) # Append to input
-          if [ -s "$response_output" ]; then
-            llm-o2i "$response_output" >>"$this_turn"
+          if [ -s "$llm_chat_response_output" ]; then
+            llm-o2i "$llm_chat_response_output" >>"$llm_chat_this_turn"
             llm_chat_next_state=agent-loop-tool-call
           else
             i18n -n llm-scripts \
@@ -856,18 +851,18 @@ while :; do
           fi
           ;;
         5)
-          llm-o2i "$response_output" >>"$this_turn"
+          llm-o2i "$llm_chat_response_output" >>"$llm_chat_this_turn"
           llm_chat_next_state=agent-loop-api-call-interrupted
           ;;
         3) # response.incomplete
           echo
-          if incomplete_reason=$(jq -jn 'limit(1; inputs) | .reason' "$response_output" 2>/dev/null); then
+          if incomplete_reason=$(jq -jn 'limit(1; inputs) | .reason' "$llm_chat_response_output" 2>/dev/null); then
             case $incomplete_reason in
               max_output_tokens|steered)
                 # Skip the first item
-                jq -c -- 'inputs' "$response_output" >"$tmp"
-                cp -- "$tmp" "$response_output"
-                llm-o2i "$response_output" >>"$this_turn"
+                jq -c -- 'inputs' "$llm_chat_response_output" >"$tmp"
+                cp -- "$tmp" "$llm_chat_response_output"
+                llm-o2i "$llm_chat_response_output" >>"$llm_chat_this_turn"
                 llm_chat_next_state=agent-loop-tool-call
                 ;;
               *)
@@ -881,7 +876,7 @@ while :; do
           fi
           ;;
         *)
-          [ -s "$response_output" ] && jq -n 'limit(1; inputs)' "$response_output" >&2
+          [ -s "$llm_chat_response_output" ] && jq -n 'limit(1; inputs)' "$llm_chat_response_output" >&2
           error_to read-loop
           ;;
       esac
@@ -891,11 +886,11 @@ while :; do
       exitcode=$?
       case $exitcode in
         0)
-          cat -- "$tool_output" >>"$this_turn"
-          [ -s "$tool_output" ] && llm_chat_next_state=agent-loop-api-call || llm_chat_next_state=agent-loop-end
+          cat -- "$llm_chat_tool_output" >>"$llm_chat_this_turn"
+          [ -s "$llm_chat_tool_output" ] && llm_chat_next_state=agent-loop-api-call || llm_chat_next_state=agent-loop-end
           ;;
         5)
-          cat -- "$tool_output" >>"$this_turn"
+          cat -- "$llm_chat_tool_output" >>"$llm_chat_this_turn"
           llm_chat_next_state=agent-loop-tool-call-interrupted
           ;;
         *)
@@ -903,7 +898,7 @@ while :; do
           error_to read-loop
           ;;
       esac
-      llm-render-events <"$tool_output" | dispatch_render_event "$render_event_fifo"
+      llm-render-events <"$llm_chat_tool_output" | dispatch_render_event "$render_event_fifo"
       ;;
     agent-loop-api-call-interrupted)
       i18n -n llm-scripts 'interrupted' >&2
@@ -911,7 +906,7 @@ while :; do
         i18n -n llm-scripts 'failed to handle tool call' >&2
         error_to read-loop
       else
-        cat -- "$tool_output" >>"$this_turn"
+        cat -- "$llm_chat_tool_output" >>"$llm_chat_this_turn"
         llm_chat_next_state=read-loop
       fi
       ;;
@@ -920,8 +915,8 @@ while :; do
       llm_chat_next_state=read-loop
       ;;
     agent-loop-end)
-      cat -- "$this_turn" >>"$conversation"
-      : >"$this_turn"
+      cat -- "$llm_chat_this_turn" >>"$llm_chat_conversation"
+      : >"$llm_chat_this_turn"
       llm_chat_next_state=read-loop
       ;;
     end)

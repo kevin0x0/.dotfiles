@@ -2,4 +2,4 @@
 
 shift
 
-llm-render-events <"$response_output" | dispatch_render_event "$render_event_fifo"
+llm-render-events <"$llm_chat_response_output" | dispatch_render_event "$render_event_fifo"
