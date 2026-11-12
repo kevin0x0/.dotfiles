@@ -47,6 +47,7 @@ renderer_opt_tool_output_lines=15
 . llm-config-utils
 . llm-render-utils
 . llm-chat-common
+. llm-chat-hook-funcs
 
 llm_scriptname=llm-chat
 [ -f "$llmcu_configdir/chat-config" ] && . -- "$llmcu_configdir/chat-config"
@@ -596,66 +597,6 @@ read_loop() {
         ;;
     esac
   done
-}
-
-llm_chat_gen_tool_list() {
-  if [ -z "$opt_extra_tools_defer_loading" ]; then
-    llmcc_generate_tool_list
-    return
-  fi
-  case ${opt_extra_tools_defer_loading_mode:-inject} in
-    builtin)
-      llmcc_generate_tool_list -l
-      ;;
-    inject)
-      llmcc_generate_tool_list -l \
-        -d "$opt_extra_tools_description" \
-        -p "$opt_extra_tools_parameters"
-      ;;
-    *)
-      printf "invalid value of opt_extra_tools_defer_loading_mode: %s\n" \
-        "$opt_extra_tools_defer_loading_mode" >&2
-      exit 2
-      ;;
-  esac
-}
-
-llm_chat_add_input_content() {
-  case $1 in
-    text|image|file|text-from-file)
-      printf "@%s " "$1"
-      shift
-      shell-escape -- "$@"
-      echo
-      ;;
-    text-from-command)
-      shift
-      for llm_chat_input_content_command; do
-        printf "@text-from-command eval "
-        shell-escape -t $'\n' -- " $llm_chat_input_content_command"
-      done
-      ;;
-    *)
-      printf "unknown content type: %s\n" "$1" >&2
-      return 2
-      ;;
-  esac
-} >>"$llm_chat_hook_input"
-
-llm_chat_commit_input_content() {
-  case $1 in
-    user|developer|system|assistant|'')
-      printf "@role %s\n@add\n" "${1:-system}"
-      ;;
-    *)
-      printf "unknown role: %s\n" "$1" >&2
-      return 2
-      ;;
-  esac
-} >>"$llm_chat_hook_input"
-
-llm_chat_conversation_slice() {
-  llm-chat-conversation-slice "$@"
 }
 
 build_env_and_run_hook() {
