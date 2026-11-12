@@ -1,5 +1,7 @@
 #!/bin/sh
 
+unset opt_api_key opt_api_key_cmd
+
 opt_reasoning=none
 opt_stream=
 opt_api_key=
