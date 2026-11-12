@@ -7,10 +7,10 @@ fi
 
 case $1 in
   */overwrite*)
-    cat -- "$2" >"$this_turn"
+    cat -- "$2" >"$llm_chat_this_turn"
     ;;
   *)
-    cat -- "$2" >>"$this_turn"
+    cat -- "$2" >>"$llm_chat_this_turn"
     ;;
 esac
 

@@ -12,6 +12,6 @@ case ${2#-} in
     set -- "$1" ""
     ;;
 esac
-llm-chat-conversation-slice "$1" "$2" <"$conversation" \
+llm-chat-conversation-slice "$1" "$2" <"$llm_chat_conversation" \
   | llm-render-events \
   | dispatch_render_event "$render_event_fifo"
