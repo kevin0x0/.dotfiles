@@ -389,7 +389,7 @@ dispatch_command() {
         if [ -x "$cmdpath" ]; then
           shift
           (
-            export llm_chat_conversation llmcc_volatile_fileids llmcc_persistent_fileids llm_chat_this_turn llmcc_tool_list
+            export llm_chat_conversation llm_chat_volatile_fileids llm_chat_persistent_fileids llm_chat_this_turn llm_chat_tool_list
             "$cmdpath" "$@"
           )
         elif [ -r "$cmdpath" ]; then
@@ -410,7 +410,7 @@ update_file_id() (
 
   jq --slurpfile changed "$changed" -- \
     'if IN(.id; $changed[].id) then empty else . end' \
-    "$llmcc_volatile_fileids" "$llmcc_persistent_fileids" >"$unchanged"
+    "$llm_chat_volatile_fileids" "$llm_chat_persistent_fileids" >"$unchanged"
 
   trap ':' INT
   {
@@ -436,18 +436,18 @@ EOF
 
   cp -- "$tmp" "$llm_chat_conversation"
 
-  jq -nc -- '[inputs | select(has("expires_at"))] | unique_by(.id)[]' "$unchanged" "$new" >"$llmcc_volatile_fileids"
-  jq -nc -- '[inputs | select(has("expires_at") | not)] | unique_by(.id)[]' "$unchanged" "$new" >"$llmcc_persistent_fileids"
+  jq -nc -- '[inputs | select(has("expires_at"))] | unique_by(.id)[]' "$unchanged" "$new" >"$llm_chat_volatile_fileids"
+  jq -nc -- '[inputs | select(has("expires_at") | not)] | unique_by(.id)[]' "$unchanged" "$new" >"$llm_chat_persistent_fileids"
 
   rm -- "$unchanged" "$new" "$idmap"
 )
 
 check_file_id() {
-  [ -f "$llmcc_volatile_fileids" ] || return 0
+  [ -f "$llm_chat_volatile_fileids" ] || return 0
 
   changed=$opt_state_dir/tmp.changed
   jq 'if .expires_at < now + 300 then . else empty end' \
-    <"$llmcc_volatile_fileids" >"$changed"
+    <"$llm_chat_volatile_fileids" >"$changed"
 
   [ ! -s "$changed" ] && return 0
 
@@ -463,7 +463,7 @@ call() (
     exit 1
   fi
 
-  [ -s "$llmcc_tool_list" ] && set -- "$@" -T "$llmcc_tool_list"
+  [ -s "$llm_chat_tool_list" ] && set -- "$@" -T "$llm_chat_tool_list"
 
   cat -- "$llm_chat_conversation" "$llm_chat_this_turn" >"$response_input_fifo" &
   dispatch_render_event "$render_event_fifo" <"$response_event_output_fifo" &
@@ -659,12 +659,6 @@ llm_chat_conversation_slice() {
 }
 
 build_env_and_run_hook() {
-  llm_chat_volatile_fileids=$llmcc_volatile_fileids
-  llm_chat_persistent_fileids=$llmcc_persistent_fileids
-  llm_chat_tool_list=$llmcc_tool_list
-  llm_chat_default_tool_set=$llmcc_default_tool_name_list
-  llm_chat_extra_tool_set=$llmcc_extra_tool_name_list
-
   llm_chat_model=$opt_model
 
   (
@@ -708,8 +702,8 @@ create_state_dir() {
 
 state_init() {
   : >"$llm_chat_conversation"
-  : >"$llmcc_volatile_fileids"
-  : >"$llmcc_persistent_fileids"
+  : >"$llm_chat_volatile_fileids"
+  : >"$llm_chat_persistent_fileids"
   : >"$llm_chat_this_turn"
   : >"$llm_chat_response_output"
   : >"$llm_chat_tool_output"
@@ -721,7 +715,7 @@ state_init() {
   mkfifo -- "$response_input_fifo" || exit
   mkfifo -- "$response_event_output_fifo" || exit
 
-  llm-expand-toolspec -- "$opt_default_tools" >"$llmcc_default_tool_name_list"
+  llm-expand-toolspec -- "$opt_default_tools" >"$llm_chat_default_tool_set"
   if [ -n "$opt_extra_tools_defer_loading" ]; then
     llmcc_operate_extra_tool -m add -- "$opt_extra_tools"
   fi
@@ -752,6 +746,30 @@ state_init_from_session() {
   rm -f -- "$dumped_session_option"
 }
 
+set_session_vars() {
+  llm_chat_conversation=$opt_state_dir/conversation
+  llm_chat_this_turn=$opt_state_dir/this-turn
+  llm_chat_response_output=$opt_state_dir/response-output
+  llm_chat_tool_output=$opt_state_dir/tool-output
+  input_content=$opt_state_dir/input-content
+  text_input=$opt_state_dir/text-input
+  render_event_fifo=$opt_state_dir/render-event-fifo
+  response_input_fifo=$opt_state_dir/response-input-fifo
+  response_event_output_fifo=$opt_state_dir/response-output-fifo
+  llm_chat_response_extra_info_output=$opt_state_dir/response-extra-info-output
+  dumped_session_option=$opt_state_dir/dumped-session-option
+  tmp=$opt_state_dir/tmp
+  llm_chat_hook_input=$opt_state_dir/hook-input
+
+  llmcc_set_public_files_var "$opt_state_dir"
+  # Symbols exposed to hooks
+  llm_chat_volatile_fileids=$llmcc_volatile_fileids
+  llm_chat_persistent_fileids=$llmcc_persistent_fileids
+  llm_chat_tool_list=$llmcc_tool_list
+  llm_chat_default_tool_set=$llmcc_default_tool_name_list
+  llm_chat_extra_tool_set=$llmcc_extra_tool_name_list
+}
+
 cleanup() {
   [ -n "$rm_dir_on_exit" ] && rm -rf -- "$rm_dir_on_exit"
   if [ "$1" ]; then
@@ -772,27 +790,8 @@ if [ -z "$opt_state_dir" ]; then
 else
   mkdir -p -- "$opt_state_dir" || exit
 fi
-llm_chat_conversation=$opt_state_dir/conversation
-llm_chat_this_turn=$opt_state_dir/this-turn
-llm_chat_response_output=$opt_state_dir/response-output
-llm_chat_tool_output=$opt_state_dir/tool-output
-input_content=$opt_state_dir/input-content
-text_input=$opt_state_dir/text-input
-render_event_fifo=$opt_state_dir/render-event-fifo
-response_input_fifo=$opt_state_dir/response-input-fifo
-response_event_output_fifo=$opt_state_dir/response-output-fifo
-llm_chat_response_extra_info_output=$opt_state_dir/response-extra-info-output
-dumped_session_option=$opt_state_dir/dumped-session-option
-tmp=$opt_state_dir/tmp
-llm_chat_hook_input=$opt_state_dir/hook-input
-# Set:
-# llmcc_volatile_fileids
-# llmcc_persistent_fileids
-# llmcc_tool_list
-# llmcc_default_tool_name_list
-# llmcc_extra_tool_name_list
-# llmcc_hooks_dir
-llmcc_set_public_files_var "$opt_state_dir"
+
+set_session_vars
 
 if [ -n "$opt_session" ] && [ -e "$opt_session" ]; then
   state_init_from_session || exit
