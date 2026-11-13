@@ -1,0 +1,1052 @@
+# event: builtin.state.read-loop.enter
+
+llmcc_hook_get_shared_state_dir SD builtin.stats || return
+stats_vars=$SD/stats-vars
+llmcc_hook_undump_vars "$stats_vars" || return
+
+llmcc_hook_source_runtime_config stats-print
+
+if [ -z "$acc_input" ]; then
+  return 0
+fi
+
+user_visible_log() {
+  llmcc_hook_log "$@"
+  printf "%s " "$@"
+  echo
+}
+
+color() {
+  [ -n "$llm_chat_color_ansi" ] && printf "\033[%sm" "$1"
+  shift
+  printf "%s" "$@"
+  [ -n "$llm_chat_color_ansi" ] && printf "\033[0m"
+}
+
+percent() {
+  result=?
+  case $1$2 in
+    *[!0123456789]*)
+      ;;
+    *)
+      if [ "$2" -ne 0 ]; then
+        result=$(($1 * 10000 / $2))
+        case $result in
+          10000)
+            result=100.00
+            ;;
+          *)
+            result=$(printf "%04u" "$result")
+            result=${result%??}.${result#??}
+            case $result in
+              0[[:digit:]].*) result=${result#?} ;;
+            esac
+            ;;
+        esac
+      fi
+      ;;
+  esac
+  printf "%s" "$result"
+}
+
+ordinal() {
+  case $1 in
+    *1[123]|*[!123])
+      printf "%sth" "$1"
+      ;;
+    *1)
+      printf "%sst" "$1"
+      ;;
+    *2)
+      printf "%snd" "$1"
+      ;;
+    *3)
+      printf "%srd" "$1"
+      ;;
+  esac
+}
+
+repeat() {
+  times=$1
+  result=
+  block=$2
+  while [ "$times" -ne 0 ]; do
+    if [ "$((times % 2))" -ne 0 ]; then
+      result=$result$block
+    fi
+    block=$block$block
+    times=$((times / 2))
+  done
+  printf "%s" "$result"
+}
+
+validate_specifier() {
+  case $1 in
+    *[![:alnum:]_]*|[[:digit:]]*)
+      user_visible_log ERROR "invalid specifier: $1"
+      return 1
+      ;;
+  esac
+  return 0
+}
+
+render_header() {
+  left_padding=$1
+  right_padding=$2
+  width=$3
+  header_sep=$4
+  header_sep_length=${5:-${#header_sep}}
+  header_left_text=$6
+  header_left_text_length=${7:-${#header_left_text}}
+  shift 7
+
+  header_max_length=$((width - header_left_text_length - left_padding - right_padding))
+  if [ "$header_max_length" -lt 0 ]; then
+    llmcc_hook_log WARN "width ($width) too small for header rendering: $((width - header_max_length)) required"
+    return
+  fi
+
+  header_text=
+  header_length=0
+  for header; do
+    validate_specifier "$header" || continue
+    text=
+    length=
+    case $header in
+      turn)
+        my_ordinal_turn=$(ordinal "$turn")
+        text="the $(color 1 "$my_ordinal_turn") turn"
+        length=$((${#my_ordinal_turn} + 9))
+        ;;
+      status)
+        case $status in
+          failed)       status_color='1;31' ;;
+          interrupted)  status_color='1;33' ;;
+          success)      status_color='1' ;;
+          *)            status_color='1' ;;
+        esac
+        text=$(color "$status_color" "$status")
+        length=${#status}
+        ;;
+      *)
+        command eval "cmd=\$stats_render_header_$header"
+        if [ -z "$cmd" ]; then
+          user_visible_log WARN "commands for rendering header $header is empty"
+          continue
+        fi
+        command eval " $cmd" || continue
+        ;;
+    esac
+    length=${length:-${#text}}
+
+    if [ -n "$header_text" ]; then
+      length=$((length + header_sep_length))
+    fi
+    if [ "$((header_length + length))" -gt "$header_max_length" ]; then
+      llmcc_hook_log WARN "max length reached for header, skip $header"
+      continue
+    fi
+
+    header_text=$header_text${header_text:+$header_sep}$text
+    header_length=$((header_length + length))
+  done
+
+  left_padding_spaces=$(repeat "$left_padding" " ")
+  right_padding_spaces=$(repeat "$right_padding" " ")
+  middle_padding_spaces=$(repeat "$((header_max_length - header_length))" " ")
+  result=$left_padding_spaces$header_left_text$middle_padding_spaces$header_text$right_padding_spaces
+  printf "%s\n" "$result"
+}
+
+turn_cache_hit=$(percent "$turn_cached_input" "$turn_input")%
+acc_cache_hit=$(percent "$acc_cached_input" "$acc_input")%
+
+justify_line() {
+  curr_length=$1
+  target_length=$2
+  header_line_header=$3
+  turn_line_header=$4
+  acc_line_header=$5
+
+  delta=$((target_length - curr_length))
+
+  # Count <tab>
+  nfield=0
+  tmp=$header_line
+  while :; do
+    case $tmp in
+      *$'\r'*)  nfield=$((nfield + 1)) ;;
+      *)        break ;;
+    esac
+    tmp=${tmp#*$'\r'}
+  done
+
+  tab_expand=$(repeat "$((delta / nfield))" " ")
+  sed_command=$(repeat "$((delta % nfield))" $'s/\r/ &/;')$'s/\r/'"$tab_expand"'/g'
+  {
+    IFS= read -r justified_header_line
+    IFS= read -r justified_turn_line
+    IFS= read -r justified_acc_line
+  } <<EOF
+$(printf "%s\n" "$header_line" "$turn_line" "$acc_line" | sed "$sed_command")
+EOF
+  header_line=$header_line_header$justified_header_line$right_padding_spaces
+  turn_line=$turn_line_header$justified_turn_line$right_padding_spaces
+  acc_line=$acc_line_header$justified_acc_line$right_padding_spaces
+}
+
+render_column() {
+  append_line_to_row() {
+    if [ -n "$header_row" ]; then
+      justify_line "$line_length" "$line_max_length" "$space_row_header" "$space_row_header" "$space_row_header"
+    else
+      justify_line "$line_length" "$line_max_length" "$header_row_header" "$turn_row_header" "$acc_row_header"
+    fi
+    header_row=$header_row$header_line$'\n'
+    turn_row=$turn_row$turn_line$'\n'
+    acc_row=$acc_row$acc_line$'\n'
+  }
+
+  left_padding=$1
+  right_padding=$2
+  width=$3
+  column_sep=$4
+  column_sep_length=${5:-${#column_sep}}
+  turn_row_header_text=$6
+  turn_row_header_text_length=${7:-${#turn_row_header_text}}
+  acc_row_header_text=$8
+  acc_row_header_text_length=${9:-${#acc_row_header_text}}
+  header_row_color=${10:-'1;36'}
+  shift 10
+
+  row_header_text_length=$acc_row_header_text_length
+  if [ "$row_header_text_length" -lt "$turn_row_header_text_length" ]; then
+    row_header_text_length=$turn_row_header_text_length
+  fi
+  acc_row_header_text=$acc_row_header_text$(repeat "$((row_header_text_length - acc_row_header_text_length))" " ")
+  turn_row_header_text=$turn_row_header_text$(repeat "$((row_header_text_length - turn_row_header_text_length))" " ")
+
+  left_padding_spaces=$(repeat "$left_padding" " ")
+  right_padding_spaces=$(repeat "$((right_padding))" " ")
+  turn_row_header="$left_padding_spaces$turn_row_header_text"
+  acc_row_header="$left_padding_spaces$acc_row_header_text"
+  space_row_header=$left_padding_spaces$(repeat "$row_header_text_length" " ")
+  header_row_header=$space_row_header
+
+  line_max_length=$((width - row_header_text_length - right_padding - left_padding))
+  if [ "$line_max_length" -lt 0 ]; then
+    llmcc_hook_log WARN "width ($width) too small for column rendering: $((width - line_max_length)) required"
+    return
+  fi
+  turn_line=
+  acc_line=
+  header_line=
+  line_length=0
+  turn_row=
+  acc_row=
+  header_row=
+
+  for column; do
+    fieldname=
+    fieldname_length=
+    turn_text=
+    acc_text=
+    turn_length=
+    acc_length=
+
+    name_spec=${column#*@}
+    column=${column%%@*}
+
+    case $column in
+      input|cached_input|output|reasoning_output|total|api_calls|cache_hit)
+        eval "turn_text=\$turn_$column"
+        eval "acc_text=\$acc_$column"
+        ;;
+      *)
+        validate_specifier "$column" || continue
+        command eval "cmd=\$stats_render_column_$column"
+        if [ -z "$cmd" ]; then
+          user_visible_log WARN "commands for rendering column $column is empty"
+          continue
+        fi
+        command eval " $cmd" || continue
+        ;;
+    esac
+    if [ -z "$fieldname" ]; then
+      case $name_spec in
+        :*)
+          name_spec=${name_spec#:}
+          fieldname_length=${name_spec%%:*}
+          fieldname=${name_spec#*:}
+          ;;
+        *)
+          fieldname_length=${#name_spec}
+          fieldname=$(color "$header_row_color" "$name_spec")
+          ;;
+      esac
+    fi
+    fieldname_length=${fieldname_length:-${#fieldname}}
+    turn_length=${turn_length:-${#turn_text}}
+    acc_length=${acc_length:-${#acc_text}}
+
+    length=$fieldname_length
+    [ "$turn_length" -gt "$length" ] && length=$turn_length
+    [ "$acc_length" -gt "$length" ] && length=$acc_length
+    whole_length=$((length + column_sep_length))
+
+    if [ "$((line_length + whole_length))" -gt "$line_max_length" ]; then
+      if [ "$whole_length" -gt "$line_max_length" ]; then
+        llmcc_hook_log WARN "field too long: $column"
+        continue
+      fi
+      append_line_to_row
+      line_length=0
+      header_line=
+      turn_line=
+      acc_line=
+    fi
+
+    line_length=$((line_length + whole_length))
+    header_line=$header_line$column_sep$'\r'$(repeat "$((length - fieldname_length))" " ")$fieldname
+    turn_line=$turn_line$column_sep$'\r'$(repeat "$((length - turn_length))" " ")$turn_text
+    acc_line=$acc_line$column_sep$'\r'$(repeat "$((length - acc_length))" " ")$acc_text
+  done
+
+  if [ -n "$header_line" ]; then
+    append_line_to_row
+  fi
+
+  printf "%s" "$header_row" "$turn_row" "$acc_row"
+}
+
+render_kvpair() {
+  left_padding=$1
+  right_padding=$2
+  width=$3
+  leading_mark=$4
+  leading_mark_length=${5:-${#leading_mark}}
+  kvsep=$6
+  kvsep_length=${7:-${#kvsep}}
+  column_sep=$8
+  column_sep_length=${9:-${#column_sep}}
+  key_color=${10:-'36'}
+  shift 10
+
+  valid_width=$((width - left_padding - right_padding))
+  max_pair_length=$((valid_width - leading_mark_length - kvsep_length))
+  if [ "$max_pair_length" -lt 0 ]; then
+    llmcc_hook_log WARN "width ($width) too small for kvpair rendering: $((width - max_pair_length)) required"
+    return
+  fi
+
+  keys=
+  values=
+  max_key_length=0
+  max_value_length=0
+  nkvpair=0
+  for kvpair; do
+    key_text=
+    value_text=
+    key_length=
+    value_length=
+
+    name_spec=${kvpair#*@}
+    kvpair=${kvpair%%@*}
+
+    case $kvpair in
+      model)
+        value_text=$model
+        value_length=${#value_text}
+        value_text=$(color '1' "$value_text")
+        ;;
+      *)
+        validate_specifier "$kvpair" || continue
+        command eval "cmd=\$stats_render_kvpair_$kvpair"
+        if [ -z "$cmd" ]; then
+          user_visible_log WARN "commands for rendering kvpair $kvpair is empty"
+          continue
+        fi
+        command eval " $cmd" || continue
+        ;;
+    esac
+    if [ -z "$key_text" ]; then
+      case $name_spec in
+        :*)
+          name_spec=${name_spec#:}
+          key_length=${name_spec%%:*}
+          key_text=${name_spec#*:}
+          ;;
+        *)
+          key_length=${#name_spec}
+          key_text=$(color "$key_color" "$name_spec")
+          ;;
+      esac
+    fi
+    key_length=${key_length:-${#key_text}}
+    value_length=${value_length:-${#value_text}}
+
+
+    if [ "$((key_length + value_length))" -gt "$max_pair_length" ]; then
+      llmcc_hook_log WARN "kvpair too long: $kvpair"
+      continue
+    fi
+
+    [ "$key_length" -gt "$max_key_length" ] && max_key_length=$key_length
+    [ "$value_length" -gt "$max_value_length" ] && max_value_length=$value_length
+
+    keys=$keys$key_length:$key_text$'\n'
+    values=$values$value_length:$value_text$'\n'
+    nkvpair=$((nkvpair + 1))
+  done
+
+  if [ "$nkvpair" -eq 0 ] || [ "$max_key_length" = 0 ]; then
+    return
+  fi
+
+  min_column_width=$((max_key_length + max_value_length + kvsep_length + leading_mark_length))
+  columns=$(((valid_width + column_sep_length) / (min_column_width + column_sep_length)))
+  if [ "$columns" -eq 0 ]; then
+    llmcc_hook_log WARN "width ($width) too small for kvpair rendering: $((width - max_pair_length + max_key_length + max_value_length)) required"
+    return
+  fi
+  if [ "$columns" -ge "$nkvpair" ]; then
+    columns=$nkvpair
+    column_width=$(((valid_width + column_sep_length - columns * column_sep_length) / columns))
+  else
+    column_width=$min_column_width
+  fi
+  remaining_column_width=$((valid_width - columns * column_width - (columns - 1) * column_sep_length))
+  extra_column_width=$((remaining_column_width / columns))
+  column_width=$((column_width + extra_column_width))
+  remaining_column_width=$((remaining_column_width % columns))
+
+  value_left_padding_spaces=$(repeat "$((column_width - min_column_width))" " ")
+  left_padding_spaces=$(repeat "$((left_padding))" " ")
+  right_padding_spaces=$(repeat "$((right_padding))" " ")
+  result=
+  column=0
+  while [ -n "$keys" ]; do
+    keyspec=${keys%%$'\n'*}
+    valuespec=${values%%$'\n'*}
+    keys=${keys#*$'\n'}
+    values=${values#*$'\n'}
+
+    key_length=${keyspec%%:*}
+    value_length=${valuespec%%:*}
+    key_text=${keyspec#*:}
+    value_text=${valuespec#*:}
+
+    extra_spaces=$value_left_padding_spaces
+    [ "$column" -lt "$remaining_column_width" ] && extra_spaces=$extra_spaces' '
+
+    key_text=$key_text$(repeat "$((max_key_length - key_length))" " ")
+    value_text=$extra_spaces$(repeat "$((max_value_length - value_length))" " ")$value_text
+
+    [ "$column" -eq 0 ] && begin=$left_padding_spaces || begin=
+    column=$(((column + 1) % columns))
+    [ "$column" -ne 0 ] && end=$column_sep || end=$right_padding_spaces$'\n'
+
+    result=$result$begin$leading_mark$key_text$kvsep$value_text$end
+  done
+
+  column_spaces=$(repeat "$column_width" " ")
+  while [ "$column" -ne 0 ]; do
+    spaces=$column_spaces
+    [ "$column" -lt "$remaining_column_width" ] && spaces=$spaces' '
+
+    [ "$column" -eq 0 ] && begin=$left_padding_spaces || begin=
+    column=$(((column + 1) % columns))
+    [ "$column" -ne 0 ] && end=$column_sep || end=$right_padding_spaces$'\n'
+    result=$result$begin$spaces$end
+  done
+
+  printf "%s" "$result"
+}
+
+lexical_error() {
+  prefix=${layout_source%"$curr_input"}
+  line=${prefix##*$'\n'}
+  lines=$(printf "%s\n" "$prefix" | wc -l)
+  errmsg="${1:-lexical error} at line $lines, column ${#line}: $(printf "%s\n" "$layout_source" | tail -n +"$lines" | head -n 1)"
+  user_visible_log ERROR "$errmsg"
+  exit 1
+}
+
+error() {
+  prefix=${layout_source%"$curr_input"}
+  line=${prefix##*$'\n'}
+  lines=$(printf "%s\n" "$prefix" | wc -l)
+  errmsg="$1 at line $lines: $(printf "%s\n" "$layout_source" | tail -n +"$lines" | head -n 1)"
+  user_visible_log ERROR "$errmsg"
+  exit 1
+}
+
+init_lexer() {
+  layout_source=
+  curr_input=
+  curr_token=
+  curr_token_attr=
+  curr_token_attr_displaylen=
+  layout_source=$stats_opt_layout
+  curr_input=$layout_source
+}
+
+next_token() {
+  curr_input=${curr_input#"${curr_input%%[![:space:]]*}"}
+  case $curr_input in
+    "("*) curr_token="("; curr_input=${curr_input#?} ;;
+    ")"*) curr_token=")"; curr_input=${curr_input#?} ;;
+    ","*) curr_token=","; curr_input=${curr_input#?} ;;
+    ";"*) curr_token=";"; curr_input=${curr_input#?} ;;
+    "="*) curr_token="="; curr_input=${curr_input#?} ;;
+    @*)
+      curr_input=${curr_input#@}
+      curr_token=${curr_input%%[![:alnum:]_]*}
+      curr_input=${curr_input#"$curr_token"}
+      ;;
+    [0123456789:-]*)
+      curr_token_attr=${curr_input%%[!0123456789:-]*}
+      curr_input=${curr_input#"$curr_token_attr"}
+      case $curr_token_attr in
+        -)    curr_token=- ;;
+        *:*)  curr_token=widthspec ;;
+        *[!0123456789]*) lexical_error "invalid number" ;;
+        *)    curr_token=number ;;
+      esac
+      ;;
+    [[:alpha:]_]*)
+      curr_token=id
+      curr_token_attr=${curr_input%%[![:alnum:]_]*}
+      curr_input=${curr_input#"$curr_token_attr"}
+      ;;
+    "\""*)
+      curr_token=string
+      curr_token_attr=
+      curr_input=${curr_input#?}
+
+      while [ "${#curr_input}" -ne 0 ]; do
+        part=${curr_input%%[\\\"]*}
+        curr_token_attr=$curr_token_attr$part
+        curr_input=${curr_input#"$part"}
+        case $curr_input in
+          ''|"\""*) break ;;
+          "\\"*)
+            curr_input=${curr_input#?}
+            case $curr_input in
+              "\""*) curr_token_attr=$curr_token_attr"\"" ;;
+              "\\"*) curr_token_attr=$curr_token_attr"\\" ;;
+            esac
+            curr_input=${curr_input#?}
+            ;;
+        esac
+      done
+      curr_input=${curr_input#?}
+
+      curr_token_attr_displaylen=${#curr_token_attr}
+      case $curr_input in
+        '#'[0123456789]*)
+          curr_input=${curr_input#?}
+          curr_token_attr_displaylen=${curr_input%%[!0123456789]*}
+          curr_input=${curr_input#"$curr_token_attr_displaylen"}
+          ;;
+      esac
+      ;;
+    '')
+      curr_token=end
+      ;;
+    *)
+      prefix=${layout_source%"$curr_input"}
+      line=${prefix##*$'\n'}
+      lines=$(printf "%s\n" "$prefix" | wc -l)
+      lexical_error
+      ;;
+  esac
+}
+
+check_token() {
+  if [ "$curr_token" != "$1" ]; then
+    error "expected $1"
+  fi
+}
+
+match_token() {
+  check_token "$1"
+  next_token
+}
+
+check_any_token() {
+  ok=
+  for expected_token; do
+    if [ "$curr_token" = "$expected_token" ]; then
+      ok=1
+    fi
+  done
+  if [ -z "$ok" ]; then
+    error "expected any of $*"
+  fi
+}
+
+stack=
+push_values() {
+  for value; do
+    stack=$stack$'\r'$value
+  done
+}
+
+pop_values() {
+  pop_count=$#
+  while [ "$pop_count" -ne 0 ]; do
+    eval pop_varname="\${$pop_count}"
+    eval " $pop_varname=\${stack##*$'\r'}"
+    stack=${stack%$'\r'*}
+    pop_count=$((pop_count - 1))
+  done
+}
+
+unset_named_args() {
+  unset_vars="$*"
+  while [ -n "$unset_vars" ]; do
+    case $unset_vars in
+      [[:space:]]*)
+        unset_vars=${unset_vars#?}
+        ;;
+      *)
+        unset_var=${unset_vars%%[[:space:]]*}
+        unset_vars=${unset_vars#"$unset_var"}
+        case $unset_var in
+          *#) unset "na_${unset_var%"#"}" "na_${unset_var%"#"}_length" ;;
+          *)  unset "na_$unset_var" ;;
+        esac
+        ;;
+    esac
+  done
+
+}
+
+parse_named_args() {
+  unset_named_args "$*"
+
+  while :; do
+    case $curr_token in
+      id)
+        arg_name_set_length=0
+        arg_name=$curr_token_attr
+        next_token
+
+        case " $* " in
+          *" $arg_name "*) ;;
+          *" $arg_name# "*) arg_name_set_length=1 ;;
+          *) error "named argument '$arg_name' not allowed" ;;
+        esac
+        arg_name=na_$arg_name
+
+        match_token =
+        check_any_token string number widthspec
+        eval " $arg_name="'$curr_token_attr'
+        if [ "$curr_token" = string ] && [ -n "$arg_name_set_length" ]; then
+          eval " ${arg_name}_length="'$curr_token_attr_displaylen'
+        fi
+
+        next_token
+        [ "$curr_token" = "," ] && next_token
+        ;;
+      *) break ;;
+    esac
+  done
+}
+
+parse_leaf() {
+  next_token
+  match_token "("
+
+  width=$1
+  extra_named_args=$2
+  callback=$3
+
+  parse_named_args "lpadding rpadding $extra_named_args"
+  [ "$curr_token" = ";" ] && next_token
+
+  set --
+  while :; do
+    case $curr_token in
+      string|number)
+        set -- "$@" "$curr_token_attr"
+        next_token
+        [ "$curr_token" = "," ] && next_token
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+  match_token ")"
+
+  "$callback" "$@"
+}
+
+parse_header_callback() {
+  na_lpadding=${na_lpadding:-0}
+  na_rpadding=${na_rpadding:-0}
+  [ -z "${na_sep+1}" ] && na_sep=' ● '
+  na_sep_length=${na_sep_length:-${#na_sep}}
+  [ -z "${na_text+1}" ] && { na_text=$(color '1;36' "◈ statistics"); na_text_length=12; }
+  na_text_length=${na_text_length:-${#na_text}}
+
+  result=$(render_header "$na_lpadding" "$na_rpadding" "$width" "$na_sep" "$na_sep_length" "$na_text" "$na_text_length" "$@"; echo x)
+  push_values "${result%x}"
+}
+
+parse_header() {
+  parse_leaf "$@" "sep# text#" parse_header_callback
+}
+
+parse_column_callback() {
+  na_lpadding=${na_lpadding:-0}
+  na_rpadding=${na_rpadding:-0}
+
+  [ -z "${na_sep+1}" ] && na_sep=' '
+  na_sep_length=${na_sep_length:-${#na_sep}}
+
+  if [ -z "${na_turn_row_header_text+1}" ]; then
+    na_turn_row_header_text="▸ $(color '33' "turn ")"
+    na_turn_row_header_text_length=7
+  fi
+  na_turn_row_header_text_length=${na_turn_row_header_text_length:-${#na_turn_row_header_text}}
+
+  if [ -z "${na_acc_row_header_text+1}" ]; then
+    na_acc_row_header_text="▸ $(color '33' "acc  ")"
+    na_acc_row_header_text_length=7
+  fi
+  na_acc_row_header_text_length=${na_acc_row_header_text_length:-${#na_acc_row_header_text}}
+
+  result=$(render_column "$na_lpadding" "$na_rpadding" "$width" "$na_sep" "$na_sep_length" \
+    "$na_turn_row_header_text" "$na_turn_row_header_text_length" \
+    "$na_acc_row_header_text" "$na_acc_row_header_text_length" "$header_row_color" "$@"; echo x)
+  push_values "${result%x}"
+}
+
+parse_column() {
+  parse_leaf "$@" "sep# acc_row_header_text# turn_row_header_text# header_row_color" parse_column_callback
+}
+
+parse_kvpair_callback() {
+  na_lpadding=${na_lpadding:-0}
+  na_rpadding=${na_rpadding:-0}
+  [ -z "${na_leading_mark+1}" ] && na_leading_mark='● '
+  na_leading_mark_length=${na_leading_mark_length:-${#na_leading_mark}}
+
+  [ -z "${na_kvsep+1}" ] && na_kvsep=
+  na_kvsep_length=${na_kvsep_length:-${#na_kvsep}}
+
+  [ -z "${na_column_sep+1}" ] && { na_column_sep=$(color '36' " ┃ "); na_column_sep_length=3; }
+  na_column_sep_length=${na_column_sep_length:-${#na_column_sep}}
+
+  result=$(render_kvpair "$na_lpadding" "$na_rpadding" "$width" \
+    "$na_leading_mark" "$na_leading_mark_length" "$na_kvsep" "$na_kvsep_length" \
+    "$na_column_sep" "$na_column_sep_length" "$na_key_color" "$@"; echo x)
+  push_values "${result%x}"
+}
+
+parse_kvpair() {
+  parse_leaf "$@" "leading_mark# kvsep# column_sep# key_color" parse_kvpair_callback
+}
+
+parse_line() {
+  next_token
+  match_token "("
+  parse_named_args lpadding rpadding line_color char
+  match_token ")"
+
+  na_lpadding=${na_lpadding:-0}
+  na_rpadding=${na_rpadding:-0}
+  na_line_color=${na_line_color:-${2:-'1;36'}}
+  na_char=${na_char:-${3:-'━'}}
+
+  width=$1
+
+  if [ "$((na_lpadding + na_rpadding))" -gt "$width" ]; then
+    llmcc_hook_log WARN "width ($width) too small for line rendering: $((na_lpadding + na_rpadding)) required"
+    push_values ""
+    return
+  fi
+
+  result=$(repeat "$na_lpadding" " ")$(color "$na_line_color" "$(repeat "$((width - na_lpadding - na_rpadding))" "$na_char")")$(repeat "$na_rpadding" " ")$'\n'
+  push_values "$result"
+}
+
+parse_bar() {
+  parse_line "$@" '1;36' "━"
+}
+
+parse_sep() {
+  parse_line "$@" '2' "─"
+}
+
+concat_block() {
+  left_block=$1
+  right_block=$2
+  result_block=
+  while [ "${#left_block}" -ne 0 ]; do
+    result_block=$result_block${left_block%%$'\n'*}${right_block%%$'\n'*}$'\n'
+    left_block=${left_block#*$'\n'}
+    right_block=${right_block#*$'\n'}
+  done
+}
+
+parse_hsplit() {
+  next_token
+  match_token "("
+
+  parse_named_args ratio width lpadding rpadding sep#
+  [ "$curr_token" = ";" ] && next_token
+
+  [ -z "$na_ratio$na_width" ] && error "neither ratio nor width is specified"
+
+  na_lpadding=${na_lpadding:-0}
+  na_rpadding=${na_rpadding:-0}
+  if [ -z "${na_sep+1}" ]; then
+    na_sep='║'
+    na_sep_length=${#na_sep}
+    na_sep=$(color '36' "$na_sep")
+  fi
+
+  total_width=$1
+  set --
+  [ -n "$na_ratio" ] && widthspec=$na_ratio || widthspec=$na_width
+  widthspec=${widthspec%:}${widthspec:+:}
+  while [ -n "$widthspec" ]; do
+    w=${widthspec%%:*}
+    widthspec=${widthspec#*:}
+    case $w in
+      '') continue ;;
+      -)  [ -n "$na_ratio" ] && error "- is not allowed in hsplit ratio specification" ;;
+      *[!0123456789]*) error "$w is not an integer in hsplit ratio or width specification" ;;
+    esac
+    set -- "$@" "$w"
+  done
+
+  nchild=$#
+  total_width=$((total_width - na_lpadding - na_rpadding - (nchild - 1) * na_sep_length))
+  if [ -n "$na_ratio" ]; then
+    total=0
+    for r; do
+      total=$((total + r))
+    done
+    shift
+    [ "$total" -eq 0 ] && error "total ratio is 0 in hsplit"
+
+    curr_total_width=0
+    count=$#
+    while [ "$count" -ne 0 ]; do
+      count=$((count - 1))
+      r=$1
+      shift
+      this_width=$((r * total_width / total))
+      set -- "$@" "$this_width"
+      curr_total_width=$((curr_total_width + this_width))
+    done
+
+    set -- "$((total_width - curr_total_width))" "$@"
+  else
+    case $na_width in
+      *-*-*)
+        error "too many '-' in hsplit width specification"
+        ;;
+      *-*)
+        curr_total_width=0
+        for w; do
+          case $w in -) continue ;; esac
+          curr_total_width=$((curr_total_width + w))
+        done
+
+        count=$#
+        while [ "$count" -ne 0 ]; do
+          count=$((count - 1))
+          w=$1
+          shift
+          case $w in
+            -) set -- "$@" "$((total_width - curr_total_width))" ;;
+            *) set -- "$@" "$w" ;;
+          esac
+        done
+        ;;
+      *)
+        ;;
+    esac
+  fi
+
+  height=0
+  result=
+  result_padding_line=
+  while :; do
+    case $curr_token in
+      [vh]split|header|column|kvpair|bar|sep|line)
+        [ "$#" -eq 0 ] && error "too many children"
+
+        push_values "$na_lpadding" "$na_rpadding" "$na_sep" "$na_sep_length" "$result_padding_line" "$height" "$result"
+        "parse_${curr_token#@}" "$1"
+        pop_values na_lpadding na_rpadding na_sep na_sep_length result_padding_line height result this_result
+        [ "$curr_token" = "," ] && next_token
+
+        this_height=$(($(printf "%s" "$this_result" | wc -l)))
+        if [ "$this_height" -lt "$height" ]; then
+          padding_block=$(repeat "$((height - this_height))" "$(repeat "$1" " ")"$'\n'; echo x)
+          this_result=$this_result${padding_block%x}
+        elif [ "$this_height" -gt "$height" ]; then
+          padding_block=$(repeat "$((this_height - height))" "$result_padding_line"$'\n'; echo x)
+          result=$result${padding_block%x}
+          height=$this_height
+        fi
+        result_padding_line=$result_padding_line$(repeat "$1" " ")
+        shift
+
+        concat_block "$result" "$this_result"
+        result=$result_block
+        if [ "$#" -ne 0 ]; then
+          result_padding_line=$result_padding_line$na_sep
+          sep_block=$(repeat "$height" "$na_sep"$'\n'; echo x)
+          concat_block "$result" "${sep_block%x}"
+          result=$result_block
+        fi
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+  match_token ")"
+
+  [ "$#" -ne 0 ] && error "insufficient children"
+
+  if [ "$height" -ne 0 ]; then
+    if [ "$na_rpadding" -ne 0 ]; then
+      padding_block=$(repeat "$height" "$(repeat "$na_rpadding" " ")"$'\n'; echo x)
+      concat_block "$result" "${padding_block%x}"
+      result=$result_block
+    fi
+    if [ "$na_lpadding" -ne 0 ]; then
+      padding_block=$(repeat "$height" "$(repeat "$na_lpadding" " ")"$'\n'; echo x)
+      concat_block "${padding_block%x}" "$result"
+      result=$result_block
+    fi
+  fi
+  push_values "$result"
+}
+
+parse_vsplit() {
+  next_token
+  match_token "("
+
+  parse_named_args lpadding rpadding
+  [ "$curr_token" = ";" ] && next_token
+
+  na_lpadding=${na_lpadding:-0}
+  na_rpadding=${na_rpadding:-0}
+  lpadding_line=$(repeat "$na_lpadding" " ")
+  rpadding_line=$(repeat "$na_rpadding" " ")
+
+  if [ "$(($1 - na_lpadding - na_rpadding))" -lt 0 ]; then
+    llmcc_hook_log WARN "width ($1) too small for vsplit container: $((na_lpadding + na_rpadding)) required"
+    push_values ""
+    return
+  fi
+  set -- "$(($1 - na_lpadding - na_rpadding))"
+
+  result=
+  while :; do
+    case $curr_token in
+      [vh]split|header|column|kvpair|bar|sep|line)
+        push_values "$lpadding_line" "$rpadding_line" "$result"
+        "parse_$curr_token" "$1"
+        pop_values lpadding_line rpadding_line result this_result
+        [ "$curr_token" = "," ] && next_token
+
+        this_height=$(($(printf "%s" "$this_result" | wc -l)))
+        if [ -n "$lpadding_line" ] && [ "$this_height" -ne 0 ]; then
+          padding_block=$(repeat "$this_height" "$lpadding_line"$'\n')$'\n'
+          concat_block "$padding_block" "$this_result"
+          this_result=$result_block
+        fi
+        if [ -n "$rpadding_line" ] && [ "$this_height" -ne 0 ]; then
+          padding_block=$(repeat "$this_height" "$rpadding_line"$'\n')$'\n'
+          concat_block "$this_result" "$padding_block"
+          this_result=$result_block
+        fi
+        result=$result$this_result
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+  match_token ")"
+
+  push_values "$result"
+}
+
+parse_toplevel() {
+  case $curr_token in
+    [vh]split|header|column|kvpair|bar|sep|line)
+      "parse_$curr_token" "$1"
+      ;;
+    *)
+      error "expected one of @vsplit @hsplit @header @column @kvpair @bar @sep @line"
+      ;;
+  esac
+
+  match_token end
+}
+
+
+stats_opt_width=${stats_opt_width:-80}
+case $stats_opt_width in
+  *[!0123456789]*)
+    user_visible_log ERROR "stats_opt_width ($stats_opt_width) is not an integer"
+    return
+    ;;
+esac
+if [ "$stats_opt_width" -lt 40 ]; then
+  user_visible_log ERROR "stats_opt_width ($stats_opt_width) too small"
+  return
+fi
+
+if [ -z "${stats_opt_layout:-}" ]; then
+  stats_opt_layout='
+    @vsplit(
+      @bar(),
+      @header(
+        lpadding=2,
+        rpadding=2;
+        "status",
+        "turn",
+      ),
+      @sep(),
+      @column(
+        lpadding=2,
+        rpadding=2;
+        "input@in",
+        "cached_input@cache",
+        "output@out",
+        "reasoning_output@think",
+        "total",
+        "api_calls@calls",
+        "cache_hit@hit%",
+      ),
+      @sep(),
+      @kvpair(
+        lpadding=2,
+        rpadding=2;
+        "model",
+      ),
+      @bar(),
+    )'
+fi
+
+init_lexer
+next_token
+parse_toplevel "$stats_opt_width"
+
+pop_values result
+printf "%s" "$result"
+
+# vim: ft=sh

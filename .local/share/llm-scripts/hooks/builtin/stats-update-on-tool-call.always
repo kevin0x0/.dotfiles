@@ -1,0 +1,21 @@
+# event: builtin.state.agent-loop-tool-call.leave
+
+status=
+
+llmcc_hook_get_shared_state_dir SD builtin.stats || return
+stats_vars=$SD/stats-vars
+
+case $llm_chat_next_state in
+  agent-loop-tool-call-interrupted)
+    status=interrupted
+    ;;
+  read-loop)
+    status=failed
+    ;;
+esac
+
+if [ -n "$status" ]; then
+  llmcc_hook_dump_vars status >>"$stats_vars"
+fi
+
+# vim: ft=sh
