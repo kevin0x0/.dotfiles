@@ -1,5 +1,5 @@
 # vim: ft=sh
-my_message_text_renderer() {
+llmrx_assistant_message_only_renderer() {
   if [ "$llmru_argument" != assistant ]; then
     cat >/dev/null
     return 0
@@ -9,8 +9,8 @@ my_message_text_renderer() {
   echo
 }
 
-llmru_render_cmd_message_text=my_message_text_renderer
-llmru_render_cmd_message_refusal=my_message_text_renderer
+llmru_render_cmd_message_text=llmrx_assistant_message_only_renderer
+llmru_render_cmd_message_refusal=llmrx_assistant_message_only_renderer
 llmru_render_cmd_message_image='cat >/dev/null'
 llmru_render_cmd_message_file='cat >/dev/null'
 llmru_render_cmd_reasoning='cat >/dev/null'

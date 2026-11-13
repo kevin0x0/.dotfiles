@@ -1,5 +1,5 @@
 # vim: ft=sh
-my_streamdown_renderer() {
+llmrx_streamdown_renderer() {
   case $llmru_event in
     message-*)
       llmru_ansi_escape "$(llmru_ansi_role_color "$llmru_argument");1"
@@ -20,7 +20,7 @@ my_streamdown_renderer() {
   fi
 }
 
-llmru_render_cmd_message_text=my_streamdown_renderer
-llmru_render_cmd_message_refusal=my_streamdown_renderer
-llmru_render_cmd_reasoning=my_streamdown_renderer
-llmru_render_cmd_reasoning_summary=my_streamdown_renderer
+llmru_render_cmd_message_text=llmrx_streamdown_renderer
+llmru_render_cmd_message_refusal=llmrx_streamdown_renderer
+llmru_render_cmd_reasoning=llmrx_streamdown_renderer
+llmru_render_cmd_reasoning_summary=llmrx_streamdown_renderer
