@@ -1,0 +1,37 @@
+# vim: ft=sh
+
+shift
+
+if [ "$#" -eq 0 ]; then
+  printf "%s\n" hook tool -
+  return 0
+fi
+
+(
+  if [ "$#" -eq 1 ]; then
+    printf "provide the config files you want to edit\n" >&2
+    exit 0
+  fi
+  type=$1
+  shift
+  count=$#
+  while [ "$count" -ne 0 ]; do
+    count=$((count - 1))
+    arg=$1
+    shift
+
+    configfile=
+    case $type in
+      hook) llmcc_hook_get_runtime_config configfile "$arg" ;;
+      tool) llmcc_tool_get_runtime_config configfile "$arg" ;;
+      -)    configfile=$llmcc_runtime_config_dir/$arg ;;
+      *)    printf "unknown type: %s\n" "$type" >&2; exit; ;;
+    esac
+    case $configfile in
+      *?/*) mkdir -p "${configfile%/*}" ;;
+    esac
+    set -- "$@" "$configfile"
+  done
+
+  "${EDITOR:-vim}" -- "$@"
+)
