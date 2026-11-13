@@ -47,12 +47,15 @@ opt_session_save_options
 opt_reasoning
 '
 
+opt_command_before_repl=
+
 opt_state_dir=
+
+opt_print_options=
+
 
 llmcu_opt_fromfile=
 llmcu_opt_fromfd=
-
-opt_print_options=
 
 . llm-config-utils
 . llm-render-utils
@@ -779,6 +782,8 @@ set -- \
   -m "$opt_model"
 [ -n "$opt_stream" ] && set -- "$@" -s
 [ -n "$opt_extra_request_args" ] && set -- "$@" -A "$opt_extra_request_args"
+
+[ -n "$opt_command_before_repl" ] && command eval " $opt_command_before_repl"
 
 # REPL
 error_to() {
