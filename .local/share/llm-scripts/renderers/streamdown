@@ -20,7 +20,7 @@ my_streamdown_renderer() {
   fi
 }
 
-opt_render_cmd_message_text=my_streamdown_renderer
-opt_render_cmd_message_refusal=my_streamdown_renderer
-opt_render_cmd_reasoning=my_streamdown_renderer
-opt_render_cmd_reasoning_summary=my_streamdown_renderer
+llmru_render_cmd_message_text=my_streamdown_renderer
+llmru_render_cmd_message_refusal=my_streamdown_renderer
+llmru_render_cmd_reasoning=my_streamdown_renderer
+llmru_render_cmd_reasoning_summary=my_streamdown_renderer

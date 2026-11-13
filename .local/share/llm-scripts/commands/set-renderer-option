@@ -15,10 +15,10 @@ if [ "$#" -eq 0 ]; then
       fi
     done
     if [ -n "$render_utils_path" ]; then
-      sed -n -- '/renderer_opt_/{s/^.*renderer_opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p;}' "$render_utils_path" | sort -u
+      sed -n -- '/llmru_opt_/{s/^.*llmru_opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p;}' "$render_utils_path" | sort -u
     fi
   )
   return 0
 fi
 
-command eval "renderer_opt_$(printf "%s" "$1" | tr -- '-' '_')="'$2'
+command eval "llmru_opt_$(printf "%s" "$1" | tr -- '-' '_')="'$2'
