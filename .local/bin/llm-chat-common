@@ -140,6 +140,14 @@ llmcc_get_tool_runtime_config() {
   command eval " $1="'$llmcc_runtime_config_dir/tools/$2'
 }
 
+llmcc_hook_source_runtime_config() {
+  llmcc_source_runtime_config "hooks/$1"
+}
+
+llmcc_hook_get_runtime_config() {
+  command eval " $1="'$llmcc_runtime_config_dir/hooks/$2'
+}
+
 llmcc_dump_vars() {
   for llmcc_variable_name; do
     case $llmcc_variable_name in
