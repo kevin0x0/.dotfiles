@@ -49,8 +49,8 @@ opt_reasoning
 
 opt_state_dir=
 
-llmcuopt_fromfile=
-llmcuopt_fromfd=
+llmcu_opt_fromfile=
+llmcu_opt_fromfd=
 
 opt_print_options=
 
@@ -79,16 +79,16 @@ while getopts "$llm_chat_options" opt; do
       esac
       ;;
     n)
-      llmcu_set_boolean_option llmcuopt_inverse_boolean_option
+      llmcu_set_boolean_option llmcu_opt_inverse_boolean_option
       ;;
     N)
-      llmcu_set_boolean_option llmcuopt_trim_newline
+      llmcu_set_boolean_option llmcu_opt_trim_newline
       ;;
     f)
-      llmcu_set_boolean_option llmcuopt_fromfile
+      llmcu_set_boolean_option llmcu_opt_fromfile
       ;;
     F)
-      llmcu_set_boolean_option llmcuopt_fromfd
+      llmcu_set_boolean_option llmcu_opt_fromfd
       ;;
     s)
       llmcu_set_boolean_option opt_stream

@@ -1,24 +1,24 @@
 #!/bin/sh
 
-llmcuopt_fromfile=
-llmcuopt_fromfd=
-llmcuopt_trim_newline=
-llmcuopt_inverse_boolean_option=
+llmcu_opt_fromfile=
+llmcu_opt_fromfd=
+llmcu_opt_trim_newline=
+llmcu_opt_inverse_boolean_option=
 
 llmcu_getarg() {
-  if [ -n "$llmcuopt_fromfd" ]; then
+  if [ -n "$llmcu_opt_fromfd" ]; then
     llmcu_arg=$(cat <&"$2"; echo x)
     llmcu_arg=${llmcu_arg%x}
-    llmcuopt_fromfd=
-  elif [ -n "$llmcuopt_fromfile" ]; then
+    llmcu_opt_fromfd=
+  elif [ -n "$llmcu_opt_fromfile" ]; then
     llmcu_arg=$(cat -- "$2"; echo x)
     llmcu_arg=${llmcu_arg%x}
-    llmcuopt_fromfile=
+    llmcu_opt_fromfile=
   else
     llmcu_arg=$2
   fi
-  [ -n "$llmcuopt_trim_newline" ] && llmcu_arg=${llmcu_arg%$'\n'}
-  llmcuopt_trim_newline=
+  [ -n "$llmcu_opt_trim_newline" ] && llmcu_arg=${llmcu_arg%$'\n'}
+  llmcu_opt_trim_newline=
   case $1 in
     *+) set -- "${1%+}"; eval "llmcu_arg=\$$1"'$llmcu_arg' ;;
   esac
@@ -26,9 +26,9 @@ llmcu_getarg() {
 }
 
 llmcu_set_boolean_option() {
-  if [ -n "$llmcuopt_inverse_boolean_option" ]; then
+  if [ -n "$llmcu_opt_inverse_boolean_option" ]; then
     eval "$1="
-    llmcuopt_inverse_boolean_option=
+    llmcu_opt_inverse_boolean_option=
   else
     eval "$1=1"
   fi

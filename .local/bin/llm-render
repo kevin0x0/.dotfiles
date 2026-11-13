@@ -5,7 +5,7 @@
 
 opt_color=auto
 llmru_opt_color_ansi=
-llmcuopt_fromfile=
+llmcu_opt_fromfile=
 
 llm_scriptname=llm-render
 [ -f "$llmcu_configdir/llm-render" ] && . -- "$llmcu_configdir/llm-render"
@@ -13,7 +13,7 @@ llm_scriptname=llm-render
 while getopts "f:o:O:c:" opt; do
   case $opt in
     f)
-      llmcuopt_fromfile=1
+      llmcu_opt_fromfile=1
       ;;
     [oO])
       option_prefix=opt_
