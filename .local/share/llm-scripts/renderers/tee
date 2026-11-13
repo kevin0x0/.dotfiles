@@ -1,8 +1,8 @@
 #!/bin/sh
 
 my_tee() {
-  if [ "$argument" != assistant ]; then
-    llmru_default_renderer "$event" "$argument"
+  if [ "$llmru_argument" != assistant ]; then
+    llmru_default_renderer "$llmru_event" "$llmru_argument"
     return
   fi
   tee -a "$renderer_opt_tee_file"

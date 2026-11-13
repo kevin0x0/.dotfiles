@@ -1,13 +1,13 @@
 # vim: ft=sh
 my_streamdown_renderer() {
-  case $event in
+  case $llmru_event in
     message-*)
-      llmru_ansi_escape "$(llmru_ansi_role_color "$argument");1"
-      printf "%s\n" "$argument"
+      llmru_ansi_escape "$(llmru_ansi_role_color "$llmru_argument");1"
+      printf "%s\n" "$llmru_argument"
       ;;
     reasoning|reasoning-summary)
       llmru_ansi_escape "35;3;2;1"
-      printf "reasoning\n" "$argument"
+      printf "reasoning\n" "$llmru_argument"
       ;;
   esac
   llmru_ansi_escape "0"
