@@ -26,6 +26,8 @@
 > 无法识别的命令：$1
 # some files soon expire, updating them
 > 部分文件即将过期，正在更新
+# hook $1 failed
+> 钩子 $1 失败
 # failed to create state directory
 > 创建状态目录失败
 # $1 is not a directory
