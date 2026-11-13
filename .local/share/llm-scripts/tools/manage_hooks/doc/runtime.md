@@ -58,6 +58,17 @@ unrelated hooks do not collide. There is no isolation: any hook can
 read or write any id. The directory belongs to the session, not to
 any hook: removing a hook does not delete it.
 
+llmcc_hook_get_runtime_config <var> <name> stores in <var> the
+pathname of a session-scoped runtime configuration file for the name.
+It does not create the file, and its format is entirely up to the
+hook: source it with llmcc_hook_source_runtime_config when it is a
+shell script, or read and write it yourself. The name is a pathname
+component the hook chooses, its own name or one shared with
+cooperating hooks.
+
+llmcc_hook_source_runtime_config <name> sources that file in the
+hook's own shell; a missing or unreadable file is a silent no-op.
+
 # Output and the hook log
 
 - The hook's standard output goes to the user's terminal; it is not
