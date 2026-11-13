@@ -48,6 +48,9 @@ entry.
   value (do not rely on it there); on enter events it is the state
   being entered (equal to llm_chat_state), not the upcoming next
   state.
+- llm_chat_color_ansi: whether the session renders its output in
+  color: "1" when enabled, empty when not. Hooks run in a subshell,
+  so changing it does not affect the session.
 
 ## Files
 
