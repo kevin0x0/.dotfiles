@@ -4,21 +4,72 @@ shift
 
 if [ "$#" -eq 0 ]; then
   (
-    render_utils_path=
-    paths=${PATH:+$PATH:}
-    while [ -n "$paths" ]; do
-      path=${paths%%:*}
-      paths=${paths#*:}
-      if [ -f "${path:-.}/llm-render-utils" ]; then
-        render_utils_path=${path:-.}/llm-render-utils
-        break
-      fi
-    done
-    if [ -n "$render_utils_path" ]; then
-      sed -n -- '/llmru_opt_/{s/^.*llmru_opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p;}' "$render_utils_path" | sort -u
+    print() {
+      [ -f "$1" ] && printf "%s\n" "${1#"$llmcu_dir/renderers/"}"
+      return 1
+    }
+    llmcu_match_config_item "renderers/*" print | sort -u
+    printf "%s\n" -
+  )
+  return 0
+fi
+
+if [ "$#" -eq 1 ]; then
+  (
+    filepath=
+    case $1 in
+      -)
+        paths=${PATH:+$PATH:}
+        while [ -n "$paths" ]; do
+          path=${paths%%:*}
+          paths=${paths#*:}
+          if [ -f "${path:-.}/llm-render-utils" ]; then
+            filepath=${path:-.}/llm-render-utils
+            break
+          fi
+        done
+        ;;
+      *:)
+        llmcu_locate_config_item filepath "renderers/${1%:}"
+        ;;
+      *[![:alnum:]_.-]*)
+        filepath=
+        ;;
+      *)
+        llmcu_locate_config_item filepath "renderers/$1"
+        ;;
+    esac
+
+    if [ -n "$filepath" ]; then
+      case $1 in
+        *:)
+          sed -n -- '/llmrx_.*/{s/^.*\(llmrx_[[:alnum:]_]*\).*$/\1/p;}' "$filepath" | sort -u 
+          ;;
+        *)
+          sed -n -- '/llmr[ux]_\(.*_\)\?opt_/{s/^.*llmr[ux]_\(.*_\)\?opt_\([[:alnum:]_]*\).*$/\2/; s/_/-/g; p;}' "$filepath" | sort -u
+          ;;
+      esac
     fi
   )
   return 0
 fi
 
-command eval "llmru_opt_$(printf "%s" "$1" | tr -- '-' '_')="'$2'
+my_prefix=
+case $1 in
+  -)  my_prefix=llmru_opt_ ;;
+  *:) my_prefix= ;;
+  *[![:alnum:]_.-]*)
+    printf "not a portable file name, consider adding a ':' suffix\n" >&2
+    return 0
+    ;;
+  *)  my_prefix=llmrx_$(printf "%s" "$1" | tr -- '-.' '[_*]')_opt_ ;;
+esac
+
+case $2 in
+  *[![:alnum:]_-]*|[[:digit:]]*)
+    printf "invalid option name: %s\n" "$2" >&2
+    return 0
+    ;;
+esac
+
+command eval "$my_prefix$(printf "%s" "$2" | tr -- '-' '_')="'$3'
