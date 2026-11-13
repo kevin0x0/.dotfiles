@@ -106,21 +106,18 @@ llmcu_for_config_item() {
 llmcu_source_configfile() {
   case $1 in
     @*)
-      set "${1#@}"
       do_source() {
-        [ -f "$1" ] && { . -- "$1"; return 0; }
+        command . -- "$1"
+        return 0
       }
 
-      llmcu_for_config_item "$1" do_source && return
-      printf "can not find config file: %s\n" "$1" >&2
-      return 1
+      llmcu_for_config_item "${1#@}" do_source || {
+        printf "can not find config file: %s\n" "$1" >&2
+        return 1
+      }
       ;;
-    /*)
-      . -- "$1"
-      ;;
-    *)
-      . -- "./$1"
-      ;;
+    /*) command . -- "$1" ;;
+    *)  command . -- "./$1" ;;
   esac
 }
 
