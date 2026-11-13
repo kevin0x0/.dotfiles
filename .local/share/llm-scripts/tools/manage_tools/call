@@ -4,7 +4,7 @@ opt_yes=
 statedir=$2
 . -- llm-chat-common
 llmcc_set_public_files_var "$statedir"
-llmcc_source_tool_runtime_config "manage_tools"
+llmcc_tool_source_runtime_config "manage_tools"
 
 cleanup() {
   [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
