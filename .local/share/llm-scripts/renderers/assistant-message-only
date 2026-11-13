@@ -1,6 +1,6 @@
 # vim: ft=sh
 my_message_text_renderer() {
-  if [ "$argument" != assistant ]; then
+  if [ "$llmru_argument" != assistant ]; then
     cat >/dev/null
     return 0
   fi

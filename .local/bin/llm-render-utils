@@ -15,27 +15,27 @@ llmru_default_renderer_notify_header() {
 }
 
 llmru_ansi_role_color() {
-  ansi_color=
+  llmru_ansi_color=
   case $1 in
     user)
-      ansi_color=33
+      llmru_ansi_color=33
       ;;
     assistant)
-      ansi_color=35
+      llmru_ansi_color=35
       ;;
     system|developer)
-      ansi_color=31
+      llmru_ansi_color=31
       ;;
     *)
-      ansi_color=30
+      llmru_ansi_color=30
       ;;
   esac
-  printf "%s" "$ansi_color"
+  printf "%s" "$llmru_ansi_color"
 }
 
 llmru_default_renderer_file_image() {
-  ansi_color=$(llmru_ansi_role_color "$2")
-  llmru_ansi_escape "$ansi_color;1"
+  llmru_ansi_color=$(llmru_ansi_role_color "$2")
+  llmru_ansi_escape "$llmru_ansi_color;1"
   printf "%s " "$2"
   llmru_ansi_escape "36;1"
   case $1 in
@@ -44,18 +44,18 @@ llmru_default_renderer_file_image() {
   esac
   llmru_ansi_escape "0;36"
 
-  data=$(cat)
-  if ! jq -ejn --argjson data "$data" '$data | .file_url // .image_url // .file_data // empty'; then
-    file_id=$(jq -ejn --argjson data "$data" '$data.file_id'; echo x)
-    file_id=${file_id%x}
+  llmru_data=$(cat)
+  if ! jq -ejn --argjson data "$llmru_data" '$data | .file_url // .image_url // .file_data // empty'; then
+    llmru_file_id=$(jq -ejn --argjson data "$llmru_data" '$data.file_id'; echo x)
+    llmru_file_id=${llmru_file_id%x}
     set --
     [ -n "$llmcc_persistent_fileids" ] && set -- "$@" "$llmcc_persistent_fileids"
     [ -n "$llmcc_volatile_fileids" ] && set -- "$@" "$llmcc_volatile_fileids"
     if [ "$#" -ne 0 ]; then
-      jq -j --arg id "$file_id" -- \
+      jq -j --arg id "$llmru_file_id" -- \
         'select(.id == $id).filename' "$@"
     else
-      printf "%s" "$file_id"
+      printf "%s" "$llmru_file_id"
     fi
   fi
   llmru_ansi_escape "0"
@@ -141,10 +141,10 @@ llmru_default_renderer() {
       return
       ;;
     message-text)
-      ansi_color=$(llmru_ansi_role_color "$2")
-      llmru_ansi_escape "$ansi_color;1"
+      llmru_ansi_color=$(llmru_ansi_role_color "$2")
+      llmru_ansi_escape "$llmru_ansi_color;1"
       printf "%s\n" "$2"
-      llmru_ansi_escape "0;$ansi_color"
+      llmru_ansi_escape "0;$llmru_ansi_color"
       ;;
     message-image|message-file)
       llmru_default_renderer_file_image "$1" "$2"
@@ -177,8 +177,8 @@ llmru_dispatch_render_event() (
   exec 3>&1
   exec >/dev/null
   renderer_id=
-  while read -r event argument && read -r value; do
-    if [ "$event $argument" != "$renderer_id" ]; then
+  while read -r llmru_event llmru_argument && read -r value; do
+    if [ "$llmru_event $llmru_argument" != "$renderer_id" ]; then
       exec >&-
       while ! wait; do
         continue
@@ -188,12 +188,12 @@ llmru_dispatch_render_event() (
         trap '' TTOU
         exec >&3
         exec <"$1"
-        command eval render_cmd='$llmru_render_cmd_'$(printf "%s" "$event" | tr -- '-' '_')
-        render_cmd=${render_cmd:-'llmru_default_renderer "$event" "$argument"'}
-        jq --unbuffered -j '.' | command eval " $render_cmd"
+        command eval llmru_render_cmd='$llmru_render_cmd_'$(printf "%s" "$llmru_event" | tr -- '-' '_')
+        llmru_render_cmd=${llmru_render_cmd:-'llmru_default_renderer "$llmru_event" "$llmru_argument"'}
+        jq --unbuffered -j '.' | command eval " $llmru_render_cmd"
       )&
       exec >"$1"
-      renderer_id="$event $argument"
+      renderer_id="$llmru_event $llmru_argument"
     fi
 
     printf "%s\n" "$value"
