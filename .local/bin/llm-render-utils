@@ -1,16 +1,18 @@
 #!/bin/sh
 
-ansi_escape() {
-  [ -n "$opt_color_ansi" ] && printf "\033[%sm" "$1"
+llmru_opt_color_ansi=
+
+llmru_ansi_escape() {
+  [ -n "$llmru_opt_color_ansi" ] && printf "\033[%sm" "$1"
 }
 
-default_renderer_notify_header() {
-  ansi_escape "32;1"
+llmru_default_renderer_notify_header() {
+  llmru_ansi_escape "32;1"
   printf "%s" "$1"
-  ansi_escape "0;32"
+  llmru_ansi_escape "0;32"
 }
 
-ansi_role_color() {
+llmru_ansi_role_color() {
   ansi_color=
   case $1 in
     user)
@@ -29,16 +31,16 @@ ansi_role_color() {
   printf "%s" "$ansi_color"
 }
 
-default_renderer_file_image() {
-  ansi_color=$(ansi_role_color "$2")
-  ansi_escape "$ansi_color;1"
+llmru_default_renderer_file_image() {
+  ansi_color=$(llmru_ansi_role_color "$2")
+  llmru_ansi_escape "$ansi_color;1"
   printf "%s " "$2"
-  ansi_escape "36;1"
+  llmru_ansi_escape "36;1"
   case $1 in
     message-image)  printf "image: " ;;
     message-file)   printf "file: " ;;
   esac
-  ansi_escape "0;36"
+  llmru_ansi_escape "0;36"
 
   data=$(cat)
   if ! jq -ejn --argjson data "$data" '$data | .file_url // .image_url // .file_data // empty'; then
@@ -54,33 +56,33 @@ default_renderer_file_image() {
       printf "%s" "$file_id"
     fi
   fi
-  ansi_escape "0"
+  llmru_ansi_escape "0"
   printf "\n"
 }
 
-default_renderer_tool_preparing() {
+llmru_default_renderer_tool_preparing() {
   if llm-tool-render -ptn "$1"; then
     jq -j '.arguments // .input // @json' \
       | llm-tool-render -pn "$1" -- -s "$opt_state_dir" -l "$renderer_opt_tool_output_lines"
   else
-    default_renderer_notify_header "preparing to call: $1"
+    llmru_default_renderer_notify_header "preparing to call: $1"
     echo
   fi
   cat >/dev/null
 }
 
-default_renderer_tool_call() {
+llmru_default_renderer_tool_call() {
   if llm-tool-render -ctn "$1"; then
     jq -j '.arguments // .input // @json' \
       | llm-tool-render -cn "$1" -- -s "$opt_state_dir" -l "$renderer_opt_tool_output_lines"
   else
-    default_renderer_notify_header "calling $1"
+    llmru_default_renderer_notify_header "calling $1"
     echo
   fi
   cat >/dev/null
 }
 
-default_renderer_tool_output() {
+llmru_default_renderer_tool_output() {
   if llm-tool-render -otn "$1"; then
     if [ "$2" != is_builtin ]; then
       jq -c '.output | if type == "string" then [{type:"input_text",text:.}] end | .[]'
@@ -88,48 +90,48 @@ default_renderer_tool_output() {
       cat -u
     fi | llm-tool-render -on "$1" -- -s "$opt_state_dir" -l "$renderer_opt_tool_output_lines"
   else
-    default_renderer_notify_header "called $1"
+    llmru_default_renderer_notify_header "called $1"
     echo
   fi
   cat >/dev/null
 }
 
-default_renderer_notify() {
+llmru_default_renderer_notify() {
   case $1 in
     *_call)
-      default_renderer_tool_call "_builtin_${1%_call}" is_builtin
+      llmru_default_renderer_tool_call "_builtin_${1%_call}" is_builtin
       ;;
     *_call_output)
-      default_renderer_tool_output "_builtin_${1%_call_output}" is_builtin
+      llmru_default_renderer_tool_output "_builtin_${1%_call_output}" is_builtin
       ;;
     *)
-      default_renderer_notify_header "$1"
+      llmru_default_renderer_notify_header "$1"
       echo
       ;;
   esac
   cat >/dev/null
-  ansi_escape "0"
+  llmru_ansi_escape "0"
 }
 
-default_renderer() {
+llmru_default_renderer() {
   case "$1" in
     preparing-call)
-      default_renderer_tool_preparing "$2"
+      llmru_default_renderer_tool_preparing "$2"
       return
       ;;
     preparing-builtin)
-      default_renderer_tool_preparing "_builtin_$2" is_builtin
+      llmru_default_renderer_tool_preparing "_builtin_$2" is_builtin
       ;;
     tool-call)
-      default_renderer_tool_call "$2"
+      llmru_default_renderer_tool_call "$2"
       return
       ;;
     tool-output)
-      default_renderer_tool_output "$2"
+      llmru_default_renderer_tool_output "$2"
       return
       ;;
     notify)
-      default_renderer_notify "$2"
+      llmru_default_renderer_notify "$2"
       return
       ;;
     nop)
@@ -137,38 +139,38 @@ default_renderer() {
       return
       ;;
     message-text)
-      ansi_color=$(ansi_role_color "$2")
-      ansi_escape "$ansi_color;1"
+      ansi_color=$(llmru_ansi_role_color "$2")
+      llmru_ansi_escape "$ansi_color;1"
       printf "%s\n" "$2"
-      ansi_escape "0;$ansi_color"
+      llmru_ansi_escape "0;$ansi_color"
       ;;
     message-image|message-file)
-      default_renderer_file_image "$1" "$2"
+      llmru_default_renderer_file_image "$1" "$2"
       return
       ;;
     message-refusal)
-      ansi_escape "31;1"
+      llmru_ansi_escape "31;1"
       printf "%s refusal\n" "$2"
-      ansi_escape "0;31"
+      llmru_ansi_escape "0;31"
       ;;
     reasoning)
-      ansi_escape "35;3;2;1"
+      llmru_ansi_escape "35;3;2;1"
       printf "reasoning\n"
-      ansi_escape "0;3;2"
+      llmru_ansi_escape "0;3;2"
       ;;
     reasoning-summary)
-      ansi_escape "35;3;2;1"
+      llmru_ansi_escape "35;3;2;1"
       printf "reasoning-summary\n"
-      ansi_escape "0;3;2"
+      llmru_ansi_escape "0;3;2"
       ;;
   esac
 
   cat -u
-  ansi_escape "0"
+  llmru_ansi_escape "0"
   printf "\n"
 }
 
-dispatch_render_event() (
+llmru_dispatch_render_event() (
   trap ':' INT PIPE
   exec 3>&1
   exec >/dev/null
@@ -185,7 +187,7 @@ dispatch_render_event() (
         exec >&3
         exec <"$1"
         command eval render_cmd='$opt_render_cmd_'$(printf "%s" "$event" | tr -- '-' '_')
-        render_cmd=${render_cmd:-'default_renderer "$event" "$argument"'}
+        render_cmd=${render_cmd:-'llmru_default_renderer "$event" "$argument"'}
         jq --unbuffered -j '.' | command eval " $render_cmd"
       )&
       exec >"$1"

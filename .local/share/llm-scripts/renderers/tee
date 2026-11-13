@@ -2,7 +2,7 @@
 
 my_tee() {
   if [ "$argument" != assistant ]; then
-    default_renderer "$event" "$argument"
+    llmru_default_renderer "$event" "$argument"
     return
   fi
   tee -a "$renderer_opt_tee_file"
