@@ -2,7 +2,7 @@
 
 . -- llm-chat-common
 llmcc_set_public_files_var "$2"
-llmcc_source_tool_runtime_config "shell"
+llmcc_tool_source_runtime_config "shell"
 
 stderr=
 stdout=

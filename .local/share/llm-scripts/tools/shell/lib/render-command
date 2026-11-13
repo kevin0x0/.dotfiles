@@ -12,7 +12,7 @@ llmtr_parse_options "I:" "$@"
 shift "$((OPTIND - 1))"
 
 llmcc_set_public_files_var "$llmtropt_state_dir"
-llmcc_source_tool_runtime_config shell
+llmcc_tool_source_runtime_config shell
 
 interpreter=$opt_interpreter
 [ -z "$interpreter" ] && interpreter=$opt_interpreter_from_cmdline
