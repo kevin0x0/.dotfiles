@@ -1,0 +1,3 @@
+builtin/stats-print.always
+builtin/stats-update-on-api-call.always
+builtin/stats-update-on-tool-call.always

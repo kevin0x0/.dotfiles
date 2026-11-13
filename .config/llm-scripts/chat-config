@@ -5,3 +5,9 @@ opt_stream=1
 opt_repl_prompt_template='$(llmru_ansi_escape "33;1")llm> $(llmru_ansi_escape "0")'
 
 llmcu_source_configfile @instances/default 2>/dev/null
+
+opt_command_before_repl=$opt_command_before_repl'
+if [ -z "$opt_session" ] || [ ! -e "$opt_session" ]; then
+  llm-chat-manage-hook -d "$opt_state_dir" install "#stats"
+fi
+'
