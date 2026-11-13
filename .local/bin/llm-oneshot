@@ -19,6 +19,7 @@ options_end=$OPTIND
 call_llm_chat() {
   exec llm-chat \
     -o repl-prompt-template='' \
+    -o command-before-repl='' \
     "$@"
 }
 
