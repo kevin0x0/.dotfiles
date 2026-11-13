@@ -1,12 +1,18 @@
 #!/bin/sh
 
-my_tee() {
+llmrx_tee_opt_file=
+
+llmrx_tee_renderer() {
   if [ "$llmru_argument" != assistant ]; then
     llmru_default_renderer "$llmru_event" "$llmru_argument"
     return
   fi
-  tee -a "$renderer_opt_tee_file"
+  if [ -n "$llmrx_tee_opt_file" ]; then
+    tee -a "$llmrx_tee_opt_file"
+  else
+    cat -u
+  fi
   echo
 }
 
-llmru_render_cmd_message_text=my_tee
+llmru_render_cmd_message_text=llmrx_tee_renderer
