@@ -623,6 +623,7 @@ build_env_and_run_hook() {
   exitcode=$?
   if [ "$exitcode" -ne 0 ]; then
     llmcc_hook_log ERROR "exited with status $exitcode"
+    i18n -n llm-scripts 'hook $1 failed' "$llmcc_event/${llmcc_hook_script##*/}"
   fi
 
   if [ -s "$llm_chat_hook_input" ]; then
