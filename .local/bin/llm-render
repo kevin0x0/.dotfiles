@@ -4,7 +4,7 @@
 . llm-render-utils
 
 opt_color=auto
-opt_color_ansi=
+llmru_opt_color_ansi=
 llmcuopt_fromfile=
 
 llm_scriptname=llm-render
@@ -31,18 +31,18 @@ done
 
 case $opt_color in
   auto)
-    opt_color_ansi=
-    [ -t 1 ] && opt_color_ansi=1
+    llmru_opt_color_ansi=
+    [ -t 1 ] && llmru_opt_color_ansi=1
     ;;
   never)
-    opt_color_ansi=
+    llmru_opt_color_ansi=
     ;;
   always)
-    opt_color_ansi=1
+    llmru_opt_color_ansi=1
     ;;
 esac
 
 tmpdir=$(tmpfile -d) || exit
 trap 'rm -rf -- "$tmpdir"' EXIT
 mkfifo "$tmpdir/fifo" || exit
-dispatch_render_event "$tmpdir/fifo"
+llmru_dispatch_render_event "$tmpdir/fifo"

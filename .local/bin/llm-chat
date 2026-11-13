@@ -22,8 +22,7 @@ opt_extra_tools_description='[deferred]'
 opt_extra_tools_parameters=''
 opt_show_conversation_on_startup=1
 opt_color=auto
-opt_color_ansi=
-opt_repl_prompt_template='$(ansi_escape "33;1")llm> $(ansi_escape "0")'
+opt_repl_prompt_template='$(llmru_ansi_escape "33;1")llm> $(llmru_ansi_escape "0")'
 opt_repl_reader=
 opt_repl_read_wrapper=
 opt_repl_reader_ignore=
@@ -174,17 +173,19 @@ if [ -z "$opt_repl_reader" ]; then
   fi'
 fi
 
+llm_chat_color_ansi=
 case $opt_color in
   auto)
-    [ -t 1 ] && opt_color_ansi=1 || opt_color_ansi=
+    [ -t 1 ] && llm_chat_color_ansi=1 || llm_chat_color_ansi=
     ;;
   always)
-    opt_color_ansi=1
+    llm_chat_color_ansi=1
     ;;
   never)
-    opt_color_ansi=
+    llm_chat_color_ansi=
     ;;
 esac
+llmru_opt_color_ansi=$llm_chat_color_ansi
 
 shift "$((OPTIND - 1))"
 
@@ -467,7 +468,7 @@ call() (
   [ -s "$llm_chat_tool_list" ] && set -- "$@" -T "$llm_chat_tool_list"
 
   cat -- "$llm_chat_conversation" "$llm_chat_this_turn" >"$response_input_fifo" &
-  dispatch_render_event "$render_event_fifo" <"$response_event_output_fifo" &
+  llmru_dispatch_render_event "$render_event_fifo" <"$response_event_output_fifo" &
 
   trap ':' INT
   llm-responses-api -FNk 0 "$@" -- "$llm_chat_response_output" - <<EOF \
@@ -588,7 +589,7 @@ read_loop() {
       go|add)
         if [ "$input_end_action" = go ] && [ -s "$input_content" ] || [ "$input_end_action" = add ]; then
           llm-make-message -r "$input_message_role" -p <"$input_content" \
-            | tee -a "$llm_chat_this_turn" | llm-render-events | dispatch_render_event "$render_event_fifo"
+            | tee -a "$llm_chat_this_turn" | llm-render-events | llmru_dispatch_render_event "$render_event_fifo"
         fi
         if [ "$input_end_action" = go ]; then
           llm_chat_next_state=agent-loop-api-call
@@ -737,7 +738,7 @@ set_session_vars
 if [ -n "$opt_session" ] && [ -e "$opt_session" ]; then
   state_init_from_session || exit
   if [ -n "$opt_show_conversation_on_startup" ]; then
-    llm-render-events "$llm_chat_conversation" | dispatch_render_event "$render_event_fifo"
+    llm-render-events "$llm_chat_conversation" | llmru_dispatch_render_event "$render_event_fifo"
   fi
 else
   state_init
@@ -838,7 +839,7 @@ while :; do
           error_to read-loop
           ;;
       esac
-      llm-render-events <"$llm_chat_tool_output" | dispatch_render_event "$render_event_fifo"
+      llm-render-events <"$llm_chat_tool_output" | llmru_dispatch_render_event "$render_event_fifo"
       ;;
     agent-loop-api-call-interrupted)
       i18n -n llm-scripts 'interrupted' >&2
