@@ -32,7 +32,20 @@ opt_extra_request_args=
 opt_session=
 opt_session_writeback=
 opt_use_session_option=1
-opt_session_save_options='opt_files_base_url opt_files_default_purpose opt_cache_key opt_responses_base_url opt_model'
+opt_session_save_options='
+opt_files_base_url
+opt_files_default_purpose
+opt_cache_key
+opt_responses_base_url
+opt_model
+opt_extra_tools_defer_loading
+opt_extra_tools_defer_loading_mode
+opt_extra_tools_description
+opt_extra_tools_parameters
+opt_extra_request_args
+opt_session_save_options
+opt_reasoning
+'
 
 opt_state_dir=
 
