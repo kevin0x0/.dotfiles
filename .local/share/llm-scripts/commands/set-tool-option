@@ -1,30 +1,28 @@
 # vim: ft=sh
 
-shift
-if [ "$#" -eq 0 ]; then
-  expand_toolspec "$opt_toolspec"
-  return 0
-fi
-
-list_options() {
-  for f in "$1/call" "$1/source"; do
-    [ -f "$f" ] || continue
-    sed -n '/opt_/{s/^.*opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p;}' <"$f" \
-      | sort -u
+(
+  shift
+  if [ "$#" -eq 0 ]; then
+    expand_toolspec "$opt_toolspec"
     return 0
-  done
-  return 1
-}
+  fi
 
-if [ "$#" -eq 1 ]; then
-  (
+  list_options() {
+    for f in "$1/call" "$1/source"; do
+      [ -f "$f" ] || continue
+      sed -n '/opt_/{s/^.*opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p;}' <"$f" \
+        | sort -u
+      return 0
+    done
+    return 1
+  }
+
+  if [ "$#" -eq 1 ]; then
     llmcu_for_config_item "tools/$1" list_options
     exit 0
-  )
-  return
-fi
+    return
+  fi
 
-(
   llmcc_tool_get_runtime_config tool_config_file "$1"
   shift
   for kv; do
