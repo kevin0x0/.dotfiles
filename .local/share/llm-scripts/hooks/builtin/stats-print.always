@@ -182,7 +182,7 @@ justify_line() {
   done
 
   tab_expand=$(repeat "$((delta / nfield))" " ")
-  sed_command=$(repeat "$((delta % nfield))" $'s/\r/ &/;')$'s/\r/'"$tab_expand"'/g'
+  sed_command=$(repeat "$((delta % nfield))" $'s/\r/ '"$tab_expand"'/;')$'s/\r/'"$tab_expand"'/g'
   {
     IFS= read -r justified_header_line
     IFS= read -r justified_turn_line
