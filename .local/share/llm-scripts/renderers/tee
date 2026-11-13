@@ -9,4 +9,4 @@ my_tee() {
   echo
 }
 
-opt_render_cmd_message_text=my_tee
+llmru_render_cmd_message_text=my_tee

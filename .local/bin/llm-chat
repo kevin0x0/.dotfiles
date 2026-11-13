@@ -54,12 +54,12 @@ llmcuopt_fromfd=
 
 opt_print_options=
 
-renderer_opt_tool_output_lines=15
-
 . llm-config-utils
 . llm-render-utils
 . llm-chat-common
 . llm-chat-hook-funcs
+
+llmru_opt_tool_output_lines=15
 
 llm_scriptname=llm-chat
 [ -f "$llmcu_configdir/chat-config" ] && . -- "$llmcu_configdir/chat-config"
@@ -198,7 +198,6 @@ case $opt_color in
     llm_chat_color_ansi=
     ;;
 esac
-llmru_opt_color_ansi=$llm_chat_color_ansi
 
 shift "$((OPTIND - 1))"
 
@@ -640,6 +639,11 @@ run_hooks() {
   llmcc_run_hooks build_env_and_run_hook "$1"
 }
 
+set_render_utils_options() {
+  llmru_opt_color_ansi=$llm_chat_color_ansi
+  llmru_opt_state_dir=$opt_state_dir
+}
+
 create_state_dir() {
   dirprefix=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/llm-chat-$$
   dir=$dirprefix
@@ -747,6 +751,7 @@ else
 fi
 
 set_session_vars
+set_render_utils_options
 
 if [ -n "$opt_session" ] && [ -e "$opt_session" ]; then
   state_init_from_session || exit

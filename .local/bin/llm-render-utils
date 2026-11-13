@@ -1,6 +1,8 @@
 #!/bin/sh
 
 llmru_opt_color_ansi=
+llmru_opt_tool_output_lines=
+llmru_opt_state_dir=
 
 llmru_ansi_escape() {
   [ -n "$llmru_opt_color_ansi" ] && printf "\033[%sm" "$1"
@@ -63,7 +65,7 @@ llmru_default_renderer_file_image() {
 llmru_default_renderer_tool_preparing() {
   if llm-tool-render -ptn "$1"; then
     jq -j '.arguments // .input // @json' \
-      | llm-tool-render -pn "$1" -- -s "$opt_state_dir" -l "$renderer_opt_tool_output_lines"
+      | llm-tool-render -pn "$1" -- -s "$llmru_opt_state_dir" -l "$llmru_opt_tool_output_lines"
   else
     llmru_default_renderer_notify_header "preparing to call: $1"
     echo
@@ -74,7 +76,7 @@ llmru_default_renderer_tool_preparing() {
 llmru_default_renderer_tool_call() {
   if llm-tool-render -ctn "$1"; then
     jq -j '.arguments // .input // @json' \
-      | llm-tool-render -cn "$1" -- -s "$opt_state_dir" -l "$renderer_opt_tool_output_lines"
+      | llm-tool-render -cn "$1" -- -s "$llmru_opt_state_dir" -l "$llmru_opt_tool_output_lines"
   else
     llmru_default_renderer_notify_header "calling $1"
     echo
@@ -88,7 +90,7 @@ llmru_default_renderer_tool_output() {
       jq -c '.output | if type == "string" then [{type:"input_text",text:.}] end | .[]'
     else
       cat -u
-    fi | llm-tool-render -on "$1" -- -s "$opt_state_dir" -l "$renderer_opt_tool_output_lines"
+    fi | llm-tool-render -on "$1" -- -s "$llmru_opt_state_dir" -l "$llmru_opt_tool_output_lines"
   else
     llmru_default_renderer_notify_header "called $1"
     echo
@@ -186,7 +188,7 @@ llmru_dispatch_render_event() (
         trap '' TTOU
         exec >&3
         exec <"$1"
-        command eval render_cmd='$opt_render_cmd_'$(printf "%s" "$event" | tr -- '-' '_')
+        command eval render_cmd='$llmru_render_cmd_'$(printf "%s" "$event" | tr -- '-' '_')
         render_cmd=${render_cmd:-'llmru_default_renderer "$event" "$argument"'}
         jq --unbuffered -j '.' | command eval " $render_cmd"
       )&
