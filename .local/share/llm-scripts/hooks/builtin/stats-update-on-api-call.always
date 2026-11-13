@@ -1,0 +1,103 @@
+# event: builtin.state.agent-loop-api-call.leave
+
+acc_input=0
+acc_cached_input=0
+acc_output=0
+acc_reasoning_output=0
+acc_total=0
+acc_api_calls=0
+
+turn_input=0
+turn_cached_input=0
+turn_output=0
+turn_reasoning_output=0
+turn_total=0
+turn_api_calls=0
+
+model=$llm_chat_model
+turn=0
+status=success
+
+llmcc_hook_get_shared_state_dir SD builtin.stats || return
+stats_vars=$SD/stats-vars
+llmcc_hook_undump_vars "$stats_vars" || return
+
+on_exit() {
+  llmcc_hook_dump_vars \
+    acc_input acc_cached_input acc_output acc_reasoning_output acc_total acc_api_calls \
+    turn_input turn_cached_input turn_output turn_reasoning_output turn_total turn_api_calls \
+    model turn status >"$stats_vars"
+}
+trap 'on_exit' EXIT
+
+if [ "$llm_chat_prev_state" = "read-loop" ]; then
+  turn_input=0
+  turn_cached_input=0
+  turn_output=0
+  turn_reasoning_output=0
+  turn_total=0
+  turn_api_calls=0
+  turn=$((turn + 1))
+fi
+
+case $llm_chat_next_state in
+  agent-loop-api-call-interrupted)
+    status=interrupted
+    return
+    ;;
+  read-loop)
+    status=failed
+    return
+    ;;
+  agent-loop-tool-call)
+    status=success
+    ;;
+  *)
+    return
+    ;;
+esac
+
+info=$llm_chat_response_extra_info_output
+if [ ! -s "$info" ]; then
+  return
+fi
+
+last_input=?
+last_cached_input=?
+last_output=?
+last_reasoning_output=?
+last_total=?
+last_api_calls=1
+read -r model last_input last_cached_input last_output \
+  last_reasoning_output last_total <<EOF || return
+$(jq -r '[
+    (.model // "?" | gsub("[ \n\t]"; "-")),
+    (
+      .usage // {}
+        | .input_tokens,
+          .input_tokens_details.cached_tokens?,
+          .output_tokens,
+          .output_tokens_details.reasoning_tokens?,
+          .total_tokens
+        | tostring
+        | if test("^[0-9]+$") | not then "?" end
+        | gsub("^0*"; "")
+        | if length == 0 then "0" end
+    )
+  ] | join(" ")' "$info")
+EOF
+
+if [ "$model" = "?" ]; then
+  model=$llm_chat_model
+fi
+
+for item in input cached_input output reasoning_output total api_calls; do
+  eval "value=\$last_$item"
+  case $value in
+    '?')  value=0 ;;
+  esac
+  eval "turn_$item="'$((turn_$item + value))'
+  eval "acc_$item="'$((acc_$item + value))'
+done
+
+# vim: ft=sh
