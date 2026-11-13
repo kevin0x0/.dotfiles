@@ -23,13 +23,13 @@ while getopts "I:i:fFNu:k:sr:m:t:T:A:" opt; do
       llmcu_getarg opt_input "$OPTARG"
       ;;
     f)
-      llmcu_set_boolean_option llmcuopt_fromfile
+      llmcu_set_boolean_option llmcu_opt_fromfile
       ;;
     F)
-      llmcu_set_boolean_option llmcuopt_fromfd
+      llmcu_set_boolean_option llmcu_opt_fromfd
       ;;
     N)
-      llmcu_set_boolean_option llmcuopt_trim_newline
+      llmcu_set_boolean_option llmcu_opt_trim_newline
       ;;
     u)
       llmcu_getarg opt_responses_base_url "$OPTARG"

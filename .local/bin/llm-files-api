@@ -29,16 +29,16 @@ while getopts "u:k:p:e:fFnNcUdlr" opt; do
       llmcu_getarg opt_expire "$OPTARG"
       ;;
     f)
-      llmcu_set_boolean_option llmcuopt_fromfile
+      llmcu_set_boolean_option llmcu_opt_fromfile
       ;;
     F)
-      llmcu_set_boolean_option llmcuopt_fromfd
+      llmcu_set_boolean_option llmcu_opt_fromfd
       ;;
     n)
-      llmcu_set_boolean_option llmcuopt_inverse_boolean_option
+      llmcu_set_boolean_option llmcu_opt_inverse_boolean_option
       ;;
     N)
-      llmcu_set_boolean_option llmcuopt_trim_newline
+      llmcu_set_boolean_option llmcu_opt_trim_newline
       ;;
     c)
       llmcu_set_boolean_option opt_getcontent
