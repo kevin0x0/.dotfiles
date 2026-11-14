@@ -5,10 +5,14 @@
 opt_input=
 opt_trim_newline=
 opt_interrupt=
-while getopts "i:INS:" opt; do
+opt_mock=
+while getopts "i:M:INS:" opt; do
   case $opt in
     i)
       opt_input=$OPTARG
+      ;;
+    M)
+      opt_mock=$OPTARG
       ;;
     I)
       opt_interrupt=1
@@ -46,15 +50,47 @@ else
   exec 3<"$opt_input"
 fi
 
+execprefix=${opt_mock:+mock-}
+
 call() {
   : >"$errmsg"
   if [ -n "$opt_interrupt" ]; then
-    printf "interrupted by user\n" >"$errmsg"
-    return 129
+    call_exit=129
+  elif [ -n "$opt_mock" ]; then
+    jq --argjson call_id "$id" -r -- '
+    def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
+      .[$call_id] |
+      if .status == "interrupted" then
+        "interrupted"
+      elif .status == "failed" then
+        "failed"
+      else
+        "output", (.output // {"llm-tool-call-mock-text":"mocked tool output"} | @json | chunk)
+      end
+    ' "$opt_mock" | (
+      read -r mode
+      mock_tool_call_exitcode=0
+      case $mode in
+        interrupted) mock_tool_call_exitcode=129 ;;
+        failed) mock_tool_call_exitcode=1 ;;
+      esac
+
+      while read -r line; do
+        printf "%s\n" "$line"
+      done | jq -j '.' | llm-make-mcontent -t
+
+      exit "$mock_tool_call_exitcode"
+    )
+    call_exit=$?
+    case $call_exit in
+      1)
+        notify-state "$failure_state"
+        ;;
+    esac
   elif [ -z "$execpath" ]; then
     printf "missing tool: '%s'\n" "$name" >&2
     printf "%s\n" 'can not find this tool' >"$errmsg"
-    return 1
+    call_exit=1
   else
     set -- "${execpath%/*}" "$@"
     # Allow interruption
@@ -75,21 +111,21 @@ call() {
         fi
         ;;
     esac
-    exitcode=$?
+    call_exit=$?
     trap '' INT
+  fi
 
-    [ "$exitcode" -eq 0 ] && return 0
-    if [ "$exitcode" -gt 128 ]; then
-      # Consider it to be interrupted
-      notify-state "$interruption_state"
-      printf "interrupted by user\n" >"$errmsg"
-      return "$exitcode"
-    else
-      if [ ! -s "$errmsg" ]; then
-        printf "failed to execute this tool\n" >"$errmsg"
-      fi
-      return "$exitcode"
+  [ "$call_exit" -eq 0 ] && return 0
+  if [ "$call_exit" -gt 128 ]; then
+    # Consider it to be interrupted
+    notify-state "$interruption_state"
+    printf "interrupted by user\n" >"$errmsg"
+    return "$call_exit"
+  else
+    if [ ! -s "$errmsg" ]; then
+      printf "failed to execute this tool\n" >"$errmsg"
     fi
+    return "$call_exit"
   fi
 }
 
@@ -166,7 +202,7 @@ find_and_call() {
 
   execpath=
   set_execpath() {
-    for path in "$1/call" "$1/source"; do
+    for path in "$1/${execprefix}call" "$1/${execprefix}source"; do
       [ -f "$path" ] || continue
       execpath=$path
       return 0
@@ -210,6 +246,7 @@ trap 'cleanup QUIT' QUIT
 trap '' INT
 
 interruption_state=llm-tool-call-interrupted-$$
+failure_state=llm-tool-call-failure-$$
 
 jq_program='
 def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
@@ -234,16 +271,21 @@ filterout='{
 
 jq -rc --argjson filterout "$filterout" "$jq_program" <&3 \
   | {
-      fatal_error=
       while read -r type && read -r id && read -r toolname; do
-        find_and_call "$type" "$id" "$toolname" "$@" || fatal_error=$?
+        find_and_call "$type" "$id" "$toolname" "$@" || notify-state "$failure_state"
       done
 
-      if [ -n "$fatal_error" ]; then
-        notify-state -c "$interruption_state"
-        exit 1
-      elif notify-state -tc "$interruption_state"; then
-        exit 5
+      if notify-state -t "$interruption_state" "$failure_state"; then
+        exitcode=
+        if notify-state -t "$interruption_state"; then
+          exitcode=5
+        elif notify-state -t "$failure_state"; then
+          exitcode=1
+        else
+          exitcode=0
+        fi
+        notify-state -c "$interruption_state" "$failure_state"
+        exit "$exitcode"
       else
         exit 0
       fi

@@ -53,6 +53,10 @@ opt_state_dir=
 
 opt_print_options=
 
+opt_mock_api=
+opt_mock_tool=
+opt_mock_file=
+
 
 llmcu_opt_fromfile=
 llmcu_opt_fromfd=
@@ -251,8 +255,14 @@ file_input() {
 
   for file; do
     if ! path2uri -u -- "$file"; then
-      if fileid=$(trap - INT; llmcc_get_fileid "$opt_files_base_url" "$opt_api_key" "$opt_cache_key" "$opt_files_default_purpose" "$file" && echo x); then
+      fileid=
+      get_fileid=llmcc_get_fileid
+      [ -n "$opt_mock_file" ] && get_fileid=llmcc_get_fake_fileid
+
+      if fileid=$(trap - INT; "$get_fileid" "$opt_files_base_url" "$opt_api_key" "$opt_cache_key" "$opt_files_default_purpose" "$file" && echo x); then
         fileid=${fileid%$'\nx'}
+      fi
+      if [ -n "$fileid" ]; then
         i18n -n llm-scripts 'file selected, file id: $1' "$fileid"
         llm-make-mcontent -e "$file_detail" "$mkcontent_id_opt" -- "$fileid" >&3
       else
@@ -476,7 +486,7 @@ call() (
   if ! check_file_id; then
     errmsg="some file ids expired and failed to retrieve a new one"
     jq -n --arg err "$errmsg" >"$llm_chat_response_output" \
-      '{"error":{"message":$err,"type":"__defined_by_me","code":"__defined_by_me"}}'
+      '{"error":{"message":$err,"type":"_llm_scripts_error","code":"_llm_scripts_error"}}'
     exit 1
   fi
 
@@ -503,6 +513,8 @@ call_tool() {
   set -- "$@" -i "$llm_chat_response_output" -- \
     "$opt_state_dir" "$opt_files_base_url" \
     "$opt_cache_key" "$opt_files_default_purpose"
+  [ -n "$opt_mock_tool" ] && set -- -M "$opt_mock_tool" "$@"
+
   trap ':' INT
   llm-tool-call -NS llm_chat_opt_api_key=0 "$@" >"$llm_chat_tool_output" <<EOF
 $opt_api_key
@@ -782,6 +794,7 @@ set -- \
   -m "$opt_model"
 [ -n "$opt_stream" ] && set -- "$@" -s
 [ -n "$opt_extra_request_args" ] && set -- "$@" -A "$opt_extra_request_args"
+[ -n "$opt_mock_api" ] && set -- "$@" -M "$opt_mock_api"
 
 [ -n "$opt_command_before_repl" ] && command eval " $opt_command_before_repl"
 
@@ -867,13 +880,19 @@ while :; do
       ;;
     agent-loop-api-call-interrupted)
       i18n -n llm-scripts 'interrupted' >&2
-      if ! call_tool -I; then
-        i18n -n llm-scripts 'failed to handle tool call' >&2
-        error_to read-loop
-      else
-        cat -- "$llm_chat_tool_output" >>"$llm_chat_this_turn"
-        llm_chat_next_state=read-loop
-      fi
+
+      call_tool -I
+      exitcode=$?
+      case $exitcode in
+        0|5)
+          cat -- "$llm_chat_tool_output" >>"$llm_chat_this_turn"
+          llm_chat_next_state=read-loop
+          ;;
+        *)
+          i18n -n llm-scripts 'failed to handle tool call' >&2
+          error_to read-loop
+          ;;
+      esac
       ;;
     agent-loop-tool-call-interrupted)
       i18n -n llm-scripts 'interrupted' >&2

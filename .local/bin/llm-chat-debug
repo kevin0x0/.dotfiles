@@ -1,0 +1,157 @@
+#!/bin/sh
+
+opt_state_dir=
+opt_chat_state_dir=
+opt_remove_chat_state=
+opt_orchestration=
+while getopts "s:rS:o:" opt; do
+  case $opt in
+    s)  opt_state_dir=$OPTARG ;;
+    S)  opt_chat_state_dir=$OPTARG ;;
+    r)  opt_remove_chat_state=1 ;;
+    o)  opt_orchestration=$OPTARG ;;
+    \?) exit 2 ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ -z "$opt_chat_state_dir" ]; then
+  printf "llm-chat state dir not provided (-S)\n" >&2
+  exit 2
+fi
+
+if [ -z "$opt_orchestration" ]; then
+  printf "orchestration not provided (-o)\n" >&2
+  exit 2
+fi
+
+if [ -n "$opt_remove_chat_state" ]; then
+  rm -rf -- "$opt_chat_state_dir" || exit
+fi
+
+cleanup() {
+  [ -n "$rm_on_exit" ] && rm -rf -- "$rm_on_exit"
+  if [ -n "$1" ]; then
+    trap - "$1"
+    kill -"$1" "$$"
+  fi
+}
+
+rm_on_exit=
+trap 'cleanup' EXIT
+for sig in TERM QUIT INT; do
+  trap "cleanup $sig" "$sig"
+done
+
+if [ -z "$opt_state_dir" ]; then
+  opt_state_dir=$(tmpfile -d) || exit 1
+  rm_on_exit=$opt_state_dir
+else
+  mkdir -p -- "$opt_state_dir" || exit 1
+fi
+
+jq -c -- '
+  def is_tool_termination: any(.type == "tool_call" and (.call_id // "" | startswith("mock-output-")) and (.tool_call_status == "failed" or .tool_call_status == "interrupted"));
+
+  def add_turn_end: . + [{status:"completed",output:[{type:"output_text",text:"end of turn"}]}];
+  def turn_end_index($n): if length == $n then $n elif .[$n]._is_turn_end then $n else turn_end_index($n + 1) end;
+
+  .output | if type != "array" then [.] end |
+  if length == 0 then add_turn_end end |
+  map(
+    if (.output | type) != "array" then
+      .output = [.output]
+    end |
+    if .output | is_tool_termination then
+      .status = "completed" | ._is_turn_end = true
+    elif .status == "failed" then
+      ._is_turn_end = true
+    elif .status == "interrupted" then
+      .status = "_llm_scripts_interrupted" | ._is_turn_end = true
+    elif .output | all(.type != "tool_call") then
+      .status = "completed" | ._is_turn_end = true
+    else
+      .status = "completed"
+    end | {
+      _is_turn_end,
+      status,
+      usage,
+      model,
+      output: .output | map(
+        if .type == "output_text" then
+          {type:"message",role:"assistant",content:[{type:"output_text", text:.text}]}
+        elif .type == "reasoning_text" then
+          {type:"reasoning",content:[{type:"reasoning_text", text:.text}]}
+        elif .type == "tool_call" then
+          {
+            type: (.tool_type // "function_call"),
+            call_id: .call_id // ("auto-gen-" + (input_line_number|tostring) + (now|@base64)),
+            name: .name // ("missing tool name when generating responses" | halt_error(1)),
+            arguments,
+            input
+          } + (.extra_body // {}) |
+          if .type != "function_call" then
+            del(.arguments)
+          end |
+          if .type != "custom_tool_call" then
+            del(.input)
+          end
+        else
+          ("error when generating mock responses: unknown output type: \(.type)\n") | halt_error(1)
+        end | .status = "completed" | .id = (now | @base64)
+      )
+    }
+  ) | turn_end_index(0) as $turn_end |
+  if $turn_end == length then
+    ("error when generating mock responses: the agent loop does not terminate\n") | halt_error(1)
+  elif $turn_end != length - 1 then
+    ("error when generating mock responses: the end of turn \($turn_end) is not the last output item\n") | halt_error(1)
+  end |map(del(._is_turn_end))[]
+' "$opt_orchestration" >"$opt_state_dir/mock-responses" || exit
+
+jq -nc -- '
+  reduce (inputs | .output | if type != "array" then [.] end | map(
+    .output | if type != "array" then [.] end | map(
+      select(.type == "tool_call" and (.call_id // "" | startswith("mock-output-"))) | {
+        call_id: .call_id,
+        status: .tool_call_status,
+        output: .tool_call_output
+      }
+    )
+  )[][]) as $item (
+    {};
+    if .[$item.call_id] then
+      ("multiple tool call items have the same call_id: \($item.call_id)\n") | halt_error(1)
+    end + ($item | {(.call_id):{status,output}})
+  )
+' "$opt_orchestration" >"$opt_state_dir/mock-tool-output" || exit
+
+jq -r -- '
+    .input | if type == "array" then .[] end |
+      if .type == "input_text" then
+        .text | split("\n")[] | if startswith("@") then "@" + . end
+      elif .type == "image" or .type == "file" then
+        "@image " + (.path | @sh)
+      else
+        ("error when generating mock input: unknown input type: " + .type) | halt_error(1)
+      end,
+      "@go"
+  ' "$opt_orchestration" >"$opt_state_dir/input" || exit
+
+printf "@break\n" >>"$opt_state_dir/input"
+
+llm-chat \
+  -o command-before-repl='' \
+  -o repl-prompt-template='' \
+  -o repl-reader-ignore \
+  -o mock-api="$(shell-escape -- llm-mock-api-call -s "$opt_state_dir" --)" \
+  -o mock-tool="$opt_state_dir/mock-tool-output" \
+  -o mock-file \
+  -o state-dir="$opt_chat_state_dir" \
+  -k fake-key \
+  -m mock-model \
+  -u fake-url \
+  -o files-base-url=fake-url \
+  -o cache-key=fake-key \
+  -ns <"$opt_state_dir/input" \
+  "$@"

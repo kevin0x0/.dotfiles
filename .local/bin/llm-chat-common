@@ -33,7 +33,7 @@ llmcc_helper_set_tmp() {
     fi
   }
   trap 'cleanup' EXIT
-  for sig in INT TERM QUIT; do
+  for sig in TERM QUIT; do
     trap "cleanup "$sig"" "$sig"
   done
 }
@@ -274,6 +274,35 @@ llmcc_run_hooks() {
   done
 }
 
+llmcc_remember_fileid() {
+  add_to_file=
+  if jq -e -- '.expires_at' "$tmp" >/dev/null 2>&1; then
+    add_to_file=$llmcc_volatile_fileids
+  else
+    add_to_file=$llmcc_persistent_fileids
+  fi
+
+  cat "$tmp" >>"$add_to_file"
+  jq -r -- '.id' "$tmp"
+  jq -cs -- 'unique_by(.id)[]' "$add_to_file" >"$tmp"
+  cp -- "$tmp" "$add_to_file"
+}
+
+llmcc_get_fake_fileid() (
+  trap '' INT
+
+  llmcc_helper_set_tmp
+  fileid=_llm_scripts_auto_generated_fake_file_id_$(date +%Y%m%dT%H%M%S)
+  jq -cn \
+    --arg id "$fileid" \
+    --arg purpose "$4" \
+    --arg filename "$5" \
+    '{$id,$purpose,$filename,object:"file",bytes:20000,created_at:now}' \
+    >"$tmp"
+
+  llmcc_remember_fileid
+)
+
 llmcc_get_fileid() (
   if [ -z "$1" ]; then
     printf "base url for Files API not provided\n" >&2
@@ -305,28 +334,16 @@ llmcc_get_fileid() (
     exit 1
   fi
 
-  trap '' INT
   llmcc_helper_set_tmp
 
+  trap ':' INT
   if ! llm-file-manager -u "$1" -FNk 0 -K "$3" -p "$4" -Ulm -- "$5" >"$tmp" <<EOF
 $2
 EOF
   then
     exit 1
   fi
-
-  add_to_file=
-  if jq -e -- '.expires_at' "$tmp" >/dev/null 2>&1; then
-    add_to_file=$llmcc_volatile_fileids
-  else
-    add_to_file=$llmcc_persistent_fileids
-  fi
-
   trap '' INT
 
-  cat "$tmp" >>"$add_to_file"
-  jq -r -- '.id' "$tmp"
-  jq -cs -- 'unique_by(.id)[]' "$add_to_file" >"$tmp"
-  cp -- "$tmp" "$add_to_file"
-  rm "$tmp"
+  llmcc_remember_fileid
 )

@@ -7,14 +7,17 @@ opt_reasoning=none
 opt_model=
 opt_tools=
 opt_tools_file=
+opt_extra_request_args=
 
 opt_info_output=/dev/null
 
 opt_input=
 
+opt_mock=
+
 . llm-config-utils
 
-while getopts "I:i:fFNu:k:sr:m:t:T:A:" opt; do
+while getopts "I:i:fFNu:k:sr:m:t:T:A:M:" opt; do
   case $opt in
     I)
       llmcu_getarg opt_info_output "$OPTARG"
@@ -56,6 +59,9 @@ while getopts "I:i:fFNu:k:sr:m:t:T:A:" opt; do
       ;;
     A)
       llmcu_getarg opt_extra_request_args "$OPTARG"
+      ;;
+    M)
+      llmcu_getarg opt_mock "$OPTARG"
       ;;
     \?)
       exit 2
@@ -117,6 +123,13 @@ curl_file_escape() {
 }
 
 call_curl() (
+  if [ -n "$opt_mock" ]; then
+    trap ':' INT
+    printf "%s" "$opt_api_key" | \
+      command eval " $opt_mock" "$(shell-escape "$tmp_input")"
+    exit
+  fi
+
   curl_file_escape escaped "$tmp_input"
   trap ':' INT
   opts=-sS${opt_stream:+N}
@@ -147,16 +160,18 @@ make_nonstream_output() {
         .error, ("" | halt_error(5))
       elif .status == "incomplete" then
         build_extra_info, .incomplete_details, .output[], ("" | halt_error(6))
+      elif .status == "_llm_scripts_interrupted" then
+        .output[], halt_error(7)
       else
         if has("error") | not then
-          {"error":{"message":.,"type":"__defined_by_me","code":"__defined_by_me"}}
+          {"error":{"message":.,"type":"_llm_scripts_error","code":"_llm_scripts_error"}}
         end, ("" | halt_error(4))
       end
     ) catch (
       if $input | endswith("\u0000INTERRUPTED\n") then
-        halt_error(7)
+        [], halt_error(7)
       else
-        {"error":{"message":$input,"type":"__defined_by_me","code":"__defined_by_me"}}, ("" | halt_error(4))
+        {"error":{"message":$input,"type":"_llm_scripts_error","code":"_llm_scripts_error"}}, ("" | halt_error(4))
       end
     )' >"$tmp" 2>/dev/null
   exitcode=$?
@@ -195,6 +210,8 @@ make_nonstream_output() {
       exitcode=4
       ;;
     7)
+      cat -- "$tmp" >&4
+      llm-render-events <"$tmp" >&3
       exitcode=5
       ;;
     *)
@@ -230,9 +247,9 @@ sse_to_jsons() {
       [$str, ""]
     else
       if endswith("\u0000INTERRUPTED") then
-        [$str, {type:"_my_interrupted",sequence_number:infinite,response:null} | @json]
+        [$str, {type:"_llm_scripts_interrupted",sequence_number:infinite,response:null} | @json]
       else
-        (try fromjson) // {error:{message:([., inputs] | add),type:"__defined_by_me",code:"__defined_by_me"}} |
+        (try fromjson) // {error:{message:([., inputs] | add),type:"_llm_scripts_error",code:"_llm_scripts_error"}} |
           [$str, {type:"response.failed",sequence_number:infinite,response:.} | @json]
       end
     end;
@@ -364,7 +381,7 @@ preprocess_render_event() {
   elif .type == "response.incomplete" then
     ["_my_extra_info", null, null, null, "", (.response | build_extra_info | @json)],
     [.type, null, null, null, "", ([.response.incomplete_details] + .response.output | @json)]
-  elif .type == "_my_interrupted" then
+  elif .type == "_llm_scripts_interrupted" then
     [.type, null, null, null, "", ""]
   else
     empty
@@ -374,8 +391,8 @@ preprocess_render_event() {
   if ! jq --unbuffered -rc "$preprocess_program"; then
     jq -nrc '"response.failed",0,0,0,"",({
         "message":"json parsing error",
-        "code":"__defined_by_me",
-        "type":"__defined_by_me"
+        "code":"_llm_scripts_error",
+        "type":"_llm_scripts_error"
       } | @json | @json)'
   fi
 }
@@ -578,7 +595,7 @@ make_stream_output() {
       _my_extra_info)
         printf "%s" "$payload" >>"$extra_info_buffer"
         ;;
-      response.completed|response.failed|response.incomplete|_my_interrupted)
+      response.completed|response.failed|response.incomplete|_llm_scripts_interrupted)
         break
         ;;
       # response.reasoning_text.done)
@@ -616,7 +633,7 @@ make_stream_output() {
     response.failed)
       exitcode=4
       ;;
-    _my_interrupted)
+    _llm_scripts_interrupted)
       drain=
       exitcode=5
       ;;
@@ -624,8 +641,8 @@ make_stream_output() {
       jq -n '{
         error: {
         message:"the stream terminated abnormally",
-        type:"__defined_by_me",
-        code:"__defined_by_me"
+        type:"_llm_scripts_error",
+        code:"_llm_scripts_error"
         }
       }' >&3
       drain=

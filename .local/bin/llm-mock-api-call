@@ -1,0 +1,85 @@
+#!/bin/sh
+# Only non streaming mode is supported
+
+opt_state_dir=
+while getopts "s:" opt; do
+  case $opt in
+    s)  opt_state_dir=$OPTARG ;;
+    \?) exit 2 ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ -z "$opt_state_dir" ]; then
+  printf "state dir not provided\n" >&2
+  exit 2
+fi
+
+# discard api key
+cat >/dev/null
+
+turn_file=$opt_state_dir/turn
+
+turn=1
+if [ -f "$turn_file" ]; then
+  turn=$(cat -- "$turn_file")
+  case $turn in
+    *[!0123456789]*|'')
+      turn=1
+      ;;
+  esac
+fi
+
+mock_responses_file=$opt_state_dir/mock-responses
+if [ ! -f "$mock_responses_file" ]; then
+  printf "mock responses file doesn't exist\n" >&2
+  exit 1
+fi
+
+jq -j -- '.model' "$1" >"$opt_state_dir"/model
+
+jq -c -- '
+[
+  .input | .. | select(.type? | endswith("_call") or endswith("_text")) |
+  .text // .arguments // .input // "" | length
+] | add | {
+  input_tokens:.,
+  input_tokens_details: {
+    cached_tokens: (0.9 * .) | floor
+  }
+}
+' "$1" >"$opt_state_dir/input-usage"
+
+jq_program_make_response='{
+  id: (now|@base64),
+  object: "response",
+  created_at:(now | floor)
+} + . |
+if .status == "failed" and .error == null then
+  .error = {error:{message: "API call failed",type:"_llm_scripts_error",code:"_llm_scripts_error"}}
+elif .usage == null then
+  .usage = $input_usage[0] + (
+    [
+      .output | .. | select(.type? | endswith("_call") or endswith("_text")) | [
+        select(.type == "reasoning_text").text // "",
+        .text // .arguments // .input
+      ] | map(length)
+    ] | reduce .[] as $item ([0, 0]; [.[0] + $item[0], .[1] + $item[1]]) |
+    . as [$reasoning_tokens, $output_tokens] | {
+      $output_tokens,
+      output_tokens_details: {$reasoning_tokens}
+    })
+end |
+if .model == null then
+  .model = $model
+end
+'
+
+tail -n +"$turn" -- "$mock_responses_file" | head -n 1 \
+  | jq --rawfile model "$opt_state_dir/model" \
+  --slurpfile input_usage "$opt_state_dir/input-usage" \
+  -c -- "$jq_program_make_response"
+
+if [ "$(($(wc -l -- <"$mock_responses_file")))" -gt "$turn" ]; then
+  printf "%s\n" "$((turn + 1))" >"$turn_file"
+fi
