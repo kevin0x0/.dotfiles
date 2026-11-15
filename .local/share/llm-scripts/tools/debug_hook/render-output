@@ -1,0 +1,35 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+llmtr_parse_options "" "$@"
+
+jq -r '
+select(.type == "input_text").text |
+try (
+  fromjson |
+  if .error != null then
+    "error:", .error
+  elif .rejected != null then
+    "rejected:", .rejected
+  else
+    "hook debugging completed:",
+    (.hooks // [] | map(sub(".*/"; "") | sub(":.*"; "") | sub(">.*"; ""))[])
+  end
+) catch (
+  "error:", "bad output"
+)
+' | {
+  IFS= read -r line
+  color=33
+  case $line in
+    error:|rejected:) color=31 ;;
+  esac
+  printf "%s\n" "$line" | llmtr_run_on_color llmtr_color_pattern \
+    '1' '32;1' '^hook debugging completed:$' '&' \
+    '1' '31;1' '^(error|rejected):' '&'
+
+  llmtr_complete_newline \
+    | llmtr_run_filter_on_color llmtr_filter_color_line "$color" \
+    | llmtr_render_lines
+}

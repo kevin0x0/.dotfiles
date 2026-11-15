@@ -1,0 +1,22 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+llmtr_parse_options "" "$@"
+
+jq -Rsr '
+try (
+  fromjson |
+  "hooks:",
+  (.hooks // [] | map(sub(".*/"; "") | sub(":.*"; "") | sub(">.*"; ""))[])
+) catch (
+  "error: bad argument"
+)
+' | {
+  IFS= read -r line
+  printf "%s\n" "$line" | llmtr_run_on_color llmtr_color_pattern \
+    '1' '36;1' '^hooks:$' '&' \
+    '1' '31;1' '^error:' '&'
+
+  llmtr_complete_newline | llmtr_render_lines
+}

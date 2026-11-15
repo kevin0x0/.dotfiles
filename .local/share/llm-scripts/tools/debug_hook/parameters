@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "properties": {
+    "orchestration": {
+      "type": "string",
+      "description": "The orchestration (JSON Lines) content. Exactly one of orchestration and orchestration_file must be provided; when both are given, orchestration_file wins."
+    },
+    "orchestration_file": {
+      "type": "string",
+      "description": "A pathname of an orchestration (JSON Lines) file. Exactly one of orchestration and orchestration_file must be provided; when both are given, orchestration_file wins."
+    },
+    "hooks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Hook specs to debug; a non-empty list. Each is either a file pathname (absolute or \"./\"-prefixed, optionally with \":<event>\" and \"><name>\" suffixes) or a predefined hook reference (e.g. \"builtin/stats-print.always\")."
+    },
+    "result_dir": {
+      "type": "string",
+      "description": "Optional directory for the results; it is created when missing. When omitted, a temporary directory is used and its pathname is returned."
+    },
+    "output": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "content",
+        "path"
+      ],
+      "description": "How to return the results: \"content\" inlines the hook log and the session output; \"path\" returns only the result directory; \"auto\" (default) inlines them when their total size is under 8192 bytes and returns only the directory otherwise."
+    }
+  },
+  "required": [
+    "hooks"
+  ]
+}

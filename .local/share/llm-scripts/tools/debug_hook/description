@@ -1,0 +1,60 @@
+# Synopsis
+
+Run a scripted debug session for hooks: install the given hooks into a
+fresh chat session, drive the session through mock API, tool and file
+components according to an orchestration, and collect the hook log and
+the session output into a result directory.
+
+# Hooks
+
+"hooks" lists the hooks to debug; it must be non-empty. Each element
+is either a file pathname (absolute, or "./"-prefixed) or a predefined
+hook reference (a pathname relative to the llm-scripts hooks directory,
+e.g. "builtin/stats-print.always"). A file pathname may carry a
+":<event>" suffix naming the event the hook is installed under (a file
+hook must name its event: a builtin event is "builtin.state.<state>.<enter
+or leave>"), and a "><name>" suffix naming the hook with its type suffix
+(without it an auto-generated "oneshot" name is used, changing the run
+policy). The ":" and ">" characters are shell metacharacters; a file
+pathname containing them must be passed exactly as given.
+
+# Orchestration
+
+The orchestration is a JSON Lines document, one JSON value per line;
+each line describes one user turn. Its grammar is documented in the
+tool documentation (read it with the manage_tools tool's "doc"
+operation). In short, a line is {"input": [...], "output": [...]}:
+"input" is an array of input content items, and "output" is an array of
+response objects, each with an optional "status" and an "output" array
+of output items. The last response must terminate the agent loop,
+otherwise the orchestration is rejected.
+
+# Approval
+
+Execution requires approval on the controlling terminal; in
+non-interactive sessions it is rejected unless automatic approval is
+configured.
+
+# Returns
+
+A JSON object. On success, with "output":"content" (or "auto" when the
+result strings are small):
+{"result_dir": <string>, "hooks": [...], "hook_log": <string>,
+"stdout": <string>, "stderr": <string>}; with "output":"path" (or
+"auto" when they are large, a total of at least 8192 bytes):
+{"result_dir": <string>, "hooks": [...]}.
+On failure: {"error": <reason>}; on rejection: {"rejected": <reason>}.
+
+# Notes
+
+- The hooks run in a real chat session, so they see the session's real
+  environment. Their standard output goes to the session's terminal
+  output (collected in "stdout"); their standard error and hook-log
+  messages go to the hook log (collected in "hook_log").
+- The session is driven entirely by mock components and makes no real
+  API calls.
+- A response may set usage and model directly; when omitted, the mock
+  API computes the usage from the orchestration's content.
+- The result directory (a temporary directory when result_dir is
+  omitted) is not removed automatically; delete it with the shell tool
+  when its contents are no longer needed.

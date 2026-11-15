@@ -1,0 +1,118 @@
+#!/bin/sh
+
+. -- llm-chat-common
+llmcc_set_public_files_var "$2"
+llmcc_tool_source_runtime_config "debug_hook"
+
+cleanup() {
+  [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
+  if [ -n "$1" ]; then
+    trap - "$1"
+    kill -"$1" "$$"
+  fi
+}
+trap 'cleanup' EXIT
+trap 'cleanup INT' INT
+trap 'cleanup TERM' TERM
+trap 'cleanup QUIT' QUIT
+
+tmpdir=
+tmpdir=$(tmpfile -d) || exit 1
+argfile=$tmpdir/arg
+orchfile=$tmpdir/orchestration
+run_err=$tmpdir/run-err
+approval_out=$tmpdir/approval-out
+
+cat >"$argfile"
+
+if ! jq -e -- 'type == "object" and (.hooks | type) == "array" and (.hooks | length) > 0' "$argfile" >/dev/null 2>&1; then
+  llm-make-mcontent -t -- '{"error":"bad argument: hooks must be a non-empty array"}'
+  exit 0
+fi
+
+orchestration=$(jq -j '.orchestration // ""' <"$argfile")
+orchestration_file=$(jq -j '.orchestration_file // ""' <"$argfile")
+
+if [ -n "$orchestration_file" ]; then
+  :
+elif [ -n "$orchestration" ]; then
+  printf "%s\n" "$orchestration" >"$orchfile"
+  orchestration_file=$orchfile
+else
+  llm-make-mcontent -t -- '{"error":"bad argument: exactly one of orchestration or orchestration_file must be provided"}'
+  exit 0
+fi
+
+hooks_summary=$(jq -j '.hooks // [] | map(sub(".*/"; "") | sub(":.*"; "") | sub(">.*"; "")) | join(" ")' <"$argfile")
+summary=$'\033[33;1m'"debug hooks: $hooks_summary"$'\033[0m'
+preview_command="$(shell-escape -- sh -- "$1/render-call" -d "$1" -s "$2")"
+colored_preview_command="$preview_command -c always"
+summary_command="$(shell-escape -- printf "%s\n" "$summary")"
+header=$'\033[31;1m'"request to debug hooks:"$'\033[0m'
+
+tty-approval \
+  -R \
+  -r "$opt_yes" \
+  -p "$preview_command" \
+  -P "$colored_preview_command" \
+  -s "$summary_command" \
+  -h "$header" \
+  -i "$argfile" >"$approval_out"
+
+case $? in
+  0|3)
+    ;;
+  1)
+    jq -Rcs '{rejected:.}' <"$approval_out" | llm-make-mcontent -t
+    exit 0
+    ;;
+  *)
+    llm-make-mcontent -t -- '{"error":"approval agent exited abnormally"}'
+    exit 0
+    ;;
+esac
+
+hooks_escaped=$(jq -r '.hooks | map(@sh) | join(" ")' <"$argfile")
+
+result_dir=$(jq -j '.result_dir // ""' <"$argfile")
+output=$(jq -j '.output // "auto"' <"$argfile")
+hooks_json=$(jq -c '.hooks' <"$argfile")
+
+set -- -o "$orchestration_file"
+[ -n "$result_dir" ] && set -- "$@" -r "$result_dir"
+eval "set -- \"\$@\" $hooks_escaped"
+
+actual_result_dir=$(llm-chat-debug-hook "$@" 2>"$run_err")
+exitcode=$?
+
+if [ "$exitcode" -ne 0 ]; then
+  err=$(head -n 1 -- "$run_err")
+  jq -cn --arg err "${err:-failed}" '{error:$err}' | llm-make-mcontent -t
+  exit 0
+fi
+
+if [ "$output" != path ]; then
+  size=0
+  [ -e "$actual_result_dir/link-hook-log" ] || : >"$actual_result_dir/link-hook-log"
+  [ -e "$actual_result_dir/stdout" ] || : >"$actual_result_dir/stdout"
+  [ -e "$actual_result_dir/stderr" ] || : >"$actual_result_dir/stderr"
+  size=$((size + $(wc -c <"$actual_result_dir/link-hook-log")))
+  size=$((size + $(wc -c <"$actual_result_dir/stdout")))
+  size=$((size + $(wc -c <"$actual_result_dir/stderr")))
+
+  if [ "$output" = content ] || [ "$size" -lt 8192 ]; then
+    jq -cn --arg dir "$actual_result_dir" --argjson hooks "$hooks_json" \
+      --rawfile hook_log "$actual_result_dir/link-hook-log" \
+      --rawfile stdout "$actual_result_dir/stdout" \
+      --rawfile stderr "$actual_result_dir/stderr" \
+      '{result_dir:$dir, hooks:$hooks, $hook_log, $stdout, $stderr}' \
+      | llm-make-mcontent -t
+    exit 0
+  fi
+fi
+
+jq -cn --arg dir "$actual_result_dir" --argjson hooks "$hooks_json" \
+  '{result_dir:$dir, hooks:$hooks}' \
+  | llm-make-mcontent -t
+
+exit 0
