@@ -1,0 +1,91 @@
+#!/bin/sh
+
+opt_result_dir=
+opt_orchestration=
+while getopts "r:o:" opt; do
+  case $opt in
+    r)  opt_result_dir=$OPTARG ;;
+    o)  opt_orchestration=$OPTARG ;;
+    \?) exit 2 ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+if [ -z "$opt_orchestration" ]; then
+  printf "orchestration not provided (-o)\n" >&2
+  exit 2
+fi
+
+if [ -z "$opt_result_dir" ]; then
+  opt_result_dir=$(tmpfile -d) || exit
+else
+  mkdir -p -- "$opt_result_dir" || exit
+fi
+chat_state_dir=$opt_result_dir/chat-session
+
+if [ -e "$chat_state_dir" ]; then
+  if [ -e "$chat_state_dir/.llm-chat-debug-hook-mark" ]; then
+    rm -rf -- "$chat_state_dir" || exit
+  else
+    printf "missing mark file in %s, perhaps you passed a wrong directory\n" "$chat_state_dir" >&2
+    exit 1
+  fi
+fi
+mkdir -p -- "$chat_state_dir" || exit
+: >"$chat_state_dir/.llm-chat-debug-hook-mark"
+
+printf "%s\n" "$opt_result_dir"
+
+create_hooks() {
+  for hook_file; do
+    case $hook_file in
+      /*) ;;
+      ./*) hook_file=$PWD/$hook_file;;
+      *) continue ;;
+    esac
+
+    last_comp=${hook_file##*/}
+    hook_dirname=${hook_file%"$last_comp"}
+    name=${last_comp#"${last_comp%>*}"}
+    last_comp=${last_comp%>*}
+    name=${name#>}
+    event=${last_comp#"${last_comp%:*}"}
+    last_comp=${last_comp%:*}
+    event=${event#:}
+
+    hook_file=$hook_dirname$last_comp
+    llm-chat-manage-hook -jd "$chat_state_dir" create "$event" -L -- "$hook_file" "$name" >/dev/null || return
+  done
+}
+
+install_hooks() {
+  count=$#
+  while [ "$count" -ne 0 ]; do
+    count=$((count - 1))
+    hookref=$1
+    shift
+    case $hookref in
+      /*|./*) continue ;;
+    esac
+    set -- "$@" "$hookref"
+  done
+
+  llm-chat-manage-hook -jd "$chat_state_dir" install -- "$@" >/dev/null || return
+}
+
+create_hooks "$@" || exit
+install_hooks "$@" || exit
+
+llm-chat-debug -o "$opt_orchestration" -S "$chat_state_dir" \
+  >"$opt_result_dir/stdout" 2>"$opt_result_dir/stderr" || {
+  cat -- "$opt_result_dir/stderr" >&2
+  exit 1
+}
+
+. llm-chat-common
+llmcc_set_public_files_var "$chat_state_dir"
+
+ln -sf "$llmcc_hooks_dir" "$opt_result_dir/link-hooks"
+ln -sf "$llmcc_hook_state_dir" "$opt_result_dir/link-hook-state"
+ln -sf "$llmcc_hook_shared_state_dir" "$opt_result_dir/link-hook-shared-state"
+ln -sf "$llmcc_hook_log_file" "$opt_result_dir/link-hook-log"
