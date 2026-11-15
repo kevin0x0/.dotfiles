@@ -1,4 +1,5 @@
 # event: builtin.state.agent-loop-tool-call.leave
+# name: builtin-stats-update-on-tool-call.always
 
 status=
 

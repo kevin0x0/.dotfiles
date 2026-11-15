@@ -362,6 +362,16 @@ sub_remove() {
   fi
 }
 
+find_install_info() {
+  info_line=
+  info_line=$(sed -n '/^#[[:space:]]*'"$2"':.*$/{p;q;}' <"$hook_file")
+  [ -n "$info_line" ] || return 1
+  info_line=${info_line#*"$2:"}
+  info_line=${info_line%"${info_line##*[![:space:]]}"}
+  info_line=${info_line#"${info_line%%[![:space:]]*}"}
+  eval " $1=\$info_line"
+}
+
 sub_install() {
   [ "$1" = "--" ] && shift
 
@@ -408,20 +418,15 @@ sub_install() {
       break
     }
 
+    [ -n "$name" ] || find_install_info name name
     [ -n "$name" ] || name=$last_comp 
 
     if [ -z "$event" ]; then
-      eventline=
-      eventline=$(sed -n '/^#[[:space:]]*event:.*$/{p;q;}' <"$hook_file")
-      if [ -z "$eventline" ]; then
+      find_install_info event event || {
         printf "event line not found in %s\n" "$hook_file" >&2
         exitcode=1
         break
-      fi
-      eventline=${eventline#*"event:"}
-      eventline=${eventline%"${eventline##*[![:space:]]}"}
-      eventline=${eventline#"${eventline%%[![:space:]]*}"}
-      event=$eventline
+      }
     fi
 
     validate_event "$event" || { exitcode=1; break; }

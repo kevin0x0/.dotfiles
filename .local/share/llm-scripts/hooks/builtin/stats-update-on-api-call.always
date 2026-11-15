@@ -1,4 +1,5 @@
 # event: builtin.state.agent-loop-api-call.leave
+# name: builtin-stats-update-on-api-call.always
 
 acc_input=0
 acc_cached_input=0
