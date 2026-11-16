@@ -6,7 +6,7 @@
 { ring-color=#$accent$alpha_hex }
 { ring-ver-color=#$warning$alpha_hex }
 { ring-wrong-color=#$urgent$alpha_hex }
-{ ring-clear-color=#$unfocused_fg$alpha_hex }
+{ ring-clear-color=#$muted$alpha_hex }
 
 # ring inside —— semi-transparent dark layer so the indicator stays
 # readable on any wallpaper
@@ -26,7 +26,7 @@ line-uses-inside
 { text-color=#$fg$alpha_hex }
 { text-ver-color=#$warning$alpha_hex }
 { text-wrong-color=#$urgent$alpha_hex }
-{ text-clear-color=#$unfocused_fg$alpha_hex }
+{ text-clear-color=#$muted$alpha_hex }
 
 # separator between highlight segments (semi-transparent)
 { separator-color=#$inactive$alpha_hex }

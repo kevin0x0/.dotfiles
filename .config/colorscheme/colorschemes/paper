@@ -8,10 +8,11 @@ bright_red=d0887c  bright_green=96b183  bright_yellow=dbb67a  bright_blue=98aec5
 bright_magenta=b69ab8  bright_cyan=93bdb5  bright_white=f5efe4
 
 # gui semantics
-accent=5f8a7c  accent_fg=f0e9db  indicator=c9a25e
+accent=5f8a7c  accent_fg=$bg  indicator=c9a25e
+muted=6b645a  statusline=$fg
 inactive=ddd5c5  inactive_fg=6b645a  unfocused=e8e1d3  unfocused_fg=8a8275
-urgent=c0655a  urgent_fg=f0e9db
-warning=c9a25e  binding=a080a8  statusline=4a453d
+urgent=c0655a  urgent_fg=$bg  warning=c0703a  warning_fg=$bg
+success=$green  binding=a080a8  binding_fg=$bg
 surface=ddd5c5
 
 # metadata

@@ -15,6 +15,6 @@ magenta_rgb=$(hex_to_rgb "$magenta")
 red_rgb=$(hex_to_rgb "$red")
 yellow_rgb=$(hex_to_rgb "$yellow")
 surface_rgb=$(hex_to_rgb "$surface")
-unfocused_fg_rgb=$(hex_to_rgb "$unfocused_fg")
+muted_rgb=$(hex_to_rgb "$muted")
 
 # vim: ft=sh

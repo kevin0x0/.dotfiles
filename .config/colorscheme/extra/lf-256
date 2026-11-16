@@ -7,6 +7,6 @@ magenta_256=$(hex_to_256 "$magenta")
 red_256=$(hex_to_256 "$red")
 yellow_256=$(hex_to_256 "$yellow")
 surface_256=$(hex_to_256 "$surface")
-unfocused_fg_256=$(hex_to_256 "$unfocused_fg")
+muted_256=$(hex_to_256 "$muted")
 
 # vim: ft=sh

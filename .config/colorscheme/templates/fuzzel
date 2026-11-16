@@ -10,7 +10,7 @@
 { prompt=${accent}ff }
 
 # Placeholder string shown when the input is empty
-{ placeholder=${unfocused_fg}ff }
+{ placeholder=${muted}ff }
 
 # Input string
 { input=${fg}ff }
@@ -31,7 +31,7 @@
 { border=${inactive}ff }
 
 # Match count shown at the right of the input
-{ counter=${unfocused_fg}ff }
+{ counter=${muted}ff }
 
 # Message string
 { message=${warning}ff }

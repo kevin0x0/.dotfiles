@@ -1,10 +1,10 @@
-red_256=$(hex_to_256 "$red")
+urgent_256=$(hex_to_256 "$urgent")
 accent_256=$(hex_to_256 "$accent")
 bg_256=$(hex_to_256 "$bg")
 fg_256=$(hex_to_256 "$fg")
-unfocused_fg_256=$(hex_to_256 "$unfocused_fg")
+muted_256=$(hex_to_256 "$muted")
 magenta_256=$(hex_to_256 "$magenta")
-yellow_256=$(hex_to_256 "$yellow")
-green_256=$(hex_to_256 "$green")
+warning_256=$(hex_to_256 "$warning")
+success_256=$(hex_to_256 "$success")
 
 # vim: ft=sh

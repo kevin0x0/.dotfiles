@@ -4,12 +4,12 @@
 
 [urgency=critical]
 height=300
-{ text-color=#$red }
-{ border-color=#$red }
+{ text-color=#$urgent }
+{ border-color=#$urgent }
 
 [urgency=low]
 height=150
-{ text-color=#$unfocused_fg }
-{ border-color=#$unfocused_fg }
+{ text-color=#$muted }
+{ border-color=#$muted }
 
 # vim: ft=dosini

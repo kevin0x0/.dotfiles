@@ -10,7 +10,7 @@ swayimg.viewer.set_image_chessboard(20, 0x00000000, 0x00000000) -- chessboard
 
 -- Gallery mode
 { swayimg.gallery.border_color = 0x${alpha_hex:-ff}$accent }           -- border color for selected thumbnail
-{ swayimg.gallery.selected_color = 0x${alpha_hex:-ff}$unfocused }         -- background color for selected thumbnail
+{ swayimg.gallery.selected_color = 0x${alpha_hex:-ff}$surface }         -- background color for selected thumbnail
 { swayimg.gallery.unselected_color = 0xa0$bg }       -- background color for unselected thumbnail
 swayimg.gallery.window_color = 0x00000000           -- window background color
 
