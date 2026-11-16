@@ -1,0 +1,26 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+llmtr_parse_options "" "$@"
+
+arg=$(cat)
+
+path=$(printf '%s\n' "$arg" | jq -j '.path // ""')
+offset=$(printf '%s\n' "$arg" | jq -j '.offset // 1 | if type == "number" then floor else 1 end | tostring')
+limit=$(printf '%s\n' "$arg" | jq -j '.limit // 1500 | if type == "number" then floor else 1500 end | tostring')
+
+offset=${offset:-1}
+limit=${limit:-1500}
+
+# Show the path the same way the read tool's own header does: raw when
+# it is all safe characters, a $'...' form otherwise (which also escapes
+# any newline).
+shown=$path
+case $path in
+  *[![:alnum:]_./-]*)
+    shown=$(shell-escape -t '' -- "$path")
+    ;;
+esac
+
+llmtr_render_header '36;1' 'reading ' '33' "$shown: $offset-$((offset + limit - 1))"

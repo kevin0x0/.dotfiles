@@ -1,0 +1,149 @@
+#!/bin/sh
+
+tmp=
+cleanup() {
+  [ -n "$tmp" ] && rm -f -- "$tmp"
+  if [ -n "$1" ]; then
+    trap - "$1"
+    kill -"$1" "$$"
+  fi
+}
+trap 'cleanup' EXIT
+trap 'cleanup INT' INT
+trap 'cleanup TERM' TERM
+trap 'cleanup QUIT' QUIT
+
+error() {
+  printf "error: %s\n" "$1" | llm-make-mcontent -t
+  exit 0
+}
+
+bad_argument() {
+  error "bad argument: $1"
+}
+
+{
+  read -r pathname && read -r offset limit
+} <<EOF || bad_argument "invalid JSON"
+$(jq -r '
+  "$'\''" + (.path // "" | gsub("\\\\"; "\\\\") | gsub("'\''"; "\\'\''") | gsub("\n";"\\n")) + "'\''",
+  (
+    {offset,limit} |
+    map_values(if type != "number" then null else floor | tostring end) |
+    [.offset // "1", .limit // "1500"] | join(" ")
+  )')
+EOF
+
+command eval pathname="$pathname" || bad_argument "invalid path: $pathname"
+[ -n "$pathname" ] || bad_argument "path is required"
+
+[ "$offset" -gt 0 ] || bad_argument "offset must be greater than zero"
+[ "$limit" -ge 0 ] || bad_argument "limit must be non-negative"
+
+escape_chars=[:,?\>\$\(\)\"\'[:space:][:cntrl:]]
+
+single_line_pathname() {
+  case $1 in
+    *${escape_chars}*)  shell-escape -t '' -- "$1" ;;
+    *)                  printf "%s" "$1" ;;
+  esac
+}
+
+header() {
+  printf "%s: " "$1"
+  single_line_pathname "$2"
+  [ -n "$3" ] && printf "%s" "$3"
+  echo
+}
+
+if [ -L "$pathname" ]; then
+  link_target=$(readlink -- "$pathname" && echo x) || error "failed to read the link"
+  link_target=${link_target%$'\nx'}
+  header "symbolic link" "$pathname" " -> $(single_line_pathname "$link_target")"
+elif [ -c "$pathname" ]; then
+  header "character device" "$pathname"
+elif [ -b "$pathname" ]; then
+  header "block device" "$pathname"
+elif [ -p "$pathname" ]; then
+  header "FIFO" "$pathname"
+elif [ -S "$pathname" ]; then
+  header "socket" "$pathname"
+elif [ ! -e "$pathname" ]; then
+  header "no such file or directory" "$pathname"
+elif [ ! -r "$pathname" ]; then
+  header "unreadable file" "$pathname"
+elif [ -d "$pathname" ]; then
+  tmp=$(tmpfile) || exit 1
+
+  findpath=$pathname/.
+  case $findpath in
+    [!/]*) findpath=$PWD/$findpath ;;
+  esac
+  find "$findpath" ! -name '.' -prune -exec sh -c '
+    escape() {
+      case $2 in
+        *${escape_chars}*) eval "$1=\$(shell-escape -t \"\" \"\$2\")" ;;
+        *) eval "$1=\$2" ;;
+      esac
+    }
+    escape_chars=$1; prefix=$2; shift 2
+    for arg; do
+      extra=
+      if [ -L "$arg" ]; then
+        if target=$(readlink -- "$arg" && echo x); then
+          target=${target%$'"'\\nx'"'}
+          escape target "$target"
+          extra=" -> $target"
+        else
+          extra=" -> ?"
+        fi
+        target=
+      elif [ -f "$arg" ]; then
+        :
+      elif [ -d "$arg" ]; then
+        arg=${arg%/}/
+      elif [ -c "$arg" ]; then
+        extra=" (character device)"
+      elif [ -b "$arg" ]; then
+        extra=" (block device)"
+      elif [ -p "$arg" ]; then
+        extra=" (FIFO)"
+      elif [ -S "$arg" ]; then
+        extra=" (socket)"
+      fi
+      rel=
+      escape rel "${arg#"$prefix"}"
+      printf "%s%s\n" "$rel" "$extra"
+    done
+  ' sh "$escape_chars" "$findpath/" {} + | LC_ALL=C sort >"$tmp"
+  total=$(($(wc -l <"$tmp")))
+  if [ "$total" -eq 0 ]; then
+    header "directory" "$pathname" ", empty"
+  elif [ "$offset" -gt "$total" ]; then
+    header "directory" "$pathname" ", offset $offset is beyond the end ($total entries)"
+  else
+    end=$((offset - 1 + limit > total ? total : offset - 1 + limit))
+    header "directory" "$pathname" ", entries ${offset}-$end of $total"
+    tail -n +"$offset" <"$tmp" | head -n "$limit"
+  fi
+elif [ -f "$pathname" ]; then
+  if [ -n "$(head -c 4096 <"$pathname" | tr -cd '\000' | tr '\000' 'x' | head -n 1)" ]; then
+    header "regular file" "$pathname" ", contains a NUL byte, likely a binary file; content not shown"
+  else
+    missing_newline=
+    [ -n "$(tail -c 1 <"$pathname" | tr -c '\n' '[x*]')" ] && missing_newline=1
+    total=$((missing_newline + $(wc -l <"$pathname")))
+    if [ "$total" -eq 0 ]; then
+      header "regular file" "$pathname" ", empty"
+    elif [ "$offset" -gt "$total" ]; then
+      header "regular file" "$pathname" ", offset $offset is beyond the end ($total lines)"
+    else
+      end=$((offset - 1 + limit > total ? total : offset - 1 + limit))
+      header "regular file" "$pathname" ", lines ${offset}-$end of $total${missing_newline:+, no trailing newline}"
+      { cat -- "$pathname"; echo; } | awk -v offset="$offset" -v end="$end" \
+        'NR >= offset && NR <= end {print NR ": " $0}'
+    fi
+  fi
+else
+  header "unknown file type" "$pathname"
+fi | llm-make-mcontent -t

@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "The pathname of the file or directory to read; relative to the session's working directory when not absolute."
+    },
+    "offset": {
+      "type": "integer",
+      "description": "The 1-based line (file) or entry (directory) to start reading from. Must be a positive integer.",
+      "default": 1
+    },
+    "limit": {
+      "type": "integer",
+      "description": "The maximum number of lines (file) or entries (directory) to read. Must be a non-negative integer.",
+      "default": 1500
+    }
+  },
+  "required": [
+    "path"
+  ]
+}
