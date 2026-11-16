@@ -28,6 +28,13 @@
         "path"
       ],
       "description": "How to return the results: \"content\" inlines the hook log and the session output; \"path\" returns only the result directory; \"auto\" (default) inlines them when their total size is under 8192 bytes and returns only the directory otherwise."
+    },
+    "envs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Environment variables to set for the debug session, as \"NAME=VALUE\" strings. The name must match [A-Za-z_][A-Za-z0-9_]*; an entry with any other name is ignored."
     }
   },
   "required": [

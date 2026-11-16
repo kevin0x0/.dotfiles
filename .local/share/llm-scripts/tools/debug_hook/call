@@ -78,11 +78,13 @@ result_dir=$(jq -j '.result_dir // ""' <"$argfile")
 output=$(jq -j '.output // "auto"' <"$argfile")
 hooks_json=$(jq -c '.hooks' <"$argfile")
 
-set -- -o "$orchestration_file"
-[ -n "$result_dir" ] && set -- "$@" -r "$result_dir"
-eval "set -- \"\$@\" $hooks_escaped"
+envs=$(jq -r '.envs // [] | map(select(test("^[A-Za-z_][A-Za-z0-9_]*=")) | @sh) | join(" ")' <"$argfile")
 
-actual_result_dir=$(llm-chat-debug-hook "$@" 2>"$run_err")
+set -- llm-chat-debug-hook -o "$orchestration_file"
+[ -n "$result_dir" ] && set -- "$@" -r "$result_dir"
+eval "set -- env -- $envs \"\$@\" -- $hooks_escaped"
+
+actual_result_dir=$("$@" 2>"$run_err")
 exitcode=$?
 
 if [ "$exitcode" -ne 0 ]; then

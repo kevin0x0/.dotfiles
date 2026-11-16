@@ -58,3 +58,6 @@ On failure: {"error": <reason>}; on rejection: {"rejected": <reason>}.
 - The result directory (a temporary directory when result_dir is
   omitted) is not removed automatically; delete it with the shell tool
   when its contents are no longer needed.
+- "envs" lists environment variables to set for the session, as
+  "NAME=VALUE" strings; an entry whose name is not a valid identifier
+  is ignored.

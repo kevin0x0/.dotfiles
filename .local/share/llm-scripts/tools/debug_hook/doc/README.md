@@ -89,6 +89,13 @@ tool.
 The result directory is not removed automatically; delete it with the
 shell tool when its contents are no longer needed.
 
+## Environment
+
+The `envs` parameter sets environment variables for the debug session,
+as "NAME=VALUE" strings. The hooks run in the session and see these
+variables; an entry whose name is not a valid identifier
+(`[A-Za-z_][A-Za-z0-9_]*`) is ignored.
+
 # Examples
 
 A turn that just prints a message:
