@@ -330,8 +330,9 @@ render_kvpair() {
   kvsep_length=${7:-${#kvsep}}
   column_sep=$8
   column_sep_length=${9:-${#column_sep}}
-  key_color=${10:-'36'}
-  shift 10
+  max_column=${10}
+  key_color=${11:-'36'}
+  shift 11
 
   valid_width=$((width - left_padding - right_padding))
   max_pair_length=$((valid_width - leading_mark_length - kvsep_length))
@@ -410,6 +411,11 @@ render_kvpair() {
     llmcc_hook_log WARN "width ($width) too small for kvpair rendering: $((width - max_pair_length + max_key_length + max_value_length)) required"
     return
   fi
+
+  if [ -n "$max_column" ] && [ "$columns" -gt "$max_column" ]; then
+    columns=$max_column
+  fi
+
   if [ "$columns" -ge "$nkvpair" ]; then
     columns=$nkvpair
     column_width=$(((valid_width + column_sep_length - columns * column_sep_length) / columns))
@@ -742,14 +748,19 @@ parse_kvpair_callback() {
   [ -z "${na_column_sep+1}" ] && { na_column_sep=$(color '36' " ┃ "); na_column_sep_length=3; }
   na_column_sep_length=${na_column_sep_length:-${#na_column_sep}}
 
+  [ "${na_max_column:-1}" -eq 0 ] && {
+    user_visible_log WARN "max_column can not be zero, ignored"
+    na_max_column=
+  }
+
   result=$(render_kvpair "$na_lpadding" "$na_rpadding" "$width" \
     "$na_leading_mark" "$na_leading_mark_length" "$na_kvsep" "$na_kvsep_length" \
-    "$na_column_sep" "$na_column_sep_length" "$na_key_color" "$@"; echo x)
+    "$na_column_sep" "$na_column_sep_length" "$na_max_column" "$na_key_color" "$@"; echo x)
   push_values "${result%x}"
 }
 
 parse_kvpair() {
-  parse_leaf "$@" "leading_mark# kvsep# column_sep# key_color" parse_kvpair_callback
+  parse_leaf "$@" "leading_mark# kvsep# column_sep# max_column key_color" parse_kvpair_callback
 }
 
 parse_line() {
