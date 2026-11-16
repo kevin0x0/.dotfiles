@@ -772,7 +772,7 @@ set_render_utils_options
 if [ -n "$opt_session" ] && [ -e "$opt_session" ]; then
   state_init_from_session || exit
   if [ -n "$opt_show_conversation_on_startup" ]; then
-    llm-render-events "$llm_chat_conversation" | llmru_dispatch_render_event "$render_event_fifo"
+    llm-render-events <"$llm_chat_conversation" | llmru_dispatch_render_event "$render_event_fifo"
   fi
 else
   state_init
@@ -820,7 +820,7 @@ while :; do
       case $exitcode in
         0) # Append to input
           if [ -s "$llm_chat_response_output" ]; then
-            llm-o2i "$llm_chat_response_output" >>"$llm_chat_this_turn"
+            llm-o2i -- "$llm_chat_response_output" >>"$llm_chat_this_turn"
             llm_chat_next_state=agent-loop-tool-call
           else
             i18n -n llm-scripts \
@@ -829,7 +829,7 @@ while :; do
           fi
           ;;
         5)
-          llm-o2i "$llm_chat_response_output" >>"$llm_chat_this_turn"
+          llm-o2i -- "$llm_chat_response_output" >>"$llm_chat_this_turn"
           llm_chat_next_state=agent-loop-api-call-interrupted
           ;;
         3) # response.incomplete
@@ -840,7 +840,7 @@ while :; do
                 # Skip the first item
                 jq -c -- 'inputs' "$llm_chat_response_output" >"$tmp"
                 cp -- "$tmp" "$llm_chat_response_output"
-                llm-o2i "$llm_chat_response_output" >>"$llm_chat_this_turn"
+                llm-o2i -- "$llm_chat_response_output" >>"$llm_chat_this_turn"
                 llm_chat_next_state=agent-loop-tool-call
                 ;;
               *)

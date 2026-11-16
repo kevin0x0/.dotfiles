@@ -57,5 +57,5 @@ llm_chat_commit_input_content() {
 } >>"$llm_chat_hook_input"
 
 llm_chat_conversation_slice() {
-  llm-chat-conversation-slice "$@"
+  llm-chat-conversation-slice -- "$@"
 }

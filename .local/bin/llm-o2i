@@ -1,4 +1,8 @@
-jqcmd='del(.created_by) |
+#!/bin/sh
+
+[ "$1" = "--" ] && shift
+
+jq_program='del(.created_by) |
 if .type == "message" then
   .
 elif .type == "reasoning" then
@@ -13,6 +17,4 @@ else
   .
 end'
 
-exec jq -c "$jqcmd" "$@"
-
-# vim: ft=sh
+exec jq -c -- "$jq_program" "$@"

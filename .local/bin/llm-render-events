@@ -1,5 +1,7 @@
 #!/bin/sh
 
+[ "$1" = "--" ] && shift
+
 jq_program='
 def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
 if (.type // "message") == "message" then

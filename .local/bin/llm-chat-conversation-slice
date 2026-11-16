@@ -1,5 +1,7 @@
 #!/bin/sh
 
+[ "$1" = "--" ] && shift
+
 jq_program='
 def add($item):
   if (length) == 0 then
