@@ -14,8 +14,9 @@ while getopts "t:" opt; do
 done
 shift "$((OPTIND - 1))"
 
+escape_chars=$'\a\b\f\n\r\t\v'
 for s; do
-  head=${s%%[\\\'$'\n']*}
+  head=${s%%[\\\'$escape_chars]*}
   out="\$'"$head
   s=${s#"$head"}
   while [ -n "$s" ]; do
@@ -26,12 +27,20 @@ for s; do
       \'*)
         out=$out"\\'"
         ;;
-      $'\n'*)
-        out=$out"\\n"
+      [$escape_chars]*)
+        case $s in
+          $'\a'*) out=$out"\\a" ;;
+          $'\b'*) out=$out"\\b" ;;
+          $'\f'*) out=$out"\\f" ;;
+          $'\n'*) out=$out"\\n" ;;
+          $'\r'*) out=$out"\\r" ;;
+          $'\t'*) out=$out"\\t" ;;
+          $'\v'*) out=$out"\\v" ;;
+        esac
         ;;
     esac
     s=${s#?}
-    head=${s%%[\\\'$'\n']*}
+    head=${s%%[\\\'$escape_chars]*}
     out=$out$head
     s=${s#"$head"}
   done
