@@ -4,28 +4,78 @@ Read a file, or list the entries of a directory. File content is
 returned with 1-based line numbers; directory entries are listed one
 per line. Reading is read-only and needs no approval.
 
-# Returns
+# Result layout
 
-The result is a header line followed by the requested lines or
-entries.
+The result is a header line followed by the content (the requested
+lines or entries). The header is always present and is always the
+first line. It has the form:
 
-For a file, each line is prefixed with its 1-based line number:
+    <file type>: <filename>[ <detail>]
+
+- <file type> names the kind of path; it is one of the labels under
+  "File types".
+- <filename> is the pathname as given, possibly in shell-quoted form
+  (see "Name escaping").
+- <detail> reports the range of lines or entries shown, or the reason
+  no content follows.
+
+# File types
+
+The header for each kind of path. Only a regular file and a directory
+have content lines after the header.
+
+- regular file: <path>, lines X-Y of N
+- regular file: <path>, empty
+- regular file: <path>, offset N is beyond the end (M lines)
+- regular file: <path>, contains a NUL byte, likely a binary file; content not shown
+- directory: <path>, entries X-Y of N
+- directory: <path>, empty
+- directory: <path>, offset N is beyond the end (M entries)
+- symbolic link: <path> -> <target>
+- character device: <path>
+- block device: <path>
+- FIFO: <path>
+- socket: <path>
+- unreadable file: <path>
+- no such file or directory: <path>
+- unknown file type: <path>
+
+"unreadable file" reports a path that exists but cannot be read (for
+example, permission denied). "unknown file type" reports a file type
+other than the ones listed, such as a Solaris door or a BSD whiteout;
+these occur only on some systems.
+
+# Reading a file
+
+For a text file, each content line is a line of the file prefixed
+with its 1-based line number, a colon, and a space ("<number>: ").
+The number is its shortest non-empty decimal form (no leading zeros):
 
     regular file: src/main.c, lines 1-3 of 42
     1: #include <stdio.h>
     2:
     3: int main(void) {
 
-The header reports the range of lines shown and the total number of
-lines. When the last line of the file lacks a trailing newline, the
-header adds "no trailing newline"; when the offset is past the end,
-the header reports "offset N is beyond the end (M lines)" instead of
-content.
+The content is shown losslessly: every line appears exactly as it is
+in the file, with only the line-number prefix added. The one
+exception is the final newline: when the last line has no trailing
+newline, the header ends with ", no trailing newline" (the displayed
+last line is still newline-terminated):
 
-For a directory, each entry is listed by name, with a marker for its
-type: a regular file is shown by name alone, a directory ends in "/",
-a symbolic link shows its target after " -> ", and a special file
-shows its type in parentheses:
+    regular file: notes.txt, lines 1-2 of 2, no trailing newline
+    1: hello
+    2: world
+
+A file containing a NUL byte is treated as binary and its content is
+not shown:
+
+    regular file: image.bin, contains a NUL byte, likely a binary file; content not shown
+
+# Listing a directory
+
+Each entry is listed by name with a marker for its type: a regular
+file is shown by name alone, a directory ends in "/", a symbolic link
+shows its target, and a special file shows its type in parentheses:
 
     directory: src, entries 1-5 of 5
     lib/
@@ -34,23 +84,20 @@ shows its type in parentheses:
     link -> lib/main.c
     pipe (FIFO)
 
-Special types are FIFO, socket, character device and block device,
-shown as "(FIFO)", "(socket)", "(character device)" and "(block
-device)".
+# Name escaping
+
+A pathname, a symbolic link target, and each entry name in a
+directory listing, is shown shell-quoted (in the $'...' form) when it
+contains any of the characters : , > $ ( ) " ' , a whitespace
+character, or a control character; otherwise it is shown as-is.
+Inside the $'...' form the escapes \\, \', \a, \b, \f, \n, \r, \t and
+\v are decoded, and any other character is literal. A name that is not
+wrapped in $'...' is literal.
 
 # Notes
 
 - offset (default 1) is the first line or entry to read, limit
   (default 1500) the maximum number to read. Read a further page by
   raising offset.
-- A symbolic link is reported as its target and is not followed:
-  "symbolic link: <path> -> <target>". Device, FIFO and socket paths
-  are reported by type with no content.
-- A file containing a NUL byte is treated as binary and its content is
-  not shown; an empty file or directory is reported as "empty"; a path
-  that does not exist is reported as "no such file or directory".
-- A pathname, and each entry name in a directory listing, is shown in
-  shell-quoted form when it contains characters outside
-  [A-Za-z0-9_./-].
 - Use the reported line numbers to refer to specific lines when
   editing.
