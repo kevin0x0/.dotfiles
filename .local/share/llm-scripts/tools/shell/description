@@ -16,11 +16,54 @@ Execution requires approval on the controlling terminal; in
 non-interactive sessions it is rejected unless automatic approval is
 configured.
 
-# Returns
+# Output format
+
+By default the result is plain text. Set the `output_json` argument to
+true to return a JSON object instead.
+
+# Text format
+
+The first line names the outcome; it is one of `exitcode: <int>`,
+`error:`, or `rejected:`.
+
+On success (the script ran, regardless of its exit status):
+
+    exitcode: <int>
+    stderr:
+    | <line>
+    stdout:
+    | <line>
+
+- When both streams are non-empty, the `stderr` section precedes the
+  `stdout` section.
+- Each content line is prefixed with `| ` (a pipe followed by a space).
+- An empty stream is omitted entirely, including its header.
+- When a stream's output does not end with a newline, its header is
+  `<name> (no trailing newline):` instead of `<name>:`.
+- NUL bytes are removed from the output, matching how a terminal
+  displays them.
+
+On failure (the script could not run):
+
+    error:
+    | <message>
+
+On rejection:
+
+    rejected:
+    | <reason>
+
+# JSON format
+
+When `output_json` is true, the result is a JSON object:
 
 - On success: `{"exitcode": <int>, "stdout": <string>, "stderr": <string>}`
 - On failure: `{"error": <string>}`
 - On rejection: `{"rejected": <string>}`
+
+A "bad argument" error is the exception: it is always reported in the
+text format, because `output_json` is part of the argument and cannot
+be read when the argument itself is malformed.
 
 # Notes
 

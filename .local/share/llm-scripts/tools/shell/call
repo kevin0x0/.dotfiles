@@ -7,6 +7,7 @@ llmcc_tool_source_runtime_config "shell"
 stderr=
 stdout=
 arg=
+line_prefix='| '
 
 cleanup() {
   [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
@@ -29,11 +30,32 @@ approval_out=$tmpdir/approval-out
 
 cat >"$arg"
 
+error() {
+  if [ -n "$output_json" ]; then
+    jq -nc --arg error "$1" -- '{$error}'
+  else
+    printf "error:\n%s%s\n" "$line_prefix" "$1"
+  fi | llm-make-mcontent -t
+  exit 0
+}
+
+rejected() {
+  if [ -n "$output_json" ]; then
+    jq -Rsc -- '{rejected:.}'
+  else
+    printf "rejected:\n"
+    awk -v line_prefix="$line_prefix" '{print line_prefix $0}'
+  fi | llm-make-mcontent -t
+  exit 0
+}
+
+output_json=
 if ! jq -e -- 'type == "object" and (.command | type) == "string" and (.intent | type) == "string"' "$arg" >/dev/null 2>&1; then
-  llm-make-mcontent -t -- '{"error":"bad argument: both \"command\" and \"intent\" fields must be provided"}'
+  error 'bad argument: both "command" and "intent" fields must be provided'
   exit 0
 fi
 
+output_json=$(jq -j 'if .output_json then "1" else "" end' <"$arg")
 interpreter=$(jq -j '.interpreter // ""' <"$arg")
 [ -z "$interpreter" ] && interpreter=$opt_interpreter
 
@@ -46,9 +68,10 @@ if [ -z "$interpreter" ]; then
 fi
 
 if ! command -v -- "$interpreter" >/dev/null 2>&1; then
-  jq -cn --arg interpreter "$interpreter" -- '{error:"interpreter not found: " + $interpreter}' \
-    | llm-make-mcontent -t
-  exit 0
+  case $interpreter in
+    *$'\n'*) interpreter=$(shell-escape -t '' -- "$interpreter") ;;
+  esac
+  error "interpreter not found: $interpreter"
 fi
 
 reply=
@@ -75,24 +98,43 @@ case $? in
     exitcode=$?
     ;;
   1)
-    jq -Rcs '{rejected:.}' <"$approval_out" \
-      | llm-make-mcontent -t
-    exit 0
+    rejected <"$approval_out"
     ;;
   3)
     "$interpreter" >"$stdout" 2>"$stderr" <"$approval_out"
     exitcode=$?
     ;;
   *)
-    llm-make-mcontent -t '{"error":"approval agent exited abnormally"}'
-    exit 0
+    error "approval agent exited abnormally"
     ;;
 esac
 
-jq -cn --rawfile stdout "$stdout" \
-  --rawfile stderr "$stderr" \
-  --argjson exitcode "$exitcode" \
-  '{$stdout,$stderr,$exitcode}' \
-  | llm-make-mcontent -t --
+if [ -n "$output_json" ]; then
+  jq -cn --rawfile stdout "$stdout" \
+    --rawfile stderr "$stderr" \
+    --argjson exitcode "$exitcode" \
+    '{$stdout,$stderr,$exitcode}'
+else
+  missing_newline() {
+    [ -n "$(tail -c 1 <"$1" | tr -c '\n' '[x*]')" ]
+  }
+
+  print_out() {
+    if [ -s "$1" ]; then
+      if missing_newline "$1"; then
+        echo >>"$1"
+        printf "%s (no trailing newline):\n" "$2"
+      else
+        printf "%s:\n" "$2"
+      fi
+      tr -d '\000' <"$1" | \
+        awk -v line_prefix="$line_prefix" '{print line_prefix $0}'
+    fi
+  }
+
+  printf "exitcode: %s\n" "$exitcode"
+  print_out "$stderr" "stderr"
+  print_out "$stdout" "stdout"
+fi | llm-make-mcontent -t --
 
 exit 0

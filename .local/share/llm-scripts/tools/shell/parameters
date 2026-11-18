@@ -12,6 +12,10 @@
     "command": {
       "type": "string",
       "description": "The shell command(s) to execute; it may span multiple lines."
+    },
+    "output_json": {
+      "type": "boolean",
+      "description": "Return the result as a JSON object instead of the default plain text format."
     }
   },
   "required": [

@@ -4,19 +4,53 @@
 
 llmtr_parse_options "" "$@"
 
+line_prefix='| '
+
 program='
 include "functions";
 
 select(.type == "input_text") | .text |
-  try (
-    fromjson as $value |
-      "error", "stdout", "stderr", "rejected" | . as $field | $value[.] |
-      select(. != null and .!= "") | print_strings, " | ", render($field)
-  ) catch (
-    halt
-  )
+  if startswith("{") then
+    fromjson
+  else
+    split("\n") |
+    if .[0] | startswith("exitcode: ") then
+      .[1:-1] |
+      reduce .[] as $line (
+        {};
+        if $line | startswith($line_prefix) then
+          .[.current] += [$line | ltrimstr($line_prefix)]
+        else
+          .current = $line | .[.current] = []
+        end
+      ) |
+      if .["stderr (no trailing newline):"] then
+        .stderr = (.["stderr (no trailing newline):"] | join("\n"))
+      elif .["stderr:"] then
+        .stderr = (.["stderr:"] | join("\n") + "\n")
+      else
+        .stderr = ""
+      end |
+      if .["stdout (no trailing newline):"] then
+        .stdout = (.["stdout (no trailing newline):"] | join("\n"))
+      elif .["stdout:"] then
+        .stdout = (.["stdout:"] // [] | join("\n") + "\n")
+      else
+        .stdout = ""
+      end
+    elif .[0] == "rejected:" then
+      {rejected:.[1:] | map(ltrimstr($line_prefix)) | join("\n")}
+    elif .[0] == "error:" then
+      {error:.[1:] | map(ltrimstr($line_prefix)) | join("\n")}
+    else
+      {}
+    end
+  end as $value |
+    "error", "stdout", "stderr", "rejected" | . as $field | $value[.] |
+    select(. != null and .!= "") | print_strings, " | ", render($field)
 '
 
-jq -j --arg libpath "$llmtropt_tool_dir/lib" \
+jq -j --arg line_prefix "$line_prefix" \
+  --arg libpath "$llmtropt_tool_dir/lib" \
   -L "$llmtropt_tool_dir/lib" -- "$program" \
   | sh -s -- "$@"
