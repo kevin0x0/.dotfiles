@@ -6,6 +6,29 @@ llmtr_parse_options "" "$@"
 
 llmtr_render_header '32;1' 'read'
 
-jq -r 'select(.type == "input_text").text | split("\n")[0]' \
-  | llmtr_complete_newline \
+jq -r '
+  select(.type == "input_text") | .text |
+  if startswith("{") then
+    fromjson |
+    if .error then
+      "error: \(.error)"
+    elif .access_error then
+      "\(.access_error): \(.path)"
+    elif .type == "symbolic link" then
+      "\(.type): \(.path) -> \(.target)"
+    elif .binary_file then
+      "\(.type): \(.path), binary"
+    elif .offset then
+      if .total == 0 then
+        "\(.type): \(.path), empty"
+      else
+        "\(.type): \(.path), \(.offset)-\(.end) of \(.total)"
+      end
+    else
+      "\(.type): \(.path)"
+    end
+  else
+    split("\n")[0]
+  end
+' | llmtr_complete_newline \
   | llmtr_render_lines

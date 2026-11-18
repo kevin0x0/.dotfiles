@@ -14,7 +14,11 @@ trap 'cleanup TERM' TERM
 trap 'cleanup QUIT' QUIT
 
 error() {
-  printf "error: %s\n" "$1" | llm-make-mcontent -t
+  if [ -n "$output_json" ]; then
+    jq -cn --arg error "$1" -- '{$error}'
+  else
+    printf "error: %s\n" "$1"
+  fi | llm-make-mcontent -t
   exit 0
 }
 
@@ -22,8 +26,9 @@ bad_argument() {
   error "bad argument: $1"
 }
 
+output_json=
 {
-  read -r pathname && read -r offset limit
+  read -r pathname && read -r offset limit && read -r output_json
 } <<EOF || bad_argument "invalid JSON"
 $(jq -r '
   "$'\''" + (.path // "" | gsub("\\\\"; "\\\\") | gsub("'\''"; "\\'\''") | gsub("\n";"\\n")) + "'\''",
@@ -31,7 +36,12 @@ $(jq -r '
     {offset,limit} |
     map_values(if type != "number" then null else floor | tostring end) |
     [.offset // "1", .limit // "1500"] | join(" ")
-  )')
+  ),
+  if .output_json then
+    "1"
+  else
+    " " # The command substitution trims trailing newlines, so use a space to keep this line.
+  end')
 EOF
 
 command eval pathname="$pathname" || bad_argument "invalid path: $pathname"
@@ -56,22 +66,138 @@ header() {
   echo
 }
 
+output() {
+  case $1 in
+    "regular file")
+      total=$3; offset=$4; end=$5; missing_newline=$6
+      if [ -n "$output_json" ]; then
+        missing_newline=${missing_newline:+true}
+        missing_newline=${missing_newline:-false}
+        jq -cRn --arg path "$2" --arg type "$1" \
+          --argjson total "$total" \
+          --argjson offset "$offset" \
+          --argjson end "$end" \
+          --argjson missing_newline "$missing_newline" \
+          -- '{$path,$type,$total,$offset,$end,$missing_newline,lines:[inputs][$offset - 1:$end]}' <"$2"
+      else
+        if [ "$total" -eq 0 ]; then
+          header "$1" "$2" ", empty"
+        elif [ "$offset" -gt "$total" ]; then
+          header "$1" "$2" ", offset $offset is beyond the end ($total lines)"
+        else
+          header "$1" "$2" ", lines ${offset}-$end of $total${missing_newline:+, no trailing newline}"
+          { cat -- "$2"; echo; } | awk -v offset="$offset" -v end="$end" \
+            'NR >= offset && NR <= end {print NR ": " $0}'
+        fi
+      fi
+      ;;
+    "directory")
+      total=$3; offset=$4; end=$5
+      if [ -n "$output_json" ]; then
+        jq -cRs --arg path "$2" --arg type "$1" \
+          --argjson total "$total" \
+          --argjson offset "$offset" \
+          --argjson end "$end" \
+          -- '{
+            $path,$type,$total,$offset,$end,
+            entries: split("\u0000")[$offset - 1:$end] | map(
+              split("//") |
+              [.[0], .[1], .[2], (.[3:] | join("//"))] as [$name, $type, $access_error, $target] |
+              {$name,$type} |
+              if $type == "symbolic link" then
+                if .access_error then
+                  .access_error = $access_error
+                else
+                  .target = $target
+                end
+              end
+            )
+          }' <"$tmp"
+      else
+        if [ "$total" -eq 0 ]; then
+          header "$1" "$2" ", empty"
+        elif [ "$offset" -gt "$total" ]; then
+          header "$1" "$2" ", offset $offset is beyond the end ($total entries)"
+        else
+          header "$1" "$2" ", entries ${offset}-$end of $total"
+          xargs -r0 -- sh -c '
+            escape_chars=$1; shift
+            single_line_pathname() {
+              case $2 in
+                *$escape_chars*) eval " $1"="\$(shell-escape -t \"\" -- \"\$2\")" ;;
+                *) eval " $1=\$2" ;;
+              esac
+            }
+            for arg; do
+              name=${arg%%//*}
+              arg=${arg#*//}
+              type=${arg%%//*}
+              arg=${arg#*//}
+              access_error=${arg%%//*}
+              target=${arg#*//}
+              single_line_pathname name "$name"
+              [ -n "$target" ] && single_line_pathname target "$target"
+              case $type in
+                "regular file") printf "%s\n" "$name" ;;
+                "directory") printf "%s/\n" "$name" ;;
+                "symbolic link") printf "%s -> %s\n" "$name" "${access_error:+?}$target";;
+                *) printf "%s (%s)\n" "$name" "$type" ;;
+              esac
+            done
+          ' sh "$escape_chars" <"$tmp" \
+            | tail -n +"$offset" | head -n "$limit"
+        fi
+      fi
+      ;;
+    "binary file")
+      if [ -n "$output_json" ]; then
+        jq -cn --arg path "$2" --arg type "regular file" \
+          '{$path,$type,binary_file:true}'
+      else
+        header "regular file" "$2" ", contains a NUL byte, likely a binary file; content not shown"
+      fi
+      ;;
+    "symbolic link")
+      if [ -n "$output_json" ]; then
+        jq -cn --arg path "$2" --arg type "$1" --arg target "$3" \
+          '{$path,$type,$target}'
+      else
+        header "$1" "$2" " -> $(single_line_pathname "$3")"
+      fi
+      ;;
+    "socket"|"FIFO"|"block device"|"character device"|"unknown file type")
+      if [ -n "$output_json" ]; then
+        jq -cn --arg path "$2" --arg type "$1" '{$path,$type}'
+      else
+        header "$1" "$2"
+      fi
+      ;;
+    "access error")
+      if [ -n "$output_json" ]; then
+        jq -cn --arg path "$2" --arg access_error "$3" '{$path,$access_error}'
+      else
+        header "$3" "$2"
+      fi
+      ;;
+  esac | llm-make-mcontent -t
+}
+
 if [ -L "$pathname" ]; then
   link_target=$(readlink -- "$pathname" && echo x) || error "failed to read the link"
   link_target=${link_target%$'\nx'}
-  header "symbolic link" "$pathname" " -> $(single_line_pathname "$link_target")"
+  output "symbolic link" "$pathname" "$link_target"
 elif [ -c "$pathname" ]; then
-  header "character device" "$pathname"
+  output "character device" "$pathname"
 elif [ -b "$pathname" ]; then
-  header "block device" "$pathname"
+  output "block device" "$pathname"
 elif [ -p "$pathname" ]; then
-  header "FIFO" "$pathname"
+  output "FIFO" "$pathname"
 elif [ -S "$pathname" ]; then
-  header "socket" "$pathname"
+  output "socket" "$pathname"
 elif [ ! -e "$pathname" ]; then
-  header "no such file or directory" "$pathname"
+  output "access error" "$pathname" "no such file or directory"
 elif [ ! -r "$pathname" ]; then
-  header "unreadable file" "$pathname"
+  output "access error" "$pathname" "unreadable file"
 elif [ -d "$pathname" ]; then
   tmp=$(tmpfile) || exit 1
 
@@ -80,70 +206,50 @@ elif [ -d "$pathname" ]; then
     [!/]*) findpath=$PWD/$findpath ;;
   esac
   find "$findpath" ! -name '.' -prune -exec sh -c '
-    escape() {
-      case $2 in
-        *${escape_chars}*) eval "$1=\$(shell-escape -t \"\" \"\$2\")" ;;
-        *) eval "$1=\$2" ;;
-      esac
-    }
-    escape_chars=$1; prefix=$2; shift 2
+   prefix=$1; shift
     for arg; do
-      extra=
+      type=
+      target=
+      access_error=
       if [ -L "$arg" ]; then
+        type="symbolic link"
         if target=$(readlink -- "$arg" && echo x); then
           target=${target%$'"'\\nx'"'}
-          escape target "$target"
-          extra=" -> $target"
         else
-          extra=" -> ?"
+          access_error="can not read the target"
         fi
-        target=
       elif [ -f "$arg" ]; then
-        :
+        type="regular file"
       elif [ -d "$arg" ]; then
-        arg=${arg%/}/
+        type="directory"
       elif [ -c "$arg" ]; then
-        extra=" (character device)"
+        type="character device"
       elif [ -b "$arg" ]; then
-        extra=" (block device)"
+        type="block device"
       elif [ -p "$arg" ]; then
-        extra=" (FIFO)"
+        type="FIFO"
       elif [ -S "$arg" ]; then
-        extra=" (socket)"
+        type="socket"
+      else
+        type="unknown file type"
       fi
-      rel=
-      escape rel "${arg#"$prefix"}"
-      printf "%s%s\n" "$rel" "$extra"
+      printf "%s//%s//%s//%s\0" "${arg#"$prefix"}" "$type" "$access_error" "$target"
     done
-  ' sh "$escape_chars" "$findpath/" {} + | LC_ALL=C sort >"$tmp"
-  total=$(($(wc -l <"$tmp")))
-  if [ "$total" -eq 0 ]; then
-    header "directory" "$pathname" ", empty"
-  elif [ "$offset" -gt "$total" ]; then
-    header "directory" "$pathname" ", offset $offset is beyond the end ($total entries)"
-  else
-    end=$((offset - 1 + limit > total ? total : offset - 1 + limit))
-    header "directory" "$pathname" ", entries ${offset}-$end of $total"
-    tail -n +"$offset" <"$tmp" | head -n "$limit"
-  fi
+  ' sh "$findpath/" {} + \
+    | jq -Rs --raw-output0 'split("\u0000")[:-1] | sort[]' >"$tmp"
+  total=$(($(tr -cd '\000' <"$tmp" | wc -c)))
+  end=$((offset - 1 + limit > total ? total : offset - 1 + limit))
+  output "directory" "$pathname" "$total" "$offset" "$end"
 elif [ -f "$pathname" ]; then
   if [ -n "$(head -c 4096 <"$pathname" | tr -cd '\000' | tr '\000' 'x' | head -n 1)" ]; then
-    header "regular file" "$pathname" ", contains a NUL byte, likely a binary file; content not shown"
+    output "binary file" "$pathname"
   else
     missing_newline=
     [ -n "$(tail -c 1 <"$pathname" | tr -c '\n' '[x*]')" ] && missing_newline=1
     total=$((missing_newline + $(wc -l <"$pathname")))
-    if [ "$total" -eq 0 ]; then
-      header "regular file" "$pathname" ", empty"
-    elif [ "$offset" -gt "$total" ]; then
-      header "regular file" "$pathname" ", offset $offset is beyond the end ($total lines)"
-    else
-      end=$((offset - 1 + limit > total ? total : offset - 1 + limit))
-      header "regular file" "$pathname" ", lines ${offset}-$end of $total${missing_newline:+, no trailing newline}"
-      { cat -- "$pathname"; echo; } | awk -v offset="$offset" -v end="$end" \
-        'NR >= offset && NR <= end {print NR ": " $0}'
-    fi
+    end=$((offset - 1 + limit > total ? total : offset - 1 + limit))
+    output "regular file" "$pathname" "$total" "$offset" "$end" "$missing_newline"
   fi
 else
-  header "unknown file type" "$pathname"
-fi | llm-make-mcontent -t
+  output "unknown file type" "$pathname"
+fi

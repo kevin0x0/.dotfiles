@@ -94,6 +94,48 @@ Inside the $'...' form the escapes \\, \', \a, \b, \f, \n, \r, \t and
 \v are decoded, and any other character is literal. A name that is not
 wrapped in $'...' is literal.
 
+# JSON format
+
+Set the `output_json` argument to true to return a JSON object instead
+of the text format described above. The result is either an error or a
+description of the path read.
+
+An error is one of:
+
+- bad argument (invalid or missing path, non-positive offset, negative
+  limit):
+  `{"error": <string>}`
+- access error (the path cannot be read, e.g. no such file or
+  directory, unreadable file):
+  `{"path": <string>, "access_error": <string>}`
+
+When the argument itself is not valid JSON, the error is always
+reported in the text format, because `output_json` cannot be read from
+a malformed argument.
+
+Otherwise the object has a `path` field and a `type` field naming the
+file type:
+
+- regular file:
+  `{"path": <string>, "type": "regular file", "total": <int>,
+    "offset": <int>, "end": <int>, "missing_newline": <bool>,
+    "lines": [<string>, ...]}`
+  `lines` is an array of strings, each string being one line of the
+  file, without the line-number prefix. A binary file is also reported
+  with `type` "regular file", but has `binary_file: true` instead of
+  `total`, `offset`, `end` and `lines`.
+- directory:
+  `{"path": <string>, "type": "directory", "total": <int>,
+    "offset": <int>, "end": <int>, "entries": [<object>, ...]}`
+  `entries` is an array of objects, each with `name` and `type`; a
+  symbolic link entry also has `target`, or `access_error` when the
+  target cannot be read.
+- symbolic link:
+  `{"path": <string>, "type": "symbolic link", "target": <string>}`
+- other file types (character device, block device, FIFO, socket,
+  unknown file type):
+  `{"path": <string>, "type": <string>}`
+
 # Notes
 
 - offset (default 1) is the first line or entry to read, limit

@@ -14,6 +14,10 @@
       "type": "integer",
       "description": "The maximum number of lines (file) or entries (directory) to read. Must be a non-negative integer.",
       "default": 1500
+    },
+    "output_json": {
+      "type": "boolean",
+      "description": "Return the result as a JSON object instead of the default plain text format."
     }
   },
   "required": [
