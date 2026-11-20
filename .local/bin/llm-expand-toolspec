@@ -18,7 +18,7 @@ print_toolname() {
 }
 
 print_tree() {
-  set -- "${1#"$llmcu_dir/tooltree/"}" "$1"
+  set -- "${1#"$llmcu_dir/tooltree"}" "$1"
   if [ -d "$2" ]; then
     printf "%s\n" "${1%/}/"
   else
@@ -29,6 +29,22 @@ print_tree() {
 
 print_toolname_in_tree() {
   [ -f "$1" ] && printf "%s\n" "${1##*/}"
+  return 1
+}
+
+expand_2asterisk_glob() {
+  dir=$(normpath -R -- "$llmcu_dir/tooltree")
+  llmcu_dir="${dir%/tooltree}"
+  glob-expand -nb "$3" -- "$2" \
+    | xargs -r0 -- sh -c '
+        dir=$1; shift
+        for f; do
+          printf "%s\n" "${f#"$dir"}"
+        done
+      ' sh "$dir" \
+    | while IFS= read -r line; do
+        "$1" "$dir$line"
+      done
   return 1
 }
 
@@ -64,7 +80,14 @@ expand_toolspec() {
               ;;
             */*)
               [ -n "$opt_tree" ] && callback=print_tree || callback=print_toolname_in_tree
-              llmcu_match_config_item "tooltree/$pattern" "$callback"
+              case $pattern in
+                *"**"*)
+                  llmcu_for_config_item "tooltree/" expand_2asterisk_glob "$callback" "$pattern"
+                  ;;
+                *)
+                  llmcu_match_config_item "tooltree/$pattern" "$callback"
+                  ;;
+              esac
               ;;
             *)
               llmcu_match_config_item "tools/$pattern" print_toolname

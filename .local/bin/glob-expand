@@ -1,0 +1,130 @@
+#!/bin/sh
+
+opt_terminator='\n'
+opt_base=
+opt_match_hidden=
+while getopts "t:b:nh" opt; do
+  case $opt in
+    t)
+      opt_terminator=$OPTARG
+      ;;
+    b)
+      opt_base=$OPTARG
+      ;;
+    n)
+      opt_terminator='\0'
+      ;;
+    h)
+      opt_match_hidden=1
+      ;;
+    \?)
+      exit 2
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+opt_base=${opt_base:-$PWD}
+opt_base=$(normpath -Rt / "$opt_base") || exit
+
+cleanup() {
+  [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
+  if [ -n "$1" ]; then
+    trap - "$1"
+    kill -"$1" "$$"
+  fi
+}
+tmpdir=
+trap cleanup EXIT
+for sig in TERM INT QUIT; do
+  trap "cleanup $sig" "$sig"
+done
+
+tmpdir=$(tmpfile -d) || exit
+
+do_find() {
+  hide_dotfile=
+  if [ -z "$opt_match_hidden" ]; then
+    case $1 in
+      [!.]*) hide_dotfile='! -name ".?*"' ;;
+    esac
+  fi
+
+  case $1 in
+    .)
+      cat
+      ;;
+    ..)
+      xargs -r0 -- printf "%s/../.\0"
+      ;;
+    '**')
+      if [ -n "$2" ]; then
+        xargs -r0 -- sh -c 'find "$@" '"${hide_dotfile}"' -type d -exec printf "%s/.\0" {} + -o -prune' sh
+      else
+        xargs -r0 -- sh -c 'find "$@" '"${hide_dotfile}"' -print0 -o -prune' sh
+      fi
+      ;;
+    *)
+      if [ -n "$2" ]; then
+        xargs -r0 -- sh -c '
+        pat=$1; shift
+        find "$@" ! -name . -prune -name "$pat" '"$hide_dotfile"' -type d -exec printf "%s/.\0" {} +
+        ' sh "$1"
+      else
+        xargs -r0 -- sh -c '
+        pat=$1; shift
+        find "$@" ! -name . -prune -name "$pat" '"$hide_dotfile"' -print0
+        ' sh "$1"
+      fi
+      ;;
+  esac
+}
+
+for pattern; do
+  : >"$tmpdir/result"
+  base=$opt_base
+  comps=$pattern
+  need_find=
+  while [ -n "$comps" ]; do
+    case $comps in
+      /*) comps=${comps#/} ;;
+      *)
+        comp=${comps%%/*}
+        comps=${comps#"$comp"}
+
+        dironly=
+        case $comps in
+          */*) dironly=1 ;;
+        esac
+
+        if [ -z "$need_find" ]; then
+          case $comp in
+            *[[?*\\]*)
+              [ -e "$base" ] && printf "%s.\0" "$base" >"$tmpdir/result" || break
+              need_find=1
+              ;;
+            *)
+              base=$base$comp${dironly:+/}
+              continue
+              ;;
+          esac
+        fi
+
+        do_find "$comp" "$dironly" <"$tmpdir/result" >"$tmpdir/entries"
+        cp -- "$tmpdir/entries" "$tmpdir/result"
+        [ -s "$tmpdir/result" ] || break
+        ;;
+    esac
+  done
+  if [ -z "$need_find" ]; then
+    [ -e "$base" ] && printf "%s\0" "$base" >"$tmpdir/result"
+  fi
+  xargs -r0 -- normpath -n -- <"$tmpdir/result" >>"$tmpdir/all_result"
+done
+
+if [ -f "$tmpdir/all_result" ]; then
+  if [ "$opt_terminator" = '\0' ]; then
+    cat -- "$tmpdir/all_result"
+  else
+    xargs -r0 -- printf "%s$opt_terminator" <"$tmpdir/all_result"
+  fi
+fi

@@ -66,13 +66,13 @@ with "/"):
 
 For {"operation":"list","pattern":"category/*"}:
 
-    {"list":[{"path":"category/sub/"},{"path":"category/some_tool"}],"total":2,"start_index":0,"count":2}
+    {"list":[{"path":"/category/sub/"},{"path":"/category/some_tool"}],"total":2,"start_index":0,"count":2}
 
 A tree-mode match with summaries:
 
 For {"operation":"list","pattern":"category/*","with_summary":true}:
 
-    {"list":[{"path":"category/sub/","summary":"..."},{"path":"category/some_tool","summary":"..."}],"total":2,"start_index":0,"count":2}
+    {"list":[{"path":"/category/sub/","summary":"..."},{"path":"/category/some_tool","summary":"..."}],"total":2,"start_index":0,"count":2}
 
 No matching tool, or an empty extra tool set:
 
@@ -158,6 +158,8 @@ Recipes:
 - "/*"          top level of the tool tree
 - "builtin/*"   entries directly under the builtin category
 - "cat1/*/"     category directories under cat1 (ends with "/")
+- "**/name"     a tool named "name" at any depth in the tool tree
+- "category/**" "category" itself and everything below it
 - "manage_*"    tools whose name starts with "manage_"
 - "manage_* builtin/*"  name mode and tree mode mixed in one list; an
   entry matches when it matches either
