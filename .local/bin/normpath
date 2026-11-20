@@ -2,8 +2,9 @@
 
 opt_terminator='\n'
 opt_directory=$PWD
+opt_empty_root=
 
-while getopts "t:d:n" opt; do
+while getopts "t:d:nR" opt; do
   case $opt in
     t)
       opt_terminator=$OPTARG
@@ -16,6 +17,9 @@ while getopts "t:d:n" opt; do
       ;;
     n)
       opt_terminator='\0000'
+      ;;
+    R)
+      opt_empty_root=1
       ;;
     \?)
       exit 2
@@ -55,5 +59,8 @@ for path; do
     esac
   done
 
-  printf "%s%b" "${norm:-/}" "$opt_terminator"
+  if [ -z "$opt_empty_root" ]; then
+    norm=${norm:-/}
+  fi
+  printf "%s%b" "$norm" "$opt_terminator"
 done
