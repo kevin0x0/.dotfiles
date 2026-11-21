@@ -1,0 +1,22 @@
+#!/bin/sh
+
+llmtu_output_json=
+llmtu_jqlibpath=$HOME/.local/lib/llm-scripts/jq/
+
+llmtu_error() {
+  if [ -n "$llmtu_output_json" ]; then
+    jq -cn --arg error "$1" -- '{$error}'
+  else
+    printf "error: %s\n" "$1"
+  fi | llm-make-mcontent -t
+  exit 0
+}
+
+llmtu_bad_argument() {
+  llmtu_error "bad argument: $1"
+}
+
+llmtu_eval_string() {
+  command eval " llmtu_value=\$$1" || exit
+  command eval " $1=$llmtu_value" || llmtu_bad_argument "invalid $1: $llmtu_value"
+}

@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. llm-tool-utils
+
 tmp=
 cleanup() {
   [ -n "$tmp" ] && rm -f -- "$tmp"
@@ -13,42 +15,22 @@ trap 'cleanup INT' INT
 trap 'cleanup TERM' TERM
 trap 'cleanup QUIT' QUIT
 
-error() {
-  if [ -n "$output_json" ]; then
-    jq -cn --arg error "$1" -- '{$error}'
-  else
-    printf "error: %s\n" "$1"
-  fi | llm-make-mcontent -t
-  exit 0
-}
-
-bad_argument() {
-  error "bad argument: $1"
-}
-
-output_json=
 {
-  read -r pathname && read -r offset limit && read -r output_json
-} <<EOF || bad_argument "invalid JSON"
-$(jq -r '
-  "$'\''" + (.path // "" | gsub("\\\\"; "\\\\") | gsub("'\''"; "\\'\''") | gsub("\n";"\\n")) + "'\''",
-  (
-    {offset,limit} |
-    map_values(if type != "number" then null else floor | tostring end) |
-    [.offset // "1", .limit // "1500"] | join(" ")
-  ),
-  if .output_json then
-    "1"
-  else
-    " " # The command substitution trims trailing newlines, so use a space to keep this line.
-  end')
+  read -r pathname && read -r offset && read -r limit && read -r llmtu_output_json
+} <<EOF || llmtu_bad_argument "invalid JSON"
+$(jq -rL "$llmtu_jqlibpath" '
+  include "parse-arguments";
+  (.path | parse_string),
+  (.offset | parse_integer(1)),
+  (.limit | parse_integer(1500)),
+  (.output_json | parse_boolean)')
 EOF
 
-command eval pathname="$pathname" || bad_argument "invalid path: $pathname"
-[ -n "$pathname" ] || bad_argument "path is required"
+llmtu_eval_string pathname
 
-[ "$offset" -gt 0 ] || bad_argument "offset must be greater than zero"
-[ "$limit" -ge 0 ] || bad_argument "limit must be non-negative"
+[ -n "$pathname" ] || llmtu_bad_argument "path is required"
+[ "$offset" -gt 0 ] || llmtu_bad_argument "offset must be greater than zero"
+[ "$limit" -ge 0 ] || llmtu_bad_argument "limit must be non-negative"
 
 escape_chars=[:,?\>\$\(\)\"\'[:space:][:cntrl:]]
 
@@ -70,7 +52,7 @@ output() {
   case $1 in
     "regular file")
       total=$3; offset=$4; end=$5; missing_newline=$6
-      if [ -n "$output_json" ]; then
+      if [ -n "$llmtu_output_json" ]; then
         missing_newline=${missing_newline:+true}
         missing_newline=${missing_newline:-false}
         jq -cRn --arg path "$2" --arg type "$1" \
@@ -93,7 +75,7 @@ output() {
       ;;
     "directory")
       total=$3; offset=$4; end=$5
-      if [ -n "$output_json" ]; then
+      if [ -n "$llmtu_output_json" ]; then
         jq -cRs --arg path "$2" --arg type "$1" \
           --argjson total "$total" \
           --argjson offset "$offset" \
@@ -150,7 +132,7 @@ output() {
       fi
       ;;
     "binary file")
-      if [ -n "$output_json" ]; then
+      if [ -n "$llmtu_output_json" ]; then
         jq -cn --arg path "$2" --arg type "regular file" \
           '{$path,$type,binary_file:true}'
       else
@@ -158,7 +140,7 @@ output() {
       fi
       ;;
     "symbolic link")
-      if [ -n "$output_json" ]; then
+      if [ -n "$llmtu_output_json" ]; then
         jq -cn --arg path "$2" --arg type "$1" --arg target "$3" \
           '{$path,$type,$target}'
       else
@@ -166,14 +148,14 @@ output() {
       fi
       ;;
     "socket"|"FIFO"|"block device"|"character device"|"unknown file type")
-      if [ -n "$output_json" ]; then
+      if [ -n "$llmtu_output_json" ]; then
         jq -cn --arg path "$2" --arg type "$1" '{$path,$type}'
       else
         header "$1" "$2"
       fi
       ;;
     "access error")
-      if [ -n "$output_json" ]; then
+      if [ -n "$llmtu_output_json" ]; then
         jq -cn --arg path "$2" --arg access_error "$3" '{$path,$access_error}'
       else
         header "$3" "$2"
@@ -183,7 +165,7 @@ output() {
 }
 
 if [ -L "$pathname" ]; then
-  link_target=$(readlink -- "$pathname" && echo x) || error "failed to read the link"
+  link_target=$(readlink -- "$pathname" && echo x) || llmtu_error "failed to read the link"
   link_target=${link_target%$'\nx'}
   output "symbolic link" "$pathname" "$link_target"
 elif [ -c "$pathname" ]; then

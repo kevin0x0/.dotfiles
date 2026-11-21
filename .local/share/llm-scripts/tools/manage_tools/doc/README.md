@@ -183,7 +183,8 @@ successive pages are consistent slices of it. The page is clamped to
 the result: a "start_index" beyond "total" returns an empty page, and a
 "count" beyond the remaining items returns only the rest; the returned
 "start_index" and "count" report the clamped page. A "count" of 0
-returns an empty page; negative values return an error. To obtain
+returns an empty page; a negative "start_index" is treated as 0, and
+a negative "count" as all the remaining items. To obtain
 everything at once, request as many
 items as the "total" reported by a previous result; page only when the
 result is large.

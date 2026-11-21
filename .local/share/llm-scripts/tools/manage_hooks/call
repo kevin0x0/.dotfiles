@@ -1,8 +1,11 @@
 #!/bin/sh
 
 . -- llm-chat-common
+. -- llm-tool-utils
 llmcc_set_public_files_var "$2"
 llmcc_tool_source_runtime_config "manage_hooks"
+
+llmtu_output_json=1
 
 cleanup() {
   [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
@@ -22,12 +25,36 @@ argfile=$tmpdir/arg
 outfile=$tmpdir/stdout
 errfile=$tmpdir/stderr
 approval_out=$tmpdir/approval-out
-docpaths=$tmpdir/docpaths
-filesfile=$tmpdir/files
 
-cat >"$argfile"
+{
+  read -r op \
+    && read -r event \
+    && read -r entry \
+    && read -r what \
+    && read -r mode \
+    && read -r append \
+    && read -r with_summary \
+    && read -r pattern \
+    && read -r output_file \
+    && read -r source \
+    && read -r name \
+    && read -r docpaths \
+    && read -r files
+} <<EOF || llmtu_bad_argument "invalid JSON"
+$(tee -- "$argfile" | jq -rL "$llmtu_jqlibpath" '
+  include "parse-arguments";
+  (.operation, .event, .entry, .what // "hooks", .mode // "command" |
+    parse_simple_string),
+  (.append, .with_summary | parse_boolean),
+  (.pattern, .output_file, .source, .name | parse_string),
+  (.docpaths, .files | parse_string_array)')
+EOF
 
-op=$(jq -j '.operation // ""' <"$argfile")
+llmtu_eval_string pattern
+llmtu_eval_string output_file
+llmtu_eval_string source
+llmtu_eval_string name
+
 case $op in
   create|remove|install|list|doc|hook-dump|hook-source|log-dump) ;;
   *)
@@ -35,8 +62,6 @@ case $op in
     exit 0
     ;;
 esac
-
-append=$(jq -j '.append // false' <"$argfile")
 
 # create, remove and install need approval
 if [ "$op" = create ] || [ "$op" = remove ] || [ "$op" = install ]; then
@@ -50,7 +75,7 @@ if [ "$op" = create ] || [ "$op" = remove ] || [ "$op" = install ]; then
   esac
   preview_command="$(shell-escape -- sh -- "$1/render-call" -d "$1" -s "$2")"
   colored_preview_command="$preview_command -c always"
-  if [ "$op" = create ] && [ "$append" = true ]; then
+  if [ "$op" = create ] && [ -n "$append" ]; then
     summary_command="$(shell-escape -- sh -- "$1/lib/render-operation" -d "$1" -s "$2" -A "$op" -P -S "$summary")"
   else
     summary_command="$(shell-escape -- sh -- "$1/lib/render-operation" -d "$1" -s "$2" -A "$op" -S "$summary")"
@@ -79,24 +104,12 @@ if [ "$op" = create ] || [ "$op" = remove ] || [ "$op" = install ]; then
   esac
 fi
 
-event=$(jq -j '.event // ""' <"$argfile")
-entry=$(jq -j '.entry // ""' <"$argfile")
-what=$(jq -j '.what // "hooks"' <"$argfile")
-pattern=$(jq -j '.pattern // ""' <"$argfile")
-output_file=$(jq -j '.output_file // ""' <"$argfile")
-with_summary=$(jq -j '(.with_summary and true) or false' <"$argfile")
-mode=$(jq -j '.mode // "command"' <"$argfile")
-source=$(jq -j '.source // ""' <"$argfile")
-name=$(jq -j '.name // ""' <"$argfile")
-jq -r '.docpaths // empty | if type != "array" then [.] end | .[]' <"$argfile" >"$docpaths"
-jq -r '.files // empty | if type != "array" then [.] end | .[]' <"$argfile" >"$filesfile"
-
 set -- -jP -d "$2" "$op"
 
 case $op in
   create)
     [ -n "$event" ] && set -- "$@" "$event"
-    if [ "$append" = true ]; then
+    if [ -n "$append" ]; then
       set -- "$@" -a
     fi
     case $mode in
@@ -121,10 +134,7 @@ case $op in
     set -- "$@" -- "$event" "$name"
     ;;
   install)
-    set -- "$@" --
-    while IFS= read -r hook_file; do
-      set -- "$@" "$hook_file"
-    done <"$filesfile"
+    eval 'set -- "$@" -- '"$files"
     ;;
   hook-dump)
     if [ -z "$output_file" ]; then
@@ -140,7 +150,7 @@ case $op in
         [ -n "$pattern" ] && set -- "$@" -- "$pattern"
         ;;
       events)
-        [ "$with_summary" = true ] && set -- "$@" -s
+        [ -n "$with_summary" ] && set -- "$@" -s
         [ -n "$pattern" ] && set -- "$@" -- "$pattern"
         ;;
       docs)
@@ -154,10 +164,7 @@ case $op in
     esac
     ;;
   doc)
-    set -- "$@" --
-    while IFS= read -r docpath; do
-      set -- "$@" "$docpath"
-    done <"$docpaths"
+    eval 'set -- "$@" -- '"$docpaths"
     ;;
   log-dump)
     if [ -z "$output_file" ]; then

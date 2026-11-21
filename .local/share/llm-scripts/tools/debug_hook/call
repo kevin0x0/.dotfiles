@@ -1,8 +1,11 @@
 #!/bin/sh
 
 . -- llm-chat-common
+. -- llm-tool-utils
 llmcc_set_public_files_var "$2"
 llmcc_tool_source_runtime_config "debug_hook"
+
+llmtu_output_json=1
 
 cleanup() {
   [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
@@ -25,13 +28,29 @@ approval_out=$tmpdir/approval-out
 
 cat >"$argfile"
 
-if ! jq -e -- 'type == "object" and (.hooks | type) == "array" and (.hooks | length) > 0' "$argfile" >/dev/null 2>&1; then
-  llm-make-mcontent -t -- '{"error":"bad argument: hooks must be a non-empty array"}'
-  exit 0
-fi
+{
+  read -r orchestration \
+    && read -r orchestration_file \
+    && read -r hooks \
+    && read -r envs \
+    && read -r hooks_json \
+    && read -r result_dir \
+    && read -r output
+} <<EOF || llmtu_bad_argument "invalid JSON"
+$(tee -- "$argfile" | jq -rL "$llmtu_jqlibpath" '
+  include "parse-arguments";
+  (.orchestration, .orchestration_file | parse_string),
+  (.hooks | parse_string_array),
+  (.envs | parse_string_array_with_filter(select(test("^[A-Za-z_][A-Za-z0-9_]*=")))),
+  (.hooks | @json),
+  (.result_dir | parse_string),
+  (.output // "auto" | parse_simple_string),
+  null')
+EOF
 
-orchestration=$(jq -j '.orchestration // ""' <"$argfile")
-orchestration_file=$(jq -j '.orchestration_file // ""' <"$argfile")
+llmtu_eval_string orchestration
+llmtu_eval_string orchestration_file
+llmtu_eval_string result_dir
 
 if [ -n "$orchestration_file" ]; then
   :
@@ -72,17 +91,9 @@ case $? in
     ;;
 esac
 
-hooks_escaped=$(jq -r '.hooks | map(@sh) | join(" ")' <"$argfile")
-
-result_dir=$(jq -j '.result_dir // ""' <"$argfile")
-output=$(jq -j '.output // "auto"' <"$argfile")
-hooks_json=$(jq -c '.hooks' <"$argfile")
-
-envs=$(jq -r '.envs // [] | map(select(test("^[A-Za-z_][A-Za-z0-9_]*=")) | @sh) | join(" ")' <"$argfile")
-
 set -- llm-chat-debug-hook -o "$orchestration_file"
 [ -n "$result_dir" ] && set -- "$@" -r "$result_dir"
-eval "set -- env -- $envs \"\$@\" -- $hooks_escaped"
+eval "set -- env -- $envs \"\$@\" -- $hooks"
 
 actual_result_dir=$("$@" 2>"$run_err")
 exitcode=$?

@@ -47,12 +47,12 @@
     },
     "start_index": {
       "type": "integer",
-      "description": "Only for list: the index of the starting output item. Must be a non-negative integer.",
+      "description": "Only for list: the index of the starting output item. A negative value is treated as 0.",
       "default": 0
     },
     "count": {
       "type": "integer",
-      "description": "Only for list: the maximum number of output items. Must be a non-negative integer.",
+      "description": "Only for list: the maximum number of output items. A negative value means all the remaining items.",
       "default": 20
     },
     "whole_catalog": {

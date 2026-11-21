@@ -3,8 +3,11 @@
 opt_yes=
 statedir=$2
 . -- llm-chat-common
+. -- llm-tool-utils
 llmcc_set_public_files_var "$statedir"
 llmcc_tool_source_runtime_config "manage_tools"
+
+llmtu_output_json=1
 
 cleanup() {
   [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
@@ -18,11 +21,6 @@ for sig in INT TERM QUIT; do
   trap "cleanup $sig" "$sig"
 done
 
-error() {
-  jq --arg err "$1" -cn -- '{error:$err}' | llm-make-mcontent -t
-  exit 0
-}
-
 tmpdir=
 tmpdir=$(tmpfile -d) || exit 1
 argfile=$tmpdir/arg
@@ -33,28 +31,43 @@ approval_out=$tmpdir/approval-out
 
 cat >"$argfile"
 
-# enable and disable operations are availabel but not explicitly exposed 
-# to the model.
-op=$(jq -j '.operation // "" | tostring' <"$argfile" 2>/dev/null)
+{
+  read -r op \
+    && read -r pattern \
+    && read -r whole_catalog \
+    && read -r enabled \
+    && read -r with_summary \
+    && read -r name \
+    && read -r start_index \
+    && read -r count
+} <<EOF || llmtu_bad_argument "invalid JSON"
+$(tee -- "$argfile" | jq -rL "$llmtu_jqlibpath" '
+  include "parse-arguments";
+  (.operation | parse_simple_string),
+  (.pattern | parse_simple_string),
+  (.whole_catalog, .enabled, .with_summary | parse_boolean),
+  (.toolname | parse_simple_string),
+  (.start_index | parse_integer(0)),
+  (.count | parse_integer(20))')
+EOF
+
 if [ -z "$op" ]; then
   if jq -e 'keys | map(select(. != "operation")) | length > 0' <"$argfile" >/dev/null 2>&1; then
-    error "bad argument: operation is missing; the arguments look like they belong to another tool"
+    llmtu_error "bad argument: operation is missing; the arguments look like they belong to another tool"
   fi
-  error "bad argument: operation is missing"
+  llmtu_error "bad argument: operation is missing"
 fi
 case $op in
   enable|disable|describe|list|doc|listdoc) ;;
   *)
-    error "bad argument: operation must be describe, list, doc or listdoc"
+    llmtu_error "bad argument: operation must be describe, list, doc or listdoc"
     ;;
 esac
-
-pattern=$(jq -j '.pattern // "" | tostring | gsub("\n"; " ")' <"$argfile")
 
 # enable and disable need approval
 if [ "$op" = enable ] || [ "$op" = disable ]; then
   if [ -z "$pattern" ]; then
-    error "bad argument: pattern is not given or is empty"
+    llmtu_error "bad argument: pattern is not given or is empty"
   fi
 
   summary=$'\033[33;1m'"$op tools matching pattern(s): $pattern"$'\033[0m'
@@ -79,40 +92,19 @@ if [ "$op" = enable ] || [ "$op" = disable ]; then
       exit 0
       ;;
     *)
-      error "approval agent exited abnormally"
+      llmtu_error "approval agent exited abnormally"
       ;;
   esac
 fi
 
-whole_catalog=$(jq -j '(.whole_catalog and true) or false' <"$argfile")
-enabled=$(jq -j '(.enabled and true) or false' <"$argfile")
-with_summary=$(jq -j '(.with_summary and true) or false' <"$argfile")
-name=$(jq -j '.toolname // "" | tostring' <"$argfile")
-jq -r '.docpaths // empty | if type != "array" then [.] end | .[]' <"$argfile" >"$docpaths"
-start_index=$(jq -j '.start_index | select(type == "number")' <"$argfile")
-count=$(jq -j '.count | select(type == "number")' <"$argfile")
-
-case $start_index in
-  '') start_index=0 ;;
-  *[!0123456789]*)
-    error "bad argument: start_index must be a non-negative integer"
-    ;;
-esac
-case $count in
-  '') count=20 ;;
-  *[!0123456789]*)
-    error "bad argument: count must be a non-negative integer"
-    ;;
-esac
-
 # The list scoping flags are mutually exclusive; checked only for
 # "list" so that irrelevant parameters stay silently ignored.
 if [ "$op" = list ]; then
-  if [ "$enabled" = true ] && [ "$whole_catalog" = true ]; then
-    error "bad argument: enabled and whole_catalog can not be used together"
+  if [ -n "$enabled" ] && [ -n "$whole_catalog" ]; then
+    llmtu_error "bad argument: enabled and whole_catalog can not be used together"
   fi
-  if [ "$enabled" = true ] && [ -n "$pattern" ]; then
-    error "bad argument: pattern can not be used with enabled"
+  if [ -n "$enabled" ] && [ -n "$pattern" ]; then
+    llmtu_error "bad argument: pattern can not be used with enabled"
   fi
 fi
 
@@ -126,10 +118,10 @@ case $op in
     ;;
   list)
     set -- "$@" -i "$start_index" -c "$count"
-    [ "$with_summary" = true ] && set -- "$@" -s
-    if [ "$enabled" = true ]; then
+    [ -n "$with_summary" ] && set -- "$@" -s
+    if [ -n "$enabled" ]; then
       set -- "$@" -e
-    elif [ "$whole_catalog" = true ]; then
+    elif [ -n "$whole_catalog" ]; then
       set -- "$@" -E
     fi
     [ -n "$pattern" ] && set -- "$@" -- "$pattern"

@@ -47,7 +47,8 @@ The tools of a session form three sets:
   select a page
   of the result: the page is clamped to the result (a "start_index"
   beyond "total" gives an empty page, a "count" beyond the rest gives
-  only the rest), negative values are an error, and "total" is the
+  only the rest), a negative "start_index" is treated as 0 and a
+  negative "count" as all the remaining items, and "total" is the
   size of the full result (request as many as it to obtain everything
   at once).
 - "doc": read documents of a tool. Requires "toolname"; "docpaths"

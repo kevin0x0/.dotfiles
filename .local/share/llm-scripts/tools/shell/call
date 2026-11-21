@@ -1,6 +1,7 @@
 #!/bin/sh
 
 . -- llm-chat-common
+. -- llm-tool-utils
 llmcc_set_public_files_var "$2"
 llmcc_tool_source_runtime_config "shell"
 
@@ -31,7 +32,7 @@ approval_out=$tmpdir/approval-out
 cat >"$arg"
 
 error() {
-  if [ -n "$output_json" ]; then
+  if [ -n "$llmtu_output_json" ]; then
     jq -nc --arg error "$1" -- '{$error}'
   else
     printf "error:\n%s%s\n" "$line_prefix" "$1"
@@ -40,7 +41,7 @@ error() {
 }
 
 rejected() {
-  if [ -n "$output_json" ]; then
+  if [ -n "$llmtu_output_json" ]; then
     jq -Rsc -- '{rejected:.}'
   else
     printf "rejected:\n"
@@ -49,14 +50,23 @@ rejected() {
   exit 0
 }
 
-output_json=
+llmtu_output_json=
 if ! jq -e -- 'type == "object" and (.command | type) == "string" and (.intent | type) == "string"' "$arg" >/dev/null 2>&1; then
   error 'bad argument: both "command" and "intent" fields must be provided'
   exit 0
 fi
 
-output_json=$(jq -j 'if .output_json then "1" else "" end' <"$arg")
-interpreter=$(jq -j '.interpreter // ""' <"$arg")
+{
+  read -r interpreter && read -r llmtu_output_json
+} <<EOF || error "invalid json"
+$(jq -rL "$llmtu_jqlibpath" '
+  include "parse-arguments";
+  (.interpreter | parse_string),
+  (.output_json | parse_boolean)' <"$arg")
+EOF
+
+llmtu_eval_string interpreter
+
 [ -z "$interpreter" ] && interpreter=$opt_interpreter
 
 if [ -z "$interpreter" ]; then
@@ -109,7 +119,7 @@ case $? in
     ;;
 esac
 
-if [ -n "$output_json" ]; then
+if [ -n "$llmtu_output_json" ]; then
   jq -cn --rawfile stdout "$stdout" \
     --rawfile stderr "$stderr" \
     --argjson exitcode "$exitcode" \
