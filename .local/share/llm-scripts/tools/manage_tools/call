@@ -26,14 +26,12 @@ tmpdir=$(tmpfile -d) || exit 1
 argfile=$tmpdir/arg
 outfile=$tmpdir/stdout
 errfile=$tmpdir/stderr
-docpaths=$tmpdir/docpaths
 approval_out=$tmpdir/approval-out
-
-cat >"$argfile"
 
 {
   read -r op \
     && read -r pattern \
+    && read -r docpaths \
     && read -r whole_catalog \
     && read -r enabled \
     && read -r with_summary \
@@ -45,6 +43,7 @@ $(tee -- "$argfile" | jq -rL "$llmtu_jqlibpath" '
   include "parse-arguments";
   (.operation | parse_simple_string),
   (.pattern | parse_simple_string),
+  (.docpaths | parse_string_array),
   (.whole_catalog, .enabled, .with_summary | parse_boolean),
   (.toolname | parse_simple_string),
   (.start_index | parse_integer(0)),
@@ -127,10 +126,8 @@ case $op in
     [ -n "$pattern" ] && set -- "$@" -- "$pattern"
     ;;
   doc)
-    set -- "$@" -- "$name"
-    while IFS= read -r docpath; do
-      set -- "$@" "$docpath"
-    done <"$docpaths"
+    command eval 'set -- "$@" -- "$name" '"$docpaths" \
+      || llmtu_bad_argument "invalid docpaths"
     ;;
   listdoc)
     set -- "$@" -- "$name"

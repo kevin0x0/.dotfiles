@@ -51,6 +51,6 @@ select(.type == "input_text") | .text |
 '
 
 jq -j --arg line_prefix "$line_prefix" \
-  --arg libpath "$llmtropt_tool_dir/lib" \
-  -L "$llmtropt_tool_dir/lib" -- "$program" \
+  --arg libpath "$llmtr_opt_tool_dir/lib" \
+  -L "$llmtr_opt_tool_dir/lib" -- "$program" \
   | sh -s -- "$@"

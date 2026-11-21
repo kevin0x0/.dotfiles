@@ -134,7 +134,8 @@ case $op in
     set -- "$@" -- "$event" "$name"
     ;;
   install)
-    eval 'set -- "$@" -- '"$files"
+    command eval 'set -- "$@" -- '"$files" \
+      || llmtu_bad_argument "invalid files: $files"
     ;;
   hook-dump)
     if [ -z "$output_file" ]; then
@@ -164,7 +165,8 @@ case $op in
     esac
     ;;
   doc)
-    eval 'set -- "$@" -- '"$docpaths"
+    command eval 'set -- "$@" -- '"$docpaths" \
+      || llmtu_bad_argument "invalid docpaths: $docpaths"
     ;;
   log-dump)
     if [ -z "$output_file" ]; then

@@ -79,6 +79,6 @@ try (
 )
 '
 
-jq -j --arg libpath "$llmtropt_tool_dir/lib" \
-  -L "$llmtropt_tool_dir/lib" -- "$program" \
+jq -j --arg libpath "$llmtr_opt_tool_dir/lib" \
+  -L "$llmtr_opt_tool_dir/lib" -- "$program" \
   | sh -s -- "$@"

@@ -4,4 +4,4 @@
 
 llmtr_parse_options "" "$@"
 
-jq -jf -- "$llmtropt_tool_dir/lib/assemble.jq" | llm-v4a-render-patch "$@"
+jq -jf -- "$llmtr_opt_tool_dir/lib/assemble.jq" | llm-v4a-render-patch "$@"

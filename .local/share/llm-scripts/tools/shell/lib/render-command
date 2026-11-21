@@ -11,7 +11,7 @@ parse_my_option_I() {
 llmtr_parse_options "I:" "$@"
 shift "$((OPTIND - 1))"
 
-llmcc_set_public_files_var "$llmtropt_state_dir"
+llmcc_set_public_files_var "$llmtr_opt_state_dir"
 llmcc_tool_source_runtime_config shell
 
 interpreter=$opt_interpreter

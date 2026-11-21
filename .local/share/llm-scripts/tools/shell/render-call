@@ -19,6 +19,6 @@ try (
   halt
 )
 '
-jq -Rsj --arg libpath "$llmtropt_tool_dir/lib" \
-  -L "$llmtropt_tool_dir/lib" -- "$program" \
+jq -Rsj --arg libpath "$llmtr_opt_tool_dir/lib" \
+  -L "$llmtr_opt_tool_dir/lib" -- "$program" \
   | sh -s -- "$@"

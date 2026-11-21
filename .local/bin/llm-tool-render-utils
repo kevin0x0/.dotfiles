@@ -1,9 +1,9 @@
 # vim: ft=sh
 
-llmtropt_output_amount=
-llmtropt_tool_dir=
-llmtropt_state_dir=
-llmtropt_color=auto
+llmtr_opt_output_amount=
+llmtr_opt_tool_dir=
+llmtr_opt_state_dir=
+llmtr_opt_color=auto
 
 llmtr_color_enabled=
 
@@ -15,19 +15,19 @@ llmtr_parse_options() {
   OPTIND=1
   while getopts "$llmtr_options$llmtr_extra_options" opt; do
     case $opt in
-      d)  llmtropt_tool_dir=$OPTARG ;;
-      s)  llmtropt_state_dir=$OPTARG ;;
-      l)  llmtropt_output_amount=$OPTARG ;;
-      c)  llmtropt_color=$OPTARG ;;
+      d)  llmtr_opt_tool_dir=$OPTARG ;;
+      s)  llmtr_opt_state_dir=$OPTARG ;;
+      l)  llmtr_opt_output_amount=$OPTARG ;;
+      c)  llmtr_opt_color=$OPTARG ;;
       \?) exit 2 ;;
       *)  "parse_my_option_$opt" ;;
     esac
   done
 
-  [ -z "$llmtropt_tool_dir" ] && exit 2 
+  [ -z "$llmtr_opt_tool_dir" ] && exit 2
 
   llmtr_color_enabled=
-  case $llmtropt_color in
+  case $llmtr_opt_color in
     always)
       llmtr_color_enabled=1
       ;;
@@ -38,7 +38,7 @@ llmtr_parse_options() {
       [ -t 1 ] && llmtr_color_enabled=1
       ;;
     [0123456789])
-      [ -t "$llmtropt_color" ] && llmtr_color_enabled=1
+      [ -t "$llmtr_opt_color" ] && llmtr_color_enabled=1
       ;;
   esac
 }
@@ -247,21 +247,21 @@ llmtr_render_lines() {
   llmtr_print_stats() {
     [ -n "$llmtr_has_more_color_enabled" ] && printf "\033[%sm" "$llmtr_line_color_has_more"
     printf "%s%s\n" "$llmtr_line_has_more_prefix" \
-      "($llmtr_line_count lines in total, $((llmtr_line_count - llmtropt_output_amount)) lines not shown)"
+      "($llmtr_line_count lines in total, $((llmtr_line_count - llmtr_opt_output_amount)) lines not shown)"
     [ -n "$llmtr_has_more_color_enabled" ] && printf "\033[0m"
   }
 
   llmtr_line_count=0
   llmtr_process_line() {
     if [ -n "$llmtr_shoud_reset" ] && "$llmtr_shoud_reset"; then
-      if [ "$llmtr_line_count" -gt "${llmtropt_output_amount:-$llmtr_line_count}" ]; then
+      if [ "$llmtr_line_count" -gt "${llmtr_opt_output_amount:-$llmtr_line_count}" ]; then
         llmtr_print_stats
       fi
       llmtr_line_count=0
     fi
 
     llmtr_line_count=$((llmtr_line_count + 1))
-    if [ "$llmtr_line_count" -gt "${llmtropt_output_amount:-$llmtr_line_count}" ]; then
+    if [ "$llmtr_line_count" -gt "${llmtr_opt_output_amount:-$llmtr_line_count}" ]; then
       return 1
     fi
     llmtr_line=$llmtr_line_begin$llmtr_line
@@ -269,7 +269,7 @@ llmtr_render_lines() {
 
   llmtr_run_filter llmtr_process_line
 
-  if [ "$llmtr_line_count" -gt "${llmtropt_output_amount:-$llmtr_line_count}" ]; then
+  if [ "$llmtr_line_count" -gt "${llmtr_opt_output_amount:-$llmtr_line_count}" ]; then
     llmtr_print_stats
   fi
 }
