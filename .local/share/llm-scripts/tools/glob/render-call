@@ -1,0 +1,34 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+. llm-tool-utils
+
+llmtr_parse_options "" "$@"
+
+{
+  read -r pathname && read -r patterns
+} <<EOF
+$(jq -rL "$llmtu_jqlibpath" '
+  include "parse-arguments";
+  (.path // "." | parse_string),
+  (.patterns | parse_string_array)' 2>/dev/null || true)
+EOF
+
+command eval "set -- $pathname $patterns" 2>/dev/null \
+  || pathname=unknown patterns=unknown
+
+count=$#
+while [ "$count" -ne 0 ]; do
+  arg=$1; shift; count=$((count - 1))
+  case $arg in
+    *[[:cntrl:]$'\n']*) set -- "$@" "$(shell-escape -- "$arg")" ;;
+    *)                  set -- "$@" "$arg" ;;
+  esac
+done
+
+llmtr_render_header '36;1' 'glob under ' '33' "$1"
+shift
+
+printf "%s\n" "$@" \
+  | llmtr_run_filter_on_color llmtr_filter_color_line '33' \
+  | llmtr_render_lines

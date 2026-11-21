@@ -1,0 +1,55 @@
+#!/bin/sh
+
+. llm-tool-utils
+
+{
+  read -r pathname && read -r patterns && read -r limit && read -r llmtu_output_json
+} <<EOF || llmtu_bad_argument "invalid JSON"
+$(jq -rL "$llmtu_jqlibpath" '
+  include "parse-arguments";
+  (.path | parse_string),
+  (.patterns | parse_string_array),
+  (.limit | parse_integer(100)),
+  (.output_json | parse_boolean)')
+EOF
+
+llmtu_eval_string pathname
+
+[ -n "$pathname" ] || pathname=$PWD
+[ "$limit" -ge 0 ] || llmtu_bad_argument "limit must be non-negative"
+
+command eval "set -- $patterns" || llmtu_bad_argument "bad patterns: $patterns"
+
+normalized_pathname=$(normpath -Rt / "$pathname" 2>/dev/null) \
+  || llmtu_bad_argument "bad pathname: $pathname"
+glob-expand -nb "$normalized_pathname" -- "$@" 2>/dev/null \
+  | xargs -r0 -- sh -c '
+      for f; do
+        [ -d "$f" ] && f=$f/
+        printf "%s\0" "$f"
+      done
+    ' sh \
+  | jq -Rsc \
+      --argjson limit "$limit" '
+        split("\u0000") | del(.[-1]) |
+        unique | length as $total |
+        .[:$limit] |
+        {$total,count:length,paths:.}' \
+  | {
+  if [ -n "$llmtu_output_json" ]; then
+    cat
+  else
+    jq -r '
+      "printf \"%s of %s listed:\\n\" \(.count) \(.total)",
+      (
+        .paths[] |
+        if test("[[:cntrl:]\\n]") then
+          "\"$(shell-escape -t \"\" -- " + @sh + ")\""
+        else
+          @sh
+        end |
+        "printf \"%s\\n\" " + .
+      )
+    ' | sh
+  fi
+} | llm-make-mcontent -t
