@@ -8,7 +8,7 @@
 $(jq -rL "$llmtu_jqlibpath" '
   include "parse-arguments";
   (.path | parse_string),
-  (.patterns | parse_string_array),
+  (.pattern | if . then parse_string else "" end) + " " + (.patterns | parse_string_array),
   (.limit | parse_integer(100)),
   (.output_json | parse_boolean)')
 EOF
@@ -19,6 +19,7 @@ llmtu_eval_string pathname
 [ "$limit" -ge 0 ] || llmtu_bad_argument "limit must be non-negative"
 
 command eval "set -- $patterns" || llmtu_bad_argument "bad patterns: $patterns"
+[ "$#" -ne 0 ] || llmtu_bad_argument "pattern not provided"
 
 normalized_pathname=$(normpath -Rt / "$pathname" 2>/dev/null) \
   || llmtu_bad_argument "bad pathname: $pathname"

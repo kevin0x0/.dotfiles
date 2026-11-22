@@ -5,10 +5,10 @@ glob patterns. Reading is read-only and needs no approval.
 
 # Patterns
 
-"patterns" is a glob pattern or a list of glob patterns; a path matches
-when it matches any of them. A single pattern is a string; several
-patterns are a JSON array of strings (not a JSON-encoded string), for
-example {"patterns": ["*.txt", "*.md"]}.
+"pattern" is a single glob pattern (a string), and "patterns" is a list
+of glob patterns (a JSON array of strings); provide at least one of
+them, and they are combined when both are given. A path matches when it
+matches any of them.
 
 The glob semantics are those of POSIX pathname expansion, plus the
 recursive "**" extension: "**" matches zero or more path components, so

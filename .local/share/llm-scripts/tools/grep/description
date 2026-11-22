@@ -15,11 +15,12 @@ literal string instead, and "ignore_case" for case-insensitive matching.
 # Files
 
 "path" is the directory to search (the working directory by default).
-"include" restricts the search to files matching one or more glob
-patterns; the glob semantics are those of the glob tool (POSIX pathname
+"include" (a string) and "includes" (a JSON array of strings) restrict
+the search to files matching those glob patterns, combined when both are
+given; the glob semantics are those of the glob tool (POSIX pathname
 expansion plus the recursive "**" extension), including how hidden files
-are handled. Without "include", every file under "path" is searched,
-except dot-prefixed (hidden) files.
+are handled. Without them, every file under "path" is searched, except
+dot-prefixed (hidden) files.
 
 # Result
 

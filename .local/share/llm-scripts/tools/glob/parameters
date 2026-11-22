@@ -5,19 +5,16 @@
       "type": "string",
       "description": "The directory under which to match; defaults to the working directory of the session."
     },
+    "pattern": {
+      "type": "string",
+      "description": "A single glob pattern."
+    },
     "patterns": {
-      "description": "The glob pattern(s) to match; a path matches when it matches any of them. A string is one pattern; an array is a list of patterns.",
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      ]
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "A list of glob patterns."
     },
     "limit": {
       "type": "integer",
@@ -28,8 +25,5 @@
       "type": "boolean",
       "description": "Return the result as a JSON object instead of the default plain text format."
     }
-  },
-  "required": [
-    "patterns"
-  ]
+  }
 }

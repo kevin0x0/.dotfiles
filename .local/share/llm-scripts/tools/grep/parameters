@@ -10,18 +10,15 @@
       "description": "A regular expression, or several regular expressions separated by newlines."
     },
     "include": {
-      "description": "The glob pattern(s) restricting which files to search; a file is searched when it matches any of them. Omit to search every file.",
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      ]
+      "type": "string",
+      "description": "A single glob pattern restricting which files to search."
+    },
+    "includes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "A list of glob patterns restricting which files to search."
     },
     "limit": {
       "type": "integer",

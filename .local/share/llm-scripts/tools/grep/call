@@ -5,7 +5,7 @@
 {
   read -r pathname \
     && read -r pattern \
-    && read -r include \
+    && read -r includes \
     && read -r limit \
     && read -r ignore_case \
     && read -r fixed_string \
@@ -15,7 +15,7 @@ $(jq -rL "$llmtu_jqlibpath" '
   include "parse-arguments";
   (.path | parse_string),
   (.pattern | parse_string),
-  (.include | parse_string_array),
+  (.include | if . then parse_string else "" end) + " " + (.includes | parse_string_array),
   (.limit | parse_integer(100)),
   (.ignore_case, .fixed_string, .output_json | parse_boolean)')
 EOF
@@ -54,7 +54,7 @@ else
 fi
 
 {
-  command eval "set -- $include" || llmtu_bad_argument "bad include patterns: $include"
+  command eval "set -- $includes" || llmtu_bad_argument "bad include patterns: $includes"
   normalised_pathname=$(normpath -Rt / "$pathname" 2>/dev/null) \
     || llmtu_bad_argument "bad pathname: $pathname"
   if [ "$#" -ne 0 ]; then
