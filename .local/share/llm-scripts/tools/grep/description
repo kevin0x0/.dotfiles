@@ -1,0 +1,63 @@
+# Synopsis
+
+Search files under a directory for lines matching regular expressions.
+Reading is read-only and needs no approval.
+
+# Patterns
+
+"pattern" is a regular expression, or several regular expressions
+separated by newlines; a line matches when it matches any of them. The
+syntax is that of ripgrep (the Rust regular expression syntax, close to
+extended regular expressions) when rg is available, and extended regular
+expressions otherwise. Set "fixed_string" to treat the pattern as a
+literal string instead, and "ignore_case" for case-insensitive matching.
+
+# Files
+
+"path" is the directory to search (the working directory by default).
+"include" restricts the search to files matching one or more glob
+patterns; the glob semantics are those of the glob tool (POSIX pathname
+expansion plus the recursive "**" extension), including how hidden files
+are handled. Without "include", every file under "path" is searched,
+except dot-prefixed (hidden) files.
+
+# Result
+
+The result lists the matching lines grouped by file. The first line
+reports the number of lines shown and the total number of matches:
+
+    <count> of <total> matches listed:
+    <file>:
+      <n>: <content>
+      <n>: <content>
+
+    <file>:
+      ...
+
+"limit" (default 100) caps the number of matching lines shown: "total"
+is the number of all matching lines before the cap, and "count" the
+number shown. "n" is the 1-based line number, and "content" the whole
+matched line. A path containing control characters is shown
+shell-quoted in the `$'...'` (dollar single quote) form.
+
+# JSON format
+
+Set the "output_json" argument to true to return a JSON object instead:
+
+    {"total": <int>, "count": <int>, "matches": [
+      {"file": <string>, "lines": [{"n": <int>, "content": <string>}, ...]},
+      ...
+    ]}
+
+"total" is the number of all matching lines, "count" the number of lines
+shown (after "limit"), and "matches" the matches grouped by file, each
+with 1-based line numbers "n" and the matched "content".
+
+A "bad argument" error (the argument is not valid JSON) is always
+reported in the text format, because "output_json" cannot be read from
+a malformed argument.
+
+# Notes
+
+- "limit" must be non-negative.
+- "content" is the whole matched line.

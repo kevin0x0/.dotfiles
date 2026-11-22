@@ -1,0 +1,49 @@
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "The directory under which to search; defaults to the working directory of the session."
+    },
+    "pattern": {
+      "type": "string",
+      "description": "A regular expression, or several regular expressions separated by newlines."
+    },
+    "include": {
+      "description": "The glob pattern(s) restricting which files to search; a file is searched when it matches any of them. Omit to search every file.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "limit": {
+      "type": "integer",
+      "description": "The maximum number of matching lines to list; must be non-negative. Defaults to 100.",
+      "default": 100
+    },
+    "ignore_case": {
+      "type": "boolean",
+      "description": "Case-insensitive matching.",
+      "default": false
+    },
+    "fixed_string": {
+      "type": "boolean",
+      "description": "Treat the pattern as a literal string instead of a regular expression.",
+      "default": false
+    },
+    "output_json": {
+      "type": "boolean",
+      "description": "Return the result as a JSON object instead of the default plain text format."
+    }
+  },
+  "required": [
+    "pattern"
+  ]
+}

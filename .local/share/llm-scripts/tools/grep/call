@@ -1,0 +1,149 @@
+#!/bin/sh
+
+. llm-tool-utils
+
+{
+  read -r pathname \
+    && read -r pattern \
+    && read -r include \
+    && read -r limit \
+    && read -r ignore_case \
+    && read -r fixed_string \
+    && read -r llmtu_output_json
+} <<EOF || llmtu_bad_argument "invalid JSON"
+$(jq -rL "$llmtu_jqlibpath" '
+  include "parse-arguments";
+  (.path | parse_string),
+  (.pattern | parse_string),
+  (.include | parse_string_array),
+  (.limit | parse_integer(100)),
+  (.ignore_case, .fixed_string, .output_json | parse_boolean)')
+EOF
+
+llmtu_eval_string pathname
+llmtu_eval_string pattern
+
+[ -n "$pattern" ] || llmtu_bad_argument "pattern not provided"
+[ -n "$pathname" ] || pathname=$PWD
+[ "$limit" -ge 0 ] || llmtu_bad_argument "limit must be non-negative"
+
+cleanup() {
+  [ -n "$tmpdir" ] && rm -rf -- "$tmpdir"
+  if [ -n "$1" ]; then
+    trap - "$1"
+    kill -"$1" "$$"
+  fi
+}
+
+trap 'cleanup' EXIT
+for sig in TERM INT QUIT; do
+  trap "cleanup $sig" "$sig"
+done
+
+tmpdir=
+tmpdir=$(tmpfile -d) || exit
+
+printf "%s\n" "$pattern" >"$tmpdir/patterns"
+
+cmdoptions=-n${ignore_case:+i}${fixed_string:+F}
+if command -v rg >/dev/null 2>&1; then
+  cmdname=rg
+else
+  cmdname=grep
+  [ -z "$fixed_string" ] && cmdoptions=${cmdoptions}E
+fi
+
+{
+  command eval "set -- $include" || llmtu_bad_argument "bad include patterns: $include"
+  normalised_pathname=$(normpath -Rt / "$pathname" 2>/dev/null) \
+    || llmtu_bad_argument "bad pathname: $pathname"
+  if [ "$#" -ne 0 ]; then
+    glob-expand -nb "$normalised_pathname" -- "$@"
+  else
+    find "$normalised_pathname" ! -path '*/' -name '.*' -prune -o -type f -print0
+  fi
+} | xargs -r0 -- sh -c '
+      tmpdir=$1; cmdname=$2; cmdoptions=$3; shift 3
+      count=$#
+      while [ "$count" -ne 0 ]; do
+        f=$1; shift; count=$((count - 1))
+        [ -f "$f" ] || continue
+        case $f in
+          *[:'"\$'\\n'"']*) printf "%s\0" "$f" >&3 ;;
+          *)                set -- "$@" "$f" ;;
+        esac
+      done 3>>"$tmpdir/weird_files"
+
+      if [ "$#" -gt 1 ]; then
+        "$cmdname" -f "$tmpdir/patterns" "$cmdoptions" -- "$@"
+      elif [ "$#" -eq 1 ]; then
+        "$cmdname" -nf "$tmpdir/patterns" "$cmdoptions" -- "$@" \
+          | prefix="$1" awk "BEGIN{prefix = ENVIRON[\"prefix\"]} {print prefix \":\" \$0}"
+      fi
+    ' sh "$tmpdir" "$cmdname" "$cmdoptions" >"$tmpdir/matches"
+
+[ ! -e "$tmpdir/weird_files" ] && : >"$tmpdir/weird_files"
+xargs -r0 -- sh -c '
+  tmpdir=$1; cmdname=$2; cmdoptions=$3; shift 3
+  for f; do
+    "$cmdname" -f "$tmpdir/patterns" "$cmdoptions" -- "$f" \
+      | while IFS= read -r line; do
+          printf "%s\n%s\0" "$f" "$line"
+        done
+  done
+' sh "$tmpdir" "$cmdname" "$cmdoptions" \
+  <"$tmpdir/weird_files" >"$tmpdir/matches_in_weird_files" 2>/dev/null
+
+jq -Rsc --rawfile extra_matches "$tmpdir/matches_in_weird_files" \
+  --argjson limit "$limit" <"$tmpdir/matches" '
+  (
+    split("\n") | del(.[-1]) | map(
+      index(":") as $colon_index | {
+        file:.[:$colon_index],
+        match:.[$colon_index + 1:]
+      }
+    )
+  ) as $matches |
+  (
+    $extra_matches | split("\u0000") | del(.[-1]) | map(
+      split("\n") | {
+        file:(.[:-1] | join("\n")),
+        match:.[-1]
+      }
+    )
+  ) as $extra_matches | $matches + $extra_matches | map(
+    . as {$file,$match} |
+    select($match | test("^[0-9]+:")) | ($match | index(":")) as $colon_index | {
+      $file,
+      n:($match[:$colon_index] | tonumber),
+      content:$match[$colon_index + 1:]
+    }
+  ) |
+  unique_by(.file, .n) | length as $total | .[:$limit] |
+  length as $count | group_by(.file) | map({
+    file:.[0].file,
+    lines:map({n,content}) | sort_by(.n)
+  }) | {$total,$count,matches:.}' \
+  | {
+  if [ -n "$llmtu_output_json" ]; then
+    cat
+  else
+    jq -r '
+      "printf \"%s of %s matches listed:\\n\" \(.count) \(.total)",
+      (
+        .matches[] |
+        (
+          .file | if test("[[:cntrl:]\\n]") then
+            "\"$(shell-escape -t \"\" -- " + @sh + ")\""
+          else
+            @sh
+          end | "printf \"%s:\\n\" " + .
+        ),
+        (
+          .lines[] | "printf \"%s\\n\" " + ("  \(.n): \(.content)" | @sh)
+        ),
+        "printf \"\\n\""
+      )
+    ' | sh
+  fi
+} | llm-make-mcontent -t

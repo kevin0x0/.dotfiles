@@ -1,0 +1,45 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+. llm-tool-utils
+
+llmtr_parse_options "" "$@"
+
+{
+  read -r pathname && read -r include && read -r pattern
+} <<EOF
+$(jq -rL "$llmtu_jqlibpath" '
+  include "parse-arguments";
+  (.path // "." | parse_string),
+  (.include | parse_string_array),
+  (.pattern | parse_string)' 2>/dev/null || true)
+EOF
+
+command eval "set -- $pathname $include" 2>/dev/null \
+  || pathname=unknown include=unknown
+
+escape() {
+  case $1 in
+    *[[:cntrl:]$'\n'{},]*)  printf "%s\n" "$(shell-escape -- "$1")" ;;
+    *)                      printf "%s\n" "$1" ;;
+  esac
+}
+
+pathname=$(escape "${1%/}/")
+files=$pathname
+shift
+count=$#
+if [ "$count" -ne 0 ]; then
+  files=$files{
+  while [ "$count" -ne 0 ]; do
+    arg=$1; shift; count=$((count - 1))
+    files="$files$(escape "$arg"),"
+  done
+  files=${files%,}}
+fi
+
+llmtr_render_header '36;1' 'grep in ' '33' "$files"
+
+command eval 'printf "%s\n" '"$pattern" \
+  | llmtr_run_filter_on_color llmtr_filter_color_line '33' \
+  | llmtr_render_lines

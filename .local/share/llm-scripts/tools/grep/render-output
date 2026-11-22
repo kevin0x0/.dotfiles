@@ -1,0 +1,16 @@
+#!/bin/sh
+
+. llm-tool-render-utils
+
+llmtr_parse_options "" "$@"
+
+llmtr_render_header '32;1' 'grep done'
+
+jq -r '
+  select(.type == "input_text") | .text |
+  if startswith("{") then
+    fromjson | "\(.count) of \(.total) matches listed"
+  else
+    split("\n")[0] | rtrimstr(":")
+  end
+' | llmtr_render_lines
