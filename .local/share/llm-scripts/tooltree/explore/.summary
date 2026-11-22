@@ -1,1 +1,1 @@
-Tools that explore the working directory: read files, and list directory entries.
+Tools that explore the working directory: read files, list directory entries, list files matching glob patterns, and search files for matching lines.
