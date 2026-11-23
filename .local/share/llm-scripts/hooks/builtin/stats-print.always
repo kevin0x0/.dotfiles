@@ -101,9 +101,9 @@ render_header() {
   header_left_text_length=${7:-${#header_left_text}}
   shift 7
 
-  header_max_length=$((width - header_left_text_length - left_padding - right_padding))
-  if [ "$header_max_length" -lt 0 ]; then
-    llmcc_hook_log WARN "width ($width) too small for header rendering: $((width - header_max_length)) required"
+  max_length=$((width - header_left_text_length - left_padding - right_padding))
+  if [ "$max_length" -lt 0 ]; then
+    llmcc_hook_log WARN "width ($width) too small for header rendering: $((width - max_length)) required"
     return
   fi
 
@@ -143,7 +143,7 @@ render_header() {
     if [ -n "$header_text" ]; then
       length=$((length + header_sep_length))
     fi
-    if [ "$((header_length + length))" -gt "$header_max_length" ]; then
+    if [ "$((header_length + length))" -gt "$max_length" ]; then
       llmcc_hook_log WARN "max length reached for header, skip $header"
       continue
     fi
@@ -154,7 +154,7 @@ render_header() {
 
   left_padding_spaces=$(repeat "$left_padding" " ")
   right_padding_spaces=$(repeat "$right_padding" " ")
-  middle_padding_spaces=$(repeat "$((header_max_length - header_length))" " ")
+  middle_padding_spaces=$(repeat "$((max_length - header_length))" " ")
   result=$left_padding_spaces$header_left_text$middle_padding_spaces$header_text$right_padding_spaces
   printf "%s\n" "$result"
 }
@@ -199,9 +199,9 @@ EOF
 render_column() {
   append_line_to_row() {
     if [ -n "$header_row" ]; then
-      justify_line "$line_length" "$line_max_length" "$space_row_header" "$space_row_header" "$space_row_header"
+      justify_line "$line_length" "$max_length" "$space_row_header" "$space_row_header" "$space_row_header"
     else
-      justify_line "$line_length" "$line_max_length" "$header_row_header" "$turn_row_header" "$acc_row_header"
+      justify_line "$line_length" "$max_length" "$header_row_header" "$turn_row_header" "$acc_row_header"
     fi
     header_row=$header_row$header_line$'\n'
     turn_row=$turn_row$turn_line$'\n'
@@ -234,9 +234,9 @@ render_column() {
   space_row_header=$left_padding_spaces$(repeat "$row_header_text_length" " ")
   header_row_header=$space_row_header
 
-  line_max_length=$((width - row_header_text_length - right_padding - left_padding))
-  if [ "$line_max_length" -lt 0 ]; then
-    llmcc_hook_log WARN "width ($width) too small for column rendering: $((width - line_max_length)) required"
+  max_length=$((width - row_header_text_length - right_padding - left_padding))
+  if [ "$max_length" -lt 0 ]; then
+    llmcc_hook_log WARN "width ($width) too small for column rendering: $((width - max_length)) required"
     return
   fi
   turn_line=
@@ -295,8 +295,8 @@ render_column() {
     [ "$acc_length" -gt "$length" ] && length=$acc_length
     whole_length=$((length + column_sep_length))
 
-    if [ "$((line_length + whole_length))" -gt "$line_max_length" ]; then
-      if [ "$whole_length" -gt "$line_max_length" ]; then
+    if [ "$((line_length + whole_length))" -gt "$max_length" ]; then
+      if [ "$whole_length" -gt "$max_length" ]; then
         llmcc_hook_log WARN "field too long: $column"
         continue
       fi
@@ -335,9 +335,9 @@ render_kvpair() {
   shift 11
 
   valid_width=$((width - left_padding - right_padding))
-  max_pair_length=$((valid_width - leading_mark_length - kvsep_length))
-  if [ "$max_pair_length" -lt 0 ]; then
-    llmcc_hook_log WARN "width ($width) too small for kvpair rendering: $((width - max_pair_length)) required"
+  max_length=$((valid_width - leading_mark_length - kvsep_length))
+  if [ "$max_length" -lt 0 ]; then
+    llmcc_hook_log WARN "width ($width) too small for kvpair rendering: $((width - max_length)) required"
     return
   fi
 
@@ -388,7 +388,7 @@ render_kvpair() {
     value_length=${value_length:-${#value_text}}
 
 
-    if [ "$((key_length + value_length))" -gt "$max_pair_length" ]; then
+    if [ "$((key_length + value_length))" -gt "$max_length" ]; then
       llmcc_hook_log WARN "kvpair too long: $kvpair"
       continue
     fi
@@ -408,7 +408,7 @@ render_kvpair() {
   min_column_width=$((max_key_length + max_value_length + kvsep_length + leading_mark_length))
   columns=$(((valid_width + column_sep_length) / (min_column_width + column_sep_length)))
   if [ "$columns" -eq 0 ]; then
-    llmcc_hook_log WARN "width ($width) too small for kvpair rendering: $((width - max_pair_length + max_key_length + max_value_length)) required"
+    llmcc_hook_log WARN "width ($width) too small for kvpair rendering: $((width - max_length + max_key_length + max_value_length)) required"
     return
   fi
 
