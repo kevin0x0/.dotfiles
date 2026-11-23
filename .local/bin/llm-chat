@@ -482,7 +482,7 @@ check_file_id() {
   update_file_id "$changed"
 }
 
-call() (
+call_api() (
   if ! check_file_id; then
     errmsg="some file ids expired and failed to retrieve a new one"
     jq -n --arg err "$errmsg" >"$llm_chat_response_output" \
@@ -824,7 +824,7 @@ while :; do
       read_loop
       ;;
     agent-loop-api-call)
-      call "$@"
+      call_api "$@"
       exitcode=$?
       case $exitcode in
         0) # Append to input
