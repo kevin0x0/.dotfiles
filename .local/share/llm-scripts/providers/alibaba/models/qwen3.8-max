@@ -4,4 +4,6 @@ llmcu_source_configfile @providers/alibaba/config
 opt_model=qwen3.8-max
 opt_extra_tools_defer_loading_mode=inject
 
+# Context window: 1M = 1,000,000 (10^6) tokens.
+# Source: alibabacloud.com Model Studio docs — "Context Window 1000000".
 llmmi_context=1000000

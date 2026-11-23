@@ -4,4 +4,6 @@ llmcu_source_configfile @providers/deepseek/config
 opt_model=deepseek-v4-pro
 opt_extra_tools_defer_loading_mode=inject
 
+# Context window: 1M = 1,048,576 (2^20) tokens.
+# Source: api-docs.deepseek.com — GET /models reports context_window=1048576.
 llmmi_context=$((1024 * 1024))
