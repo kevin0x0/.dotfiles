@@ -843,12 +843,9 @@ while :; do
           ;;
         3) # response.incomplete
           echo
-          if incomplete_reason=$(jq -jn 'limit(1; inputs) | .reason' "$llm_chat_response_output" 2>/dev/null); then
+          if incomplete_reason=$(jq -j '.incomplete_details.reason' "$llm_chat_response_extra_info_output" 2>/dev/null); then
             case $incomplete_reason in
               max_output_tokens|steered)
-                # Skip the first item
-                jq -c -- 'inputs' "$llm_chat_response_output" >"$tmp"
-                cp -- "$tmp" "$llm_chat_response_output"
                 llm-o2i -- "$llm_chat_response_output" >>"$llm_chat_this_turn"
                 llm_chat_next_state=agent-loop-tool-call
                 ;;
@@ -863,7 +860,10 @@ while :; do
           fi
           ;;
         *)
-          [ -s "$llm_chat_response_output" ] && jq -n 'limit(1; inputs)' "$llm_chat_response_output" >&2
+          if [ -s "$llm_chat_response_extra_info_output" ]; then
+            jq ".incomplete_details? // .error?" \
+              <"$llm_chat_response_extra_info_output" >&2 2>/dev/null
+          fi
           error_to read-loop
           ;;
       esac

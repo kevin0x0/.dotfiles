@@ -97,9 +97,12 @@ fi
 jq_build_extra_info_func='
 def build_extra_info:
 {
-  usage:.usage,
-  model:.model
-};'
+  usage,
+  model,
+  error,
+  incomplete_details
+};
+'
 
 make_input() {
   stream=false
@@ -157,21 +160,26 @@ make_nonstream_output() {
       if .status == "completed" then
         build_extra_info, .output[], ("" | halt_error(0))
       elif .status == "failed" then
-        .error, ("" | halt_error(5))
+        build_extra_info, ("" | halt_error(5))
       elif .status == "incomplete" then
-        build_extra_info, .incomplete_details, .output[], ("" | halt_error(6))
+        build_extra_info, .output[], ("" | halt_error(6))
       elif .status == "_llm_scripts_interrupted" then
-        .output[], halt_error(7)
+        build_extra_info, .output[], ("" | halt_error(7))
       else
-        if has("error") | not then
-          {"error":{"message":.,"type":"_llm_scripts_error","code":"_llm_scripts_error"}}
-        end, ("" | halt_error(4))
+        (
+          if has("error") | not then
+            {"error":{"message":.,"type":"_llm_scripts_error","code":"_llm_scripts_error"}}
+          end | build_extra_info
+        ), ("" | halt_error(4))
       end
     ) catch (
       if $input | endswith("\u0000INTERRUPTED\n") then
-        [], halt_error(7)
+        ({} | build_extra_info), ("" | halt_error(7))
       else
-        {"error":{"message":$input,"type":"_llm_scripts_error","code":"_llm_scripts_error"}}, ("" | halt_error(4))
+        (
+          {"error":{"message":$input,"type":"_llm_scripts_error","code":"_llm_scripts_error"}} |
+          build_extra_info
+        ), ("" | halt_error(4))
       end
     )' >"$tmp" 2>/dev/null
   exitcode=$?
@@ -191,31 +199,23 @@ make_nonstream_output() {
     *)  exec 5>"$opt_info_output" ;;
   esac
 
+  head -n 1 <"$tmp" >&5
+  tail -n +2 <"$tmp" | llm-render-events >&3
+  tail -n +2 <"$tmp" >&4
   case $exitcode in
-    0)
-      head -n 1 <"$tmp" >&5
-      tail -n +2 <"$tmp" | llm-render-events >&3
-      tail -n +2 <"$tmp" >&4
-      ;;
+    0) ;;
     6)
       # Incomplete
-      head -n 1 <"$tmp" >&5
-      tail -n +3 <"$tmp" | llm-render-events >&3
-      tail -n +2 <"$tmp" >&4
       exitcode=3
       ;;
     5)
       # Failed
-      cat -- "$tmp" >&4
       exitcode=4
       ;;
     7)
-      cat -- "$tmp" >&4
-      llm-render-events <"$tmp" >&3
       exitcode=5
       ;;
     *)
-      cat -- "$tmp" >&4
       exitcode=1
       ;;
   esac
@@ -373,15 +373,13 @@ preprocess_render_event() {
     [.type, .output_index, null, .summary_index, "reasoning-summary", .part.text]
   elif .type == "response.reasoning_summary_part.done" then
     [.type, .output_index, null, .summary_index, "", .part.text]
-  elif .type == "response.completed" then
+  elif .type == "response.completed"
+    or .type == "response.failed"
+    or .type == "response.incomplete" then
     ["_my_extra_info", null, null, null, "", (.response | build_extra_info | @json)],
-    [.type, null, null, null, "", (.response.output | @json)]
-  elif .type == "response.failed" then
-    [.type, null, null, null, "", ([.response.error] | @json)]
-  elif .type == "response.incomplete" then
-    ["_my_extra_info", null, null, null, "", (.response | build_extra_info | @json)],
-    [.type, null, null, null, "", ([.response.incomplete_details] + .response.output | @json)]
+    [.type, null, null, null, "", (.response.output // [] | @json)]
   elif .type == "_llm_scripts_interrupted" then
+    ["_my_extra_info", null, null, null, "", ({} | build_extra_info | @json)],
     [.type, null, null, null, "", ""]
   else
     empty
@@ -477,6 +475,7 @@ make_stream_output() {
     [ ! -e "$buffer_statedir/$output_index/is_nonsummary" ] && [ ! -e "$buffer_statedir/$output_index/is_summary" ]
   }
 
+  extra_info_exists=
   done_pending=
   while read -r type && read -r output_index && read -r content_index \
     && read -r summary_index && read -r render_event && read -r payload; do
@@ -593,6 +592,7 @@ make_stream_output() {
         fi
         ;;
       _my_extra_info)
+        extra_info_exists=1
         printf "%s" "$payload" >>"$extra_info_buffer"
         ;;
       response.completed|response.failed|response.incomplete|_llm_scripts_interrupted)
@@ -620,14 +620,16 @@ make_stream_output() {
     *)  exec 4>"$opt_info_output" ;;
   esac
 
+  if [ -n "$extra_info_exists" ]; then
+    jq -nj 'inputs, "\n"' <"$extra_info_buffer" >&4
+  fi
+
   exitcode=0
   drain=1
   case $type in
     response.completed)
-      jq -nj 'inputs, "\n"' <"$extra_info_buffer" >&4
       ;;
     response.incomplete)
-      jq -nj 'inputs, "\n"' <"$extra_info_buffer" >&4
       exitcode=3
       ;;
     response.failed)
@@ -638,13 +640,13 @@ make_stream_output() {
       exitcode=5
       ;;
     *)
-      jq -n '{
+      jq -n "$jq_build_extra_info_func"'{
         error: {
         message:"the stream terminated abnormally",
         type:"_llm_scripts_error",
         code:"_llm_scripts_error"
         }
-      }' >&3
+      } | build_extra_info' >&4
       drain=
       exitcode=1
       ;;

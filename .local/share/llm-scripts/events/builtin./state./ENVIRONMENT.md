@@ -99,11 +99,13 @@ these files.
   rewritten by each call; it may be empty,
   or hold only part of the output items, when the call failed or was
   interrupted.
-- llm_chat_response_extra_info_output: the "usage" and "model" fields
-  of the last API call, extracted verbatim from the response: a JSON
-  object with both keys, each possibly null. The file holds either
-  exactly one such object or nothing; it is empty when the call failed
-  or was interrupted.
+- llm_chat_response_extra_info_output: the "usage", "model", "error"
+  and "incomplete_details" fields of the last API call, extracted
+  verbatim from the response: a single JSON object with those four
+  keys, each possibly null. The file holds exactly one such object
+  after every call; "error" is set when the call failed,
+  "incomplete_details" when it was incomplete, and all four are null
+  when it was interrupted.
 - llm_chat_tool_list: the tool definitions the session sends to the
   API: a single JSON array of function objects on one line.
 - llm_chat_default_tool_set, llm_chat_extra_tool_set: newline lists of
