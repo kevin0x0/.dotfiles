@@ -27,6 +27,7 @@ on_exit() {
   llmcc_hook_dump_vars \
     acc_input acc_cached_input acc_output acc_reasoning_output acc_total acc_api_calls \
     turn_input turn_cached_input turn_output turn_reasoning_output turn_total turn_api_calls \
+    last_input last_cached_input last_output last_reasoning_output last_total \
     model turn status >"$stats_vars"
 }
 trap 'on_exit' EXIT

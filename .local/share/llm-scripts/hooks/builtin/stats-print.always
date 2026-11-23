@@ -26,7 +26,7 @@ color() {
 
 percent() {
   result=?
-  case $1$2 in
+  case ${1:-?}${2:-?} in
     *[!0123456789]*)
       ;;
     *)
@@ -79,6 +79,26 @@ repeat() {
     times=$((times / 2))
   done
   printf "%s" "$result"
+}
+
+progress_bar() {
+  set -- "${1%.*}" "${2:-50}"
+  per=$1
+  blocks=$(($2 * 8 * $1 / 100))
+  complete=$((blocks / 8))
+  partial=$((blocks % 8))
+  result=$(repeat "$complete" "█")
+  case $partial in
+    1) result="$result▏" ;;
+    2) result="$result▎" ;;
+    3) result="$result▍" ;;
+    4) result="$result▌" ;;
+    5) result="$result▋" ;;
+    6) result="$result▊" ;;
+    7) result="$result▉" ;;
+  esac
+  printf "%s" "$result"
+  repeat "$(($2 - complete - (partial != 0)))" " "
 }
 
 validate_specifier() {
@@ -360,6 +380,24 @@ render_kvpair() {
         value_text=$model
         value_length=${#value_text}
         value_text=$(color '1' "$value_text")
+        ;;
+      context)
+        context_ratio=$(percent "$last_total" "$llmmi_context")
+        if [ "$context_ratio" = '?' ] || [ "$max_length" -lt 30 ]; then
+          value_text=$context_ratio
+          value_length=${#value_text}
+          value_text=$(color '1' "$value_text")
+        else
+          progress_bar_fg=33
+          progress_bar_length=$((max_length * 5 / 10 - ${#context_ratio} - 5))
+          [ "${context_ratio%%.*}" -gt 60 ] && progress_bar_fg=31
+          prog_bar=$(progress_bar "$context_ratio" "$progress_bar_length" && echo x)
+          prog_bar=${prog_bar%x}
+          colored_prog_bar=$(color "$progress_bar_fg" "$prog_bar")
+          colored_context_ratio=$(color '1' "$context_ratio")
+          value_text="│$colored_prog_bar│ $colored_context_ratio%"
+          value_length=$((${#prog_bar} + ${#context_ratio} + 4))
+        fi
         ;;
       *)
         validate_specifier "$kvpair" || continue
@@ -1048,6 +1086,7 @@ if [ -z "${stats_opt_layout:-}" ]; then
       @kvpair(
         lpadding=2,
         rpadding=2;
+        "context@ctx",
         "model",
       ),
       @bar(),
