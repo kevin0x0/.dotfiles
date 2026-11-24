@@ -1,5 +1,0 @@
-# vim: ft=sh
-
-shift
-
-llm-render-events <"$llm_chat_this_turn" | llmru_dispatch_render_event "$render_event_fifo"

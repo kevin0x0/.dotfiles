@@ -140,14 +140,14 @@ render_header() {
         length=$((${#my_ordinal_turn} + 9))
         ;;
       status)
-        case $status in
+        case $llm_chat_last_status in
           failed)       status_color='1;31' ;;
           interrupted)  status_color='1;33' ;;
           success)      status_color='1' ;;
-          *)            status_color='1' ;;
+          *)            status_color='1;2' ;;
         esac
-        text=$(color "$status_color" "$status")
-        length=${#status}
+        text=$(color "$status_color" "$llm_chat_last_status")
+        length=${#llm_chat_last_status}
         ;;
       *)
         command eval "cmd=\$stats_render_header_$header"

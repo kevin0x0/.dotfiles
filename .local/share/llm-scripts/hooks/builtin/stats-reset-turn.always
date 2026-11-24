@@ -1,0 +1,30 @@
+# event: builtin.state.agent-loop-api-call-prepare.leave
+# name: builtin-stats-reset-turn.always
+
+if [ "$llm_chat_prev_state" != read-loop ]; then
+  return
+fi
+
+if [ "$llm_chat_next_state" != agent-loop-api-call ]; then
+  return
+fi
+
+turn=0
+
+llmcc_hook_get_shared_state_dir SD builtin.stats || return
+stats_vars=$SD/stats-vars
+llmcc_hook_undump_vars "$stats_vars" || return
+
+turn_input=0
+turn_cached_input=0
+turn_output=0
+turn_reasoning_output=0
+turn_total=0
+turn_api_calls=0
+turn=$((turn + 1))
+
+llmcc_hook_dump_vars \
+  turn_input turn_cached_input turn_output turn_reasoning_output turn_total turn_api_calls \
+  turn >>"$stats_vars"
+
+# vim: ft=sh

@@ -6,9 +6,9 @@ examples of common uses, not a limit on what hooks can do.
 
 The events fire on every entry into this state; use a "oneshot" hook
 for one-time work. This state is not a turn boundary: per-completed-
-turn logic belongs at agent-loop-end (failed and interrupted turns do
-not reach agent-loop-end), and llm_chat_this_turn may hold
-uncommitted items of a failed or interrupted turn.
+turn logic belongs at agent-loop-end (a failed turn does not reach
+agent-loop-end), and llm_chat_pending_items may hold
+uncommitted items of a failed turn.
 
 - enter: initialize once at session start. A "oneshot" hook can add
   a first message to the conversation:
@@ -17,8 +17,8 @@ uncommitted items of a failed or interrupted turn.
       llm_chat_commit_input_content
 
   The message is appended to the current turn's input
-  (llm_chat_this_turn); it appears in llm_chat_conversation only
-  once a turn is committed at agent-loop-end. It is a system message
+  (llm_chat_pending_items); it appears in llm_chat_conversation only
+  once a turn is committed. It is a system message
   (the default role of a commit), for the model; it is not shown to
   the user.
 

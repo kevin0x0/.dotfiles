@@ -1,0 +1,21 @@
+# vim: ft=sh
+
+if [ -z "$2" ]; then
+  printf "provide a file pathname to load pending-items from\n" >&2
+  return 0
+fi
+
+case $1 in
+  */overwrite*)
+    cat -- "$2" >"$llm_chat_pending_items"
+    ;;
+  *)
+    cat -- "$2" >>"$llm_chat_pending_items"
+    ;;
+esac
+
+if [ "$?" -eq 0 ]; then
+  printf "successfully loaded pending-items from %s\n" "$2"
+else
+  printf "failed to load pending-items from %s\n" "$2" >&2
+fi

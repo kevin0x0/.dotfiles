@@ -86,7 +86,7 @@ shift "$((OPTIND - 1))"
 
 [ -f "$llmcu_configdir/post-file-manager-config" ] && . -- "$llmcu_configdir/post-file-manager-config"
 
-llmcu_eval_api_key
+llmcu_eval_api_key || exit
 
 if [ -z "$opt_update$opt_list$opt_delete" ]; then
   opt_list=1

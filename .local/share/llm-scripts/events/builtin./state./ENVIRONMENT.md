@@ -52,6 +52,19 @@ entry.
 - llm_chat_color_ansi: whether the session renders its output in
   color: "1" when enabled, empty when not. Hooks run in a subshell,
   so changing it does not affect the session.
+- llm_chat_last_total_tokens: an estimate of the number of tokens in
+  llm_chat_conversation. It is 0 at session start (the initial
+  conversation is not counted) and is corrected from the API usage
+  after the first API call; hooks must always treat it as an estimate,
+  never as an exact count. It is saved and restored with the session.
+- llm_chat_last_status: the outcome of the last agent turn: "success",
+  "failure", "interrupted", or "unknown" (before the first turn). It
+  is set in the terminal states agent-loop-success, agent-loop-failure
+  and agent-loop-interrupted.
+- llm_chat_last_error_state: the state that failed in the last turn,
+  set by agent-loop-failure to the state it was entered from; it is
+  empty when the last turn did not fail. The retry command returns to
+  this state.
 
 ## Files
 
@@ -65,40 +78,34 @@ these files.
 - llm_chat_conversation: the committed conversation items (messages,
   tool calls, tool results), one per line, in the Responses API input
   item format.
-- llm_chat_this_turn: the current turn's items in the same format, not
-  yet committed. The user's input message is appended here when input
-  is sent, before read-loop.leave. At agent-loop-end.enter the turn
-  is still here; it is committed to llm_chat_conversation while the
-  session processes the agent-loop-end state (between its enter and
-  leave events), after which this file is empty. A failed or
-  interrupted turn is not committed at that moment: an interrupted
-  API response or tool result is appended here before the leave event
-  of the state during which the interruption occurred
-  (agent-loop-api-call or agent-loop-tool-call; the response part may
-  be empty, if none arrived), while a failed call appends nothing.
-  Such a turn's items remain at the end of the file, and input
-  committed later is appended after them; they are all sent together
-  when a later turn is committed at its agent-loop-end, or left
-  uncommitted here if the session ends first.
+- llm_chat_pending_items: the session's uncommitted items, one per
+  line, in the Responses API input item format. Its content changes
+  at these points of the agent loop:
+  - the user's input message is appended before read-loop.leave, when
+    input is sent;
+  - during agent-loop-api-call the model's response, its output items
+    converted to input items, replaces the content;
+  - on agent-loop-tool-call success or interruption, the response is
+    committed to llm_chat_conversation and the tool results become the
+    new content;
+  - the remaining content is committed to llm_chat_conversation at
+    agent-loop-api-call-prepare (before each API call) and at
+    agent-loop-success or agent-loop-interrupted, after which the file
+    is empty.
+  A failed API call leaves it empty (the input was already committed
+  and no response arrived); a failed tool call leaves the uncommitted
+  response here, committed at a later successful commit or left here
+  if the session ends first.
 - llm_chat_tool_output: the item(s) of the most recent tool call
   result in the session, one per line, in the Responses API input item
   format, restricted to the tool-output item types. The file is
   rewritten at each agent-loop-tool-call visit: when the response had
-  several tool calls, it holds one item per executed call, in order.
-  It is empty when
-  no tool call has produced a result yet, and is not cleared between
-  visits otherwise: on a visit without a tool call it holds the
-  previous visit's result. When a tool call is interrupted, the
-  partial result is written here and appended to llm_chat_this_turn
-  before the leave event of
-  agent-loop-tool-call; the turn is then not committed until a later
-  agent-loop-end. A failed visit appends nothing and leaves the file
-  with no guaranteed content.
-- llm_chat_response_output: the output items of the last API call, one
-  per line, in the Responses API output item format. The file is
-  rewritten by each call; it may be empty,
-  or hold only part of the output items, when the call failed or was
-  interrupted.
+  several tool calls, it holds one item per executed call, in order,
+  and it is empty when the response had no tool call. On
+  agent-loop-tool-call success or interruption, its content is copied
+  to llm_chat_pending_items before the leave event of
+  agent-loop-tool-call. A failed visit leaves the file with no
+  guaranteed content.
 - llm_chat_response_extra_info_output: the "usage", "model", "error"
   and "incomplete_details" fields of the last API call, extracted
   verbatim from the response: a single JSON object with those four
@@ -144,7 +151,7 @@ these files.
   conversation items. It reads the items from its standard input and
   prints the selected ones, one JSON value per line, in their input
   order; it has no default input, so feed it a file
-  (llm_chat_conversation, llm_chat_this_turn or a pipe). The items
+  (llm_chat_conversation, llm_chat_pending_items or a pipe). The items
   are grouped into exchanges: an exchange starts at a prompt message
   (system, developer or user) and takes everything that follows it
   (assistant messages, tool calls, tool results) until the next

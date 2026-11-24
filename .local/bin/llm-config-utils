@@ -36,9 +36,10 @@ llmcu_set_boolean_option() {
 
 llmcu_eval_api_key() {
   if [ -z "$opt_api_key" ] && [ -n "$opt_api_key_cmd" ]; then
-    opt_api_key=$(eval " $opt_api_key_cmd" && echo x) || exit
+    opt_api_key=$(eval " $opt_api_key_cmd" && echo x) || return
     opt_api_key=${opt_api_key%$'\nx'}
   fi
+  return 0
 }
 
 llmcu_configdir=${XDG_CONFIG_HOME:-$HOME/.config}/llm-scripts

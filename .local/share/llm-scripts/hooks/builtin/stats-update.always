@@ -1,5 +1,5 @@
 # event: builtin.state.agent-loop-api-call.leave
-# name: builtin-stats-update-on-api-call.always
+# name: builtin-stats-update.always
 
 acc_input=0
 acc_cached_input=0
@@ -16,8 +16,6 @@ turn_total=0
 turn_api_calls=0
 
 model=$llm_chat_model
-turn=0
-status=success
 
 llmcc_hook_get_shared_state_dir SD builtin.stats || return
 stats_vars=$SD/stats-vars
@@ -28,41 +26,14 @@ on_exit() {
     acc_input acc_cached_input acc_output acc_reasoning_output acc_total acc_api_calls \
     turn_input turn_cached_input turn_output turn_reasoning_output turn_total turn_api_calls \
     last_input last_cached_input last_output last_reasoning_output last_total \
-    model turn status >"$stats_vars"
+    model turn >"$stats_vars"
 }
 trap 'on_exit' EXIT
 
-if [ "$llm_chat_prev_state" = "read-loop" ]; then
-  turn_input=0
-  turn_cached_input=0
-  turn_output=0
-  turn_reasoning_output=0
-  turn_total=0
-  turn_api_calls=0
-  turn=$((turn + 1))
-fi
-
 case $llm_chat_next_state in
-  agent-loop-api-call-interrupted)
-    status=interrupted
-    return
-    ;;
-  read-loop)
-    status=failed
-    return
-    ;;
-  agent-loop-tool-call)
-    status=success
-    ;;
-  *)
-    return
-    ;;
+  agent-loop-interrupted|agent-loop-failure|agent-loop-tool-call) ;;
+  *) return ;;
 esac
-
-info=$llm_chat_response_extra_info_output
-if [ ! -s "$info" ]; then
-  return
-fi
 
 last_input=?
 last_cached_input=?
@@ -70,6 +41,9 @@ last_output=?
 last_reasoning_output=?
 last_total=?
 last_api_calls=1
+
+info=$llm_chat_response_extra_info_output
+[ -s "$info" ] || return 0
 read -r model last_input last_cached_input last_output \
   last_reasoning_output last_total <<EOF || return
 $(jq -r '[

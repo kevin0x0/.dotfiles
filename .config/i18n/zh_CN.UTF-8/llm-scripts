@@ -36,8 +36,6 @@
 > $1 不可读
 # $1 is not executable
 > $1 不可执行
-# The API call exit code is 0, but the returned response output is empty.
-> API 调用退出码为 0，但返回的响应输出为空
 # response incomplete: $1
 > 响应不完整：$1
 # response incomplete but no reason given

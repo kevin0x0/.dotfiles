@@ -3,10 +3,11 @@
 @add
 @go
 @drop-content
-@drop-this-turn
+@drop-pending-items
 @retry
 @role
 @text
 @file
 @image
+@save
 @command
