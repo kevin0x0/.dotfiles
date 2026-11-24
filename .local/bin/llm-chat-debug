@@ -131,7 +131,7 @@ jq -r -- '
       if .type == "input_text" then
         .text | split("\n")[] | if startswith("@") then "@" + . end
       elif .type == "image" or .type == "file" then
-        "@image " + (.path | @sh)
+        "@image $'\''" + (.path | gsub("'\''"; "\\'\''") | gsub("\n"; "\\n")) + "'\''"
       else
         ("error when generating mock input: unknown input type: " + .type) | halt_error(1)
       end,
