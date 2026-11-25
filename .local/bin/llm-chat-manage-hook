@@ -418,7 +418,22 @@ sub_install() {
       break
     }
 
-    [ -n "$name" ] || find_install_info name name
+    [ -n "$name" ] || {
+      find_install_info name name
+      case $name in
+        *%[btf]*)
+          name=$(printf "%s\n" "$name" \
+            | awk -v base="${last_comp%.*}" -v type="${last_comp##*.}" \
+                -v full="$last_comp" '{
+                gsub("%b", base)
+                gsub("%t", type)
+                gsub("%f", full)
+                print $0
+              }')
+          [ "$?" -ne 0 ] && { exitcode=1; break; }
+          ;;
+      esac
+    }
     [ -n "$name" ] || name=$last_comp 
 
     if [ -z "$event" ]; then

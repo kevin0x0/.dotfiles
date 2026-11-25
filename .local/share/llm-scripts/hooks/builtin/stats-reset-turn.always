@@ -1,5 +1,5 @@
 # event: builtin.state.agent-loop-api-call-prepare.leave
-# name: builtin-stats-reset-turn.always
+# name: builtin-%f
 
 if [ "$llm_chat_prev_state" != read-loop ]; then
   return

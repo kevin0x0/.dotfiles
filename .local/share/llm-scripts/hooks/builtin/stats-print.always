@@ -1,5 +1,5 @@
 # event: builtin.state.read-loop.enter
-# name: builtin-stats-print.always
+# name: builtin-%f
 
 llmcc_hook_get_shared_state_dir SD builtin.stats || return
 stats_vars=$SD/stats-vars
