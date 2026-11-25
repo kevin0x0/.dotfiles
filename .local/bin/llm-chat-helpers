@@ -76,3 +76,31 @@ llmch_estimate_tokens() {
     && llmch_estimate_tokens_perl "$@" \
     || llmch_estimate_tokens_jq "$@"
 }
+
+llmch_check_required_options() {
+  if [ -z "$opt_api_key" ]; then
+    i18n -n llm-scripts 'API key not provided' >&2
+    return 1
+  fi
+
+  if [ -z "$opt_responses_base_url" ]; then
+    i18n -n llm-scripts 'base URL not provided' >&2
+    return 1
+  fi
+
+  if [ -z "$opt_model" ]; then
+    i18n -n llm-scripts 'model not provided' >&2
+    return 1
+  fi
+}
+
+llmch_options_ok=
+llmch_evaluate_required_options() {
+  [ -n "$llmch_options_ok" ] && return 0
+
+  llmcu_eval_api_key || return
+  llmch_check_required_options || return
+
+  llmch_options_ok=1
+  return 0
+}
