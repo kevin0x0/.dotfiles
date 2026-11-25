@@ -141,7 +141,7 @@ render_header() {
         ;;
       status)
         case $llm_chat_last_status in
-          failed)       status_color='1;31' ;;
+          failure)      status_color='1;31' ;;
           interrupted)  status_color='1;33' ;;
           success)      status_color='1' ;;
           *)            status_color='1;2' ;;

@@ -519,7 +519,7 @@ call_tool() {
 
     trap ':' INT
     llm-tool-call -NS llm_chat_opt_api_key=0 "$@" <<EOF >"$transfer_fifo"
-    $opt_api_key
+$opt_api_key
 EOF
 
     exitcode=$?
