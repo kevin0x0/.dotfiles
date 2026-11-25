@@ -66,6 +66,7 @@ llmcu_opt_fromfd=
 . llm-render-utils
 . llm-chat-common
 . llm-chat-hook-funcs
+. llm-chat-private
 
 llmru_opt_tool_output_lines=15
 
@@ -495,27 +496,6 @@ EOF
   exit "$exitcode"
 )
 
-jq_program_extract_text='
-inputs |
-if (.type // "message") == "message" then
-  .content |
-  if type == "array" then
-    .[].text
-  end
-elif .type == "reasoning" then
-  .content // [] | .[].text
-elif .type == "function_call" or .type == "custom_tool_call" then
-  .arguments // .input
-elif .type == "function_call_output" or .type == "custom_tool_call_output" then
-  .output |
-  if type == "array" then
-    .[].text
-  end
-else
-  empty
-end | select(.)
-'
-
 call_tool() {
   set -- "$@" -i "$llm_chat_pending_items" -- \
     "$opt_state_dir" "$opt_files_base_url" \
@@ -552,64 +532,11 @@ EOF
   return "$exitcode"
 }
 
-estimate_tokens_jq() {
-  jq -nr '
-    [ '"$jq_program_extract_text"' ] | add // "" |
-    # token weight: whitespace 0, punct/CJK/kana/hangul 1, emoji 3, other 0.25
-    explode | reduce .[] as $c (0;
-      . + (
-        if $c <= 32 then
-          0
-        elif $c <= 126 then
-          (if $c <= 47 or ($c >= 58 and $c <= 64) or ($c >= 91 and $c <= 96) or $c >= 123 then 1 else 0.25 end)
-        else
-          (if ($c >= 13312 and $c <= 19903) or ($c >= 19968 and $c <= 40959) or ($c >= 63744 and $c <= 64255)
-            or ($c >= 12352 and $c <= 12543) or ($c >= 4352 and $c <= 4607) or ($c >= 12592 and $c <= 12687) or ($c >= 44032 and $c <= 55215)
-            or ($c >= 12289 and $c <= 12351) or ($c >= 65281 and $c <= 65381) then 1
-           elif ($c >= 126976 and $c <= 129791) or ($c >= 9728 and $c <= 10175) then 3
-           else 0.25 end)
-        end
-      )
-    ) | floor
-    '
-}
-
-estimate_tokens_perl() {
-  jq -nj "$jq_program_extract_text" \
-    | perl -CSD -ne '
-        # token weight: whitespace 0, punct/CJK/kana/hangul 1, emoji 3, other 0.25
-        BEGIN { $t = 0 }
-        for my $c (split //) {
-          my $o = ord($c);
-          $t += 0.25 if $o > 32;
-          $t += 0.75 if ($o >= 33 && $o <= 47) || ($o >= 58 && $o <= 64) || ($o >= 91 && $o <= 96) || ($o >= 123 && $o <= 126);
-          $t += 0.75 if ($o >= 13312 && $o <= 19903) || ($o >= 19968 && $o <= 40959) || ($o >= 63744 && $o <= 64255);
-          $t += 0.75 if ($o >= 12352 && $o <= 12543) || ($o >= 4352 && $o <= 4607) || ($o >= 12592 && $o <= 12687) || ($o >= 44032 && $o <= 55215);
-          $t += 0.75 if ($o >= 12289 && $o <= 12351) || ($o >= 65281 && $o <= 65381);
-          $t += 2.75 if ($o >= 126976 && $o <= 129791) || ($o >= 9728 && $o <= 10175);
-        }
-        END { print int($t), "\n" }
-      '
-}
-
-command -v perl >/dev/null 2>&1 && is_perl_available=1 || is_perl_available=
-estimate_tokens() {
-  if [ "${#opt_token_estimator}" -ne 0 ]; then
-    if command eval " $opt_token_estimator"; then
-      return
-    fi
-  fi
-
-  [ -n "$is_perl_available" ] \
-    && estimate_tokens_perl "$@" \
-    || estimate_tokens_jq "$@"
-}
-
 commit_pending_items() {
   if [ -n "$1" ]; then
     llm_chat_last_total_tokens=$1
   else
-    estimated_pending_tokens=$(estimate_tokens <"$llm_chat_pending_items") \
+    estimated_pending_tokens=$(llmcp_estimate_tokens <"$llm_chat_pending_items") \
       || estimated_pending_tokens=0
     llm_chat_last_total_tokens=$((llm_chat_last_total_tokens + estimated_pending_tokens))
   fi
