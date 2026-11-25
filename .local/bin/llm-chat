@@ -57,8 +57,6 @@ opt_mock_api=
 opt_mock_tool=
 opt_mock_file=
 
-opt_token_estimator=
-
 llmcu_opt_fromfile=
 llmcu_opt_fromfd=
 

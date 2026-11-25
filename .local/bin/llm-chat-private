@@ -1,5 +1,8 @@
 #!/bin/sh
 
+opt_token_estimator=
+opt_session_save_options="$opt_session_save_options opt_token_estimator"
+
 llmcp_jq_program_extract_text='
 inputs |
 if (.type // "message") == "message" then

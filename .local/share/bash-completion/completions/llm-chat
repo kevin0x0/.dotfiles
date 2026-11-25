@@ -1,4 +1,21 @@
 
+_comp_cmd_llm_chat_helper_find_bin() {
+  local paths=${PATH:+$PATH:}
+  local path
+
+  while [ -n "$paths" ]; do
+    path=${paths%%:*}
+    paths=${paths#*:}
+
+    path=${path:-.}/$1
+    if [ -f "$path" ]; then
+      printf "%s\n" "$path"
+      return 0
+    fi
+  done
+  return 1
+}
+
 _comp_cmd_llm_chat() {
   local cur prev
   _comp_get_words cur prev
@@ -31,8 +48,12 @@ _comp_cmd_llm_chat() {
       esac
       ;;
     -*o)
-      local llm_chat_path=$(command -v llm-chat 2>/dev/null) || return
-      _comp_compgen -- split -F $'\n' -- "$(sed -n -- '/opt_/{s/^.*opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p;}' "$llm_chat_path" | sort -u)"
+      local script
+      local path
+      for script in llm-chat llm-chat-private; do
+        path="$(_comp_cmd_llm_chat_helper_find_bin "$script")" || continue
+        _comp_compgen -a -- split -F $'\n' -- "$(sed -n -- '/opt_/{s/^.*opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p;}' "$path" | sort -u)"
+      done
       compopt -o nospace
       ;;
     *)
