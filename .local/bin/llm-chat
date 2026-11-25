@@ -457,6 +457,15 @@ check_file_id() {
 }
 
 call_api() (
+  set -- \
+    -u "$opt_responses_base_url" \
+    -i "$llm_chat_conversation" \
+    -I "$llm_chat_response_extra_info_output" \
+    -r "$opt_reasoning" \
+    -m "$opt_model"
+  [ -n "$opt_stream" ] && set -- "$@" -s
+  [ -n "$opt_extra_request_args" ] && set -- "$@" -A "$opt_extra_request_args"
+  [ -n "$opt_mock_api" ] && set -- "$@" -M "$opt_mock_api"
   [ -s "$llm_chat_tool_list" ] && set -- "$@" -T "$llm_chat_tool_list"
 
   llmru_dispatch_render_event "$render_event_fifo" <"$response_event_output_fifo" &
@@ -855,16 +864,6 @@ for cmdline_input; do
   pending_input=$pending_input$cmdline_input$'\n'
 done
 
-set -- \
-  -u "$opt_responses_base_url" \
-  -i "$llm_chat_conversation" \
-  -I "$llm_chat_response_extra_info_output" \
-  -r "$opt_reasoning" \
-  -m "$opt_model"
-[ -n "$opt_stream" ] && set -- "$@" -s
-[ -n "$opt_extra_request_args" ] && set -- "$@" -A "$opt_extra_request_args"
-[ -n "$opt_mock_api" ] && set -- "$@" -M "$opt_mock_api"
-
 [ -n "$opt_command_before_repl" ] && command eval " $opt_command_before_repl"
 
 # REPL
@@ -894,7 +893,7 @@ while :; do
       fi
       ;;
     agent-loop-api-call)
-      call_api "$@"
+      call_api
       exitcode=$?
       case $exitcode in
         0)
