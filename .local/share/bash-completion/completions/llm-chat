@@ -50,7 +50,7 @@ _comp_cmd_llm_chat() {
     -*o)
       local script
       local path
-      for script in llm-chat llm-chat-private; do
+      for script in llm-chat llm-chat-helpers; do
         path="$(_comp_cmd_llm_chat_helper_find_bin "$script")" || continue
         _comp_compgen -a -- split -F $'\n' -- "$(sed -n -- '/opt_/{s/^.*opt_\([[:alnum:]_]*\).*$/\1/; s/_/-/g; p;}' "$path" | sort -u)"
       done

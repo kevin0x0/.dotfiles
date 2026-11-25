@@ -3,7 +3,7 @@
 opt_token_estimator=
 opt_session_save_options="$opt_session_save_options opt_token_estimator"
 
-llmcp_jq_program_extract_text='
+llmch_jq_program_extract_text='
 inputs |
 if (.type // "message") == "message" then
   .content |
@@ -24,9 +24,9 @@ else
 end | select(.)
 '
 
-llmcp_estimate_tokens_jq() {
+llmch_estimate_tokens_jq() {
   jq -nr '
-    [ '"$llmcp_jq_program_extract_text"' ] | add // "" |
+    [ '"$llmch_jq_program_extract_text"' ] | add // "" |
     # token weight: whitespace 0, punct/CJK/kana/hangul 1, emoji 3, other 0.25
     explode | reduce .[] as $c (0;
       . + (
@@ -46,8 +46,8 @@ llmcp_estimate_tokens_jq() {
     '
 }
 
-llmcp_estimate_tokens_perl() {
-  jq -nj "$llmcp_jq_program_extract_text" \
+llmch_estimate_tokens_perl() {
+  jq -nj "$llmch_jq_program_extract_text" \
     | perl -CSD -ne '
         # token weight: whitespace 0, punct/CJK/kana/hangul 1, emoji 3, other 0.25
         BEGIN { $t = 0 }
@@ -64,15 +64,15 @@ llmcp_estimate_tokens_perl() {
       '
 }
 
-command -v perl >/dev/null 2>&1 && llmcp_perl_is_available=1 || llmcp_perl_is_available=
-llmcp_estimate_tokens() {
+command -v perl >/dev/null 2>&1 && llmch_perl_is_available=1 || llmch_perl_is_available=
+llmch_estimate_tokens() {
   if [ "${#opt_token_estimator}" -ne 0 ]; then
     if command eval " $opt_token_estimator"; then
       return
     fi
   fi
 
-  [ -n "$llmcp_perl_is_available" ] \
-    && llmcp_estimate_tokens_perl "$@" \
-    || llmcp_estimate_tokens_jq "$@"
+  [ -n "$llmch_perl_is_available" ] \
+    && llmch_estimate_tokens_perl "$@" \
+    || llmch_estimate_tokens_jq "$@"
 }

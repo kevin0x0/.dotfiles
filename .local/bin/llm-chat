@@ -64,7 +64,7 @@ llmcu_opt_fromfd=
 . llm-render-utils
 . llm-chat-common
 . llm-chat-hook-funcs
-. llm-chat-private
+. llm-chat-helpers
 
 llmru_opt_tool_output_lines=15
 
@@ -543,7 +543,7 @@ commit_pending_items() {
   if [ -n "$1" ]; then
     llm_chat_last_total_tokens=$1
   else
-    estimated_pending_tokens=$(llmcp_estimate_tokens <"$llm_chat_pending_items") \
+    estimated_pending_tokens=$(llmch_estimate_tokens <"$llm_chat_pending_items") \
       || estimated_pending_tokens=0
     llm_chat_last_total_tokens=$((llm_chat_last_total_tokens + estimated_pending_tokens))
   fi
