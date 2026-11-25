@@ -250,13 +250,17 @@ failure_state=llm-tool-call-failure-$$
 
 jq_program='
 def chunk: if length != 0 then range(0;length;512) as $n | .[$n:$n+512] end;
-select(has("call_id") and (.type | endswith("_call")) and $filterout[.type] == null) |
-  if .type == "function_call" or .type == "custom_tool_call" then
+select((.type | endswith("_call"))) |
+  if $filterout[.type] or .call_id == null then
+    .type, "", "server_side@"
+  elif .type == "function_call" or .type == "custom_tool_call" then
     .type, (.call_id | @json), .name, (.arguments // .input | chunk | @json), "__END__"
   elif (.type == "tool_search_call" and .execution == "client") or
     (.type == "shell_call" and (.environment == null or .environment.type == "local")) or
     (.type == "computer_call") then
     "api_builtin", null, "_builtin_" + (.type | rtrimstr("_call")), @json, "__END__"
+  else
+    .type, "", "server_side@"
   end
 '
 
@@ -271,7 +275,12 @@ filterout='{
 
 jq -rc --argjson filterout "$filterout" "$jq_program" <&3 \
   | {
+      server_side_tool_call_exists=
       while read -r type && read -r id && read -r toolname; do
+        if [ "$toolname" = "server_side@" ]; then
+          server_side_tool_call_exists=1
+          continue
+        fi
         find_and_call "$type" "$id" "$toolname" "$@" || notify-state "$failure_state"
       done
 
@@ -282,10 +291,12 @@ jq -rc --argjson filterout "$filterout" "$jq_program" <&3 \
         elif notify-state -t "$failure_state"; then
           exitcode=1
         else
-          exitcode=0
+          exitcode=1 # Should not happen
         fi
         notify-state -c "$interruption_state" "$failure_state"
         exit "$exitcode"
+      elif [ -n "$server_side_tool_call_exists" ]; then
+        exit 4
       else
         exit 0
       fi

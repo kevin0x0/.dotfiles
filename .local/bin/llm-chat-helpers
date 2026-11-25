@@ -19,6 +19,8 @@ elif .type == "function_call_output" or .type == "custom_tool_call_output" then
   if type == "array" then
     .[].text
   end
+elif .type == "web_search_call" then
+  .action | .query, (.queries // [])[], .pattern, .url
 else
   empty
 end | select(.)

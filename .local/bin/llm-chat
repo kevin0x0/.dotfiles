@@ -507,6 +507,10 @@ EOF
       commit_pending_items "$last_total"
       cp -f -- "$llm_chat_tool_output" "$llm_chat_pending_items"
       ;;
+    4)
+      commit_pending_items
+      cp -f -- "$llm_chat_tool_output" "$llm_chat_pending_items"
+      ;;
   esac
   return "$exitcode"
 }
@@ -901,7 +905,7 @@ while :; do
       call_tool
       exitcode=$?
       case $exitcode in
-        0)
+        0|4)
           [ -s "$llm_chat_pending_items" ] && llm_chat_next_state=agent-loop-api-call-prepare || llm_chat_next_state=agent-loop-success
           ;;
         5)
@@ -938,7 +942,7 @@ while :; do
           call_tool -I
           exitcode=$?
           case $exitcode in
-            0|5) ;;
+            0|4|5) ;;
             *)
               i18n -n llm-scripts 'failed to handle tool call' >&2
               llm_chat_next_state=agent-loop-failure

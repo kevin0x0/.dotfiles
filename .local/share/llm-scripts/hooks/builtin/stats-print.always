@@ -382,7 +382,7 @@ render_kvpair() {
         value_text=$(color '1' "$value_text")
         ;;
       context)
-        context_ratio=$(percent "$last_total" "$llmmi_context")
+        context_ratio=$(percent "$llm_chat_last_total_tokens" "$llmmi_context")
         if [ "$context_ratio" = '?' ] || [ "$max_length" -lt 30 ]; then
           value_text=$context_ratio
           value_length=${#value_text}
