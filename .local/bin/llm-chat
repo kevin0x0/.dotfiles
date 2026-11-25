@@ -57,6 +57,7 @@ opt_mock_api=
 opt_mock_tool=
 opt_mock_file=
 
+opt_token_estimator=
 
 llmcu_opt_fromfile=
 llmcu_opt_fromfd=
@@ -593,6 +594,12 @@ estimate_tokens_perl() {
 
 command -v perl >/dev/null 2>&1 && is_perl_available=1 || is_perl_available=
 estimate_tokens() {
+  if [ "${#opt_token_estimator}" -ne 0 ]; then
+    if command eval " $opt_token_estimator"; then
+      return
+    fi
+  fi
+
   [ -n "$is_perl_available" ] \
     && estimate_tokens_perl "$@" \
     || estimate_tokens_jq "$@"
