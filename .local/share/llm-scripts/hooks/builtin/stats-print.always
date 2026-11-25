@@ -32,6 +32,7 @@ percent() {
     *)
       if [ "$2" -ne 0 ]; then
         result=$(($1 * 10000 / $2))
+        result=$((result > 10000 ? 10000 : result))
         case $result in
           10000)
             result=100.00
