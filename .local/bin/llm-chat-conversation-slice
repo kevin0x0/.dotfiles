@@ -5,17 +5,20 @@
 jq_program='
 def add($item):
   if (length) == 0 then
-    [{msgs:[$item], still_prompt:true, role:$item.role}]
+    [
+      {
+        msgs:[$item],
+        still_prompt:$item.type == "message" and $item.role != "assistant",
+      }
+    ]
   elif $item.type != "message" then
     .[-1].msgs += [$item] | .[-1].still_prompt = false
-  elif $item.role == .[-1].role and .[-1].still_prompt then
-    .[-1].msgs += [$item]
   elif $item.role == "assistant" then
     .[-1].msgs += [$item] | .[-1].still_prompt = false
-  elif $item.role == "system" or $item.role == "developer" or $item.role == "user" then
-    . += [{msgs:[$item], still_prompt:true, role:$item.role}]
-  else # this should not happen
-    . += [{msgs:[$item], still_prompt:true, role:$item.role}]
+  elif .[-1].still_prompt then
+    .[-1].msgs += [$item]
+  else
+    . += [{msgs:[$item], still_prompt:true}]
   end;
 
 reduce inputs as $item ([]; add($item)) |

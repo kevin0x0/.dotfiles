@@ -155,8 +155,8 @@ these files.
   are grouped into exchanges: an exchange starts at a prompt message
   (system, developer or user) and takes everything that follows it
   (assistant messages, tool calls, tool results) until the next
-  prompt message; consecutive prompt messages of the same role form
-  one exchange, and the very first item starts one. <begin> and
+  prompt message; consecutive prompt messages form one exchange, and
+  the very first item starts one. <begin> and
   <end> (integers) select exchanges by position as a half-open range:
   negative numbers count from the end, an omitted bound is the start
   or the end, and a range holding no exchange prints nothing. For
